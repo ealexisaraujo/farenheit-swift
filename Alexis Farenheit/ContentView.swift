@@ -8,6 +8,7 @@ import UIKit
 struct ContentView: View {
     @StateObject private var viewModel = HomeViewModel()
     @Environment(\.scenePhase) private var scenePhase
+    @State private var showingLogViewer = false
 
     var body: some View {
         ZStack {
@@ -21,9 +22,9 @@ struct ContentView: View {
 
             ScrollView {
                 VStack(spacing: 20) {
-                    // Header
+                    // Header with settings
                     header
-                    
+
                     // Main temperature card
                     TemperatureDisplayView(
                         cityName: viewModel.selectedCity,
@@ -47,7 +48,7 @@ struct ContentView: View {
 
                     // Action buttons
                     actionButtons
-                    
+
                     // Last update time
                     if let lastUpdate = viewModel.lastUpdateTime {
                         Text("Actualizado: \(lastUpdate, style: .relative)")
@@ -67,6 +68,9 @@ struct ContentView: View {
                 viewModel.onBecameActive()
             }
         }
+        .sheet(isPresented: $showingLogViewer) {
+            LogViewerView()
+        }
     }
 
     // MARK: - Subviews
@@ -80,9 +84,20 @@ struct ContentView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
+
             Spacer()
-            
-            // Loading indicator
+
+            // Log viewer button (debug)
+            Button {
+                showingLogViewer = true
+            } label: {
+                Image(systemName: "doc.text.magnifyingglass")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.trailing, 8)
+
+            // Loading indicator or thermometer icon
             if viewModel.isLoadingWeather {
                 ProgressView()
                     .scaleEffect(0.8)
@@ -94,7 +109,7 @@ struct ContentView: View {
         }
         .padding(.top, 8)
     }
-    
+
     private func errorBanner(_ message: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
@@ -108,7 +123,7 @@ struct ContentView: View {
         .background(Color.orange.opacity(0.15))
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
-    
+
     private var actionButtons: some View {
         HStack(spacing: 12) {
             // Refresh location button
