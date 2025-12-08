@@ -6,6 +6,7 @@ import os.log
 
 /// Main ViewModel for the home screen - manages temperature, location, and city search state.
 /// Follows MVVM pattern with Combine bindings.
+/// Auto-refreshes weather on foreground and tracks last update time.
 @MainActor
 final class HomeViewModel: ObservableObject {
     private let logger = Logger(subsystem: "com.alexis.farenheit", category: "HomeVM")
@@ -13,7 +14,6 @@ final class HomeViewModel: ObservableObject {
     // MARK: - Published Properties
 
     /// Manual temperature input from slider for conversion display only
-    /// This does NOT affect the weather data - it's purely for F↔C conversion tool
     @Published var manualFahrenheit: Double = 72
 
     /// City name from location or search
@@ -33,12 +33,18 @@ final class HomeViewModel: ObservableObject {
 
     /// Loading state for weather fetch
     @Published var isLoadingWeather: Bool = false
+    
+    /// Last time weather was successfully updated
+    @Published var lastUpdateTime: Date?
 
     // MARK: - Services
 
     private let locationService = LocationService()
     private let weatherService = WeatherService()
     private var cancellables = Set<AnyCancellable>()
+    
+    /// Minimum interval between automatic refreshes (5 minutes)
+    private let minimumRefreshInterval: TimeInterval = 5 * 60
 
     // MARK: - Computed Properties
 
@@ -52,9 +58,15 @@ final class HomeViewModel: ObservableObject {
         (displayFahrenheit - 32) * 5 / 9
     }
     
-    /// Celsius conversion of manual slider value (for the converter tool)
+    /// Celsius conversion of manual slider value
     var manualCelsius: Double {
         (manualFahrenheit - 32) * 5 / 9
+    }
+    
+    /// Check if enough time has passed to allow auto-refresh
+    private var canAutoRefresh: Bool {
+        guard let lastUpdate = lastUpdateTime else { return true }
+        return Date().timeIntervalSince(lastUpdate) >= minimumRefreshInterval
     }
 
     // MARK: - Init
@@ -67,9 +79,30 @@ final class HomeViewModel: ObservableObject {
 
     // MARK: - Public Methods
 
-    /// Called when view appears - requests location permission
+    /// Called when view appears for the first time
     func onAppear() {
+        logger.debug("🏠 View appeared - requesting permission")
         locationService.requestPermission()
+    }
+    
+    /// Called when app returns to foreground
+    func onBecameActive() {
+        logger.debug("🏠 App became active")
+        
+        // Only auto-refresh if enough time has passed
+        guard canAutoRefresh else {
+            logger.debug("🏠 Skipping auto-refresh - last update too recent")
+            return
+        }
+        
+        logger.debug("🏠 Auto-refreshing weather...")
+        refreshWeatherIfPossible()
+    }
+    
+    /// Force refresh weather (user-initiated)
+    func forceRefresh() {
+        logger.debug("🏠 Force refresh requested")
+        locationService.requestLocation()
     }
 
     /// Manually request location update
@@ -77,13 +110,18 @@ final class HomeViewModel: ObservableObject {
         locationService.requestLocation()
     }
 
-    /// Refresh weather for current location
-    func refreshWeatherIfPossible() async {
+    /// Refresh weather for current/last known location
+    func refreshWeatherIfPossible() {
         guard let location = locationService.lastLocation else {
-            logger.warning("🏠 No location available")
+            logger.warning("🏠 No location available for refresh")
+            // Try to get location first
+            locationService.requestLocation()
             return
         }
-        await weatherService.fetchWeather(for: location)
+        
+        Task {
+            await weatherService.fetchWeather(for: location)
+        }
     }
 
     /// Handle city selection from search
@@ -93,8 +131,6 @@ final class HomeViewModel: ObservableObject {
         // Update city info immediately for UI
         selectedCity = completion.title
         selectedCountry = ""
-        
-        // Clear any previous errors
         errorMessage = nil
         
         // Geocode and fetch weather for the selected city
@@ -103,7 +139,7 @@ final class HomeViewModel: ObservableObject {
     
     // MARK: - Widget Data
     
-    /// Save weather data to widget (only called when we have real weather data)
+    /// Save weather data to widget
     private func saveWeatherToWidget() {
         guard selectedCity != "Detecting..." && selectedCity != "Unknown" else { return }
         guard let temp = currentFahrenheit else { return }
@@ -159,12 +195,13 @@ final class HomeViewModel: ObservableObject {
 
     /// Bind to WeatherService published properties
     private func bindWeather() {
-        // Bind temperature - save to widget when we get real weather data
+        // Bind temperature - save to widget and update timestamp
         weatherService.$currentTemperatureF
             .receive(on: RunLoop.main)
             .sink { [weak self] temp in
                 guard let self, let temp else { return }
                 self.currentFahrenheit = temp
+                self.lastUpdateTime = Date()
                 self.saveWeatherToWidget()
             }
             .store(in: &cancellables)

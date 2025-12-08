@@ -2,7 +2,8 @@
 //  AlexisExtensionFarenheit.swift
 //  Temperature Converter Widget
 //
-//  Created by Alexis Araujo (CS) on 05/12/25.
+//  Displays temperature in °F and °C with automatic updates.
+//  Uses App Group to share data with main app.
 //
 
 import WidgetKit
@@ -45,7 +46,8 @@ struct TemperatureEntry: TimelineEntry {
 /// App Group ID - must match exactly with main app
 private let appGroupID = "group.alexisaraujo.alexisfarenheit"
 
-/// Provides timeline data for the widget
+/// Provides timeline data for the widget.
+/// Refreshes at regular intervals and when main app pushes updates.
 struct TemperatureProvider: TimelineProvider {
     
     func placeholder(in context: Context) -> TemperatureEntry {
@@ -53,15 +55,43 @@ struct TemperatureProvider: TimelineProvider {
     }
     
     func getSnapshot(in context: Context, completion: @escaping (TemperatureEntry) -> Void) {
+        print("[Widget] 📸 Snapshot requested")
         let entry = loadCachedEntry()
         completion(entry)
     }
     
     func getTimeline(in context: Context, completion: @escaping (Timeline<TemperatureEntry>) -> Void) {
-        let entry = loadCachedEntry()
-        // Refresh every 15 minutes
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date()
-        let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
+        print("[Widget] 🕐 Timeline requested")
+        
+        let currentEntry = loadCachedEntry()
+        
+        // Create timeline entries for the next hour
+        var entries: [TemperatureEntry] = []
+        
+        // Current entry
+        entries.append(currentEntry)
+        
+        // Schedule refresh every 15 minutes
+        // iOS will batch these for power efficiency
+        let refreshMinutes = [15, 30, 45, 60]
+        for minutes in refreshMinutes {
+            if let futureDate = Calendar.current.date(byAdding: .minute, value: minutes, to: Date()) {
+                let entry = TemperatureEntry(
+                    date: futureDate,
+                    cityName: currentEntry.cityName,
+                    countryCode: currentEntry.countryCode,
+                    fahrenheit: currentEntry.fahrenheit,
+                    celsius: currentEntry.celsius
+                )
+                entries.append(entry)
+            }
+        }
+        
+        // After last entry, refresh again
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 60, to: Date()) ?? Date()
+        let timeline = Timeline(entries: entries, policy: .after(nextUpdate))
+        
+        print("[Widget] ✅ Timeline created with \(entries.count) entries, next update: \(nextUpdate)")
         completion(timeline)
     }
     
@@ -69,7 +99,7 @@ struct TemperatureProvider: TimelineProvider {
     private func loadCachedEntry() -> TemperatureEntry {
         // Try to get shared UserDefaults
         guard let defaults = UserDefaults(suiteName: appGroupID) else {
-            print("[Widget] ERROR: Could not access App Group: \(appGroupID)")
+            print("[Widget] ❌ Could not access App Group")
             return .placeholder
         }
         
@@ -79,18 +109,18 @@ struct TemperatureProvider: TimelineProvider {
         let fahrenheit = defaults.double(forKey: "widget_fahrenheit")
         let lastUpdate = defaults.double(forKey: "widget_last_update")
         
-        // Debug logging
-        print("[Widget] Reading from App Group: city=\(city ?? "nil"), fahrenheit=\(fahrenheit), lastUpdate=\(lastUpdate)")
-        
         // Validate we have data
         guard let cityName = city, !cityName.isEmpty, lastUpdate > 0 else {
-            print("[Widget] No valid cached data found, using placeholder")
+            print("[Widget] ⚠️ No cached data")
             return .placeholder
         }
         
         let celsius = (fahrenheit - 32) * 5 / 9
         
-        print("[Widget] Loaded entry: \(cityName), \(fahrenheit)°F")
+        // Calculate age of data
+        let age = Date().timeIntervalSince1970 - lastUpdate
+        let ageMinutes = Int(age / 60)
+        print("[Widget] 📖 Loaded: \(cityName), \(Int(fahrenheit))°F (data age: \(ageMinutes)m)")
         
         return TemperatureEntry(
             date: Date(),
@@ -114,7 +144,7 @@ struct ConversionItem: Identifiable {
     var cText: String { "\(celsius)°C" }
 }
 
-/// Common conversion values
+/// Common conversion values for medium widget
 let conversionScale: [ConversionItem] = [
     ConversionItem(id: 0, fahrenheit: 32, celsius: 0),
     ConversionItem(id: 1, fahrenheit: 50, celsius: 10),
@@ -123,6 +153,7 @@ let conversionScale: [ConversionItem] = [
     ConversionItem(id: 4, fahrenheit: 104, celsius: 40)
 ]
 
+/// Full conversion table for large widget
 let conversionTable: [ConversionItem] = [
     ConversionItem(id: 0, fahrenheit: 0, celsius: -18),
     ConversionItem(id: 1, fahrenheit: 32, celsius: 0),
@@ -173,7 +204,7 @@ struct SmallWidgetView: View {
     }
 }
 
-/// Medium widget - Temperature + conversion info
+/// Medium widget - Temperature + conversion scale
 struct MediumWidgetView: View {
     let entry: TemperatureEntry
     
@@ -245,7 +276,7 @@ struct MediumWidgetView: View {
     }
 }
 
-/// Large widget - Full temperature card with details
+/// Large widget - Full temperature card with conversion table
 struct LargeWidgetView: View {
     let entry: TemperatureEntry
     
@@ -356,15 +387,16 @@ struct AlexisExtensionFarenheit: Widget {
 private func gradientBackground(for fahrenheit: Double) -> LinearGradient {
     let colors: [Color]
     
-    if fahrenheit < 32 {
+    switch fahrenheit {
+    case ..<32:  // Freezing - deep blue
         colors = [Color(hex: "1a237e"), Color(hex: "0d47a1")]
-    } else if fahrenheit < 50 {
+    case 32..<50:  // Cold - light blue
         colors = [Color(hex: "0288d1"), Color(hex: "03a9f4")]
-    } else if fahrenheit < 68 {
+    case 50..<68:  // Cool - teal
         colors = [Color(hex: "00897b"), Color(hex: "26a69a")]
-    } else if fahrenheit < 86 {
+    case 68..<86:  // Warm - orange
         colors = [Color(hex: "ff7043"), Color(hex: "ff5722")]
-    } else {
+    default:  // Hot - red
         colors = [Color(hex: "d32f2f"), Color(hex: "f44336")]
     }
     

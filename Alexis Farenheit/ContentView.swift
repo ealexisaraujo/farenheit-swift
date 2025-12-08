@@ -4,8 +4,10 @@ import UIKit
 
 /// Main content view for the Temperature Converter app.
 /// Displays current temperature, manual conversion slider, and city search.
+/// Automatically refreshes weather when app returns to foreground.
 struct ContentView: View {
     @StateObject private var viewModel = HomeViewModel()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ZStack {
@@ -21,7 +23,7 @@ struct ContentView: View {
                 VStack(spacing: 20) {
                     // Header
                     header
-
+                    
                     // Main temperature card
                     TemperatureDisplayView(
                         cityName: viewModel.selectedCity,
@@ -45,6 +47,13 @@ struct ContentView: View {
 
                     // Action buttons
                     actionButtons
+                    
+                    // Last update time
+                    if let lastUpdate = viewModel.lastUpdateTime {
+                        Text("Actualizado: \(lastUpdate, style: .relative)")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 24)
@@ -52,6 +61,12 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .task { viewModel.onAppear() }
+        // Auto-refresh when app comes back to foreground
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                viewModel.onBecameActive()
+            }
+        }
     }
 
     // MARK: - Subviews
@@ -66,7 +81,7 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-
+            
             // Loading indicator
             if viewModel.isLoadingWeather {
                 ProgressView()
@@ -79,7 +94,7 @@ struct ContentView: View {
         }
         .padding(.top, 8)
     }
-
+    
     private func errorBanner(_ message: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
@@ -93,13 +108,12 @@ struct ContentView: View {
         .background(Color.orange.opacity(0.15))
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
-
+    
     private var actionButtons: some View {
         HStack(spacing: 12) {
             // Refresh location button
             Button {
-                viewModel.requestLocation()
-                Task { await viewModel.refreshWeatherIfPossible() }
+                viewModel.forceRefresh()
             } label: {
                 Label("Actualizar", systemImage: "arrow.triangle.2.circlepath")
                     .frame(maxWidth: .infinity)
