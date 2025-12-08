@@ -22,9 +22,6 @@ final class HomeViewModel: ObservableObject {
     /// Country code (ISO format)
     @Published var selectedCountry: String = ""
 
-    /// Search text for city lookup
-    @Published var searchText: String = ""
-
     /// Current temperature from WeatherKit (nil if not fetched yet)
     @Published var currentFahrenheit: Double?
 
@@ -54,7 +51,7 @@ final class HomeViewModel: ObservableObject {
     var displayCelsius: Double {
         (displayFahrenheit - 32) * 5 / 9
     }
-
+    
     /// Celsius conversion of manual slider value (for the converter tool)
     var manualCelsius: Double {
         (manualFahrenheit - 32) * 5 / 9
@@ -92,30 +89,25 @@ final class HomeViewModel: ObservableObject {
     /// Handle city selection from search
     func handleCitySelection(_ completion: MKLocalSearchCompletion) {
         logger.debug("🏠 City selected: \(completion.title)")
-
-        // Update city info
+        
+        // Update city info immediately for UI
         selectedCity = completion.title
-        selectedCountry = completion.subtitle.isEmpty ? "" : completion.subtitle
-
-        // Clear search text to hide the suggestions list
-        searchText = ""
-
+        selectedCountry = ""
+        
+        // Clear any previous errors
+        errorMessage = nil
+        
         // Geocode and fetch weather for the selected city
         geocodeAndFetchWeather(for: completion.title)
     }
-
-    /// Clear search results
-    func clearSearch() {
-        searchText = ""
-    }
-
+    
     // MARK: - Widget Data
-
+    
     /// Save weather data to widget (only called when we have real weather data)
     private func saveWeatherToWidget() {
         guard selectedCity != "Detecting..." && selectedCity != "Unknown" else { return }
         guard let temp = currentFahrenheit else { return }
-
+        
         logger.debug("🏠 Saving to widget: \(self.selectedCity), \(temp)°F")
         WidgetDataService.shared.saveTemperature(
             city: selectedCity,
@@ -195,25 +187,42 @@ final class HomeViewModel: ObservableObject {
 
     /// Geocode city name and fetch weather
     private func geocodeAndFetchWeather(for cityName: String) {
+        isLoadingWeather = true
+        
         let geocoder = CLGeocoder()
         geocoder.geocodeAddressString(cityName) { [weak self] placemarks, error in
             guard let self else { return }
-
+            
             if let error {
                 self.logger.error("🏠 Geocode error: \(error.localizedDescription)")
+                Task { @MainActor in
+                    self.isLoadingWeather = false
+                    self.errorMessage = "No se pudo encontrar la ubicación"
+                }
                 return
             }
-
-            guard let placemark = placemarks?.first else { return }
-
+            
+            guard let placemark = placemarks?.first else {
+                Task { @MainActor in
+                    self.isLoadingWeather = false
+                }
+                return
+            }
+            
             // Update country from geocode result
             if let country = placemark.isoCountryCode {
                 Task { @MainActor in
                     self.selectedCountry = country
                 }
             }
-
-            guard let location = placemark.location else { return }
+            
+            guard let location = placemark.location else {
+                Task { @MainActor in
+                    self.isLoadingWeather = false
+                }
+                return
+            }
+            
             Task { await self.weatherService.fetchWeather(for: location) }
         }
     }

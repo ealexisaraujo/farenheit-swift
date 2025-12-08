@@ -9,13 +9,20 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Color.black, Color(hex: "1C1C1E")], startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
+            // Background gradient
+            LinearGradient(
+                colors: [Color.black, Color(hex: "1C1C1E")],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 20) {
+                    // Header
                     header
 
+                    // Main temperature card
                     TemperatureDisplayView(
                         cityName: viewModel.selectedCity,
                         fahrenheit: viewModel.displayFahrenheit,
@@ -23,46 +30,21 @@ struct ContentView: View {
                     )
                     .frame(maxWidth: .infinity, minHeight: 220)
 
+                    // Conversion slider
                     ConversionSliderView(fahrenheit: $viewModel.manualFahrenheit)
 
-                    CitySearchView(searchText: $viewModel.searchText) { completion in
+                    // City search button - opens sheet
+                    CitySearchButton(currentCity: viewModel.selectedCity) { completion in
                         viewModel.handleCitySelection(completion)
                     }
 
+                    // Error message
                     if let error = viewModel.errorMessage {
-                        Text(error)
-                            .foregroundStyle(.red)
-                            .font(.footnote)
-                            .padding(.top, 4)
+                        errorBanner(error)
                     }
 
-                    HStack(spacing: 12) {
-                        Button {
-                            viewModel.requestLocation()
-                            Task { await viewModel.refreshWeatherIfPossible() }
-                        } label: {
-                            Label("Actualizar ubicación", systemImage: "arrow.triangle.2.circlepath")
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 10)
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.blue)
-
-                        if viewModel.authorizationStatus == .denied || viewModel.authorizationStatus == .restricted {
-                            Button {
-                                if let url = URL(string: UIApplication.openSettingsURLString) {
-                                    UIApplication.shared.open(url)
-                                }
-                            } label: {
-                                Image(systemName: "gear")
-                                    .padding(10)
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(.orange)
-                            .accessibilityLabel("Abrir Ajustes para habilitar ubicación")
-                        }
-                    }
+                    // Action buttons
+                    actionButtons
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 24)
@@ -70,23 +52,79 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .task { viewModel.onAppear() }
-        .accessibilityElement(children: .contain)
     }
+
+    // MARK: - Subviews
 
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Weather")
                     .font(.largeTitle.bold())
-                Text("Conversor F° / C° + búsqueda")
+                Text("Conversor F° / C°")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Image(systemName: "thermometer.medium")
-                .foregroundStyle(.yellow)
+
+            // Loading indicator
+            if viewModel.isLoadingWeather {
+                ProgressView()
+                    .scaleEffect(0.8)
+            } else {
+                Image(systemName: "thermometer.medium")
+                    .font(.title2)
+                    .foregroundStyle(.yellow)
+            }
         }
         .padding(.top, 8)
+    }
+
+    private func errorBanner(_ message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(12)
+        .background(Color.orange.opacity(0.15))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var actionButtons: some View {
+        HStack(spacing: 12) {
+            // Refresh location button
+            Button {
+                viewModel.requestLocation()
+                Task { await viewModel.refreshWeatherIfPossible() }
+            } label: {
+                Label("Actualizar", systemImage: "arrow.triangle.2.circlepath")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.blue)
+            .disabled(viewModel.isLoadingWeather)
+
+            // Settings button (if location denied)
+            if viewModel.authorizationStatus == .denied || viewModel.authorizationStatus == .restricted {
+                Button {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Image(systemName: "gear")
+                        .font(.title3)
+                        .padding(12)
+                }
+                .buttonStyle(.bordered)
+                .tint(.orange)
+                .accessibilityLabel("Abrir Ajustes")
+            }
+        }
     }
 }
 

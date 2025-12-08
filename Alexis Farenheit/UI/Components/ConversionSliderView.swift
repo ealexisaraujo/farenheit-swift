@@ -6,6 +6,9 @@ import UIKit
 struct ConversionSliderView: View {
     @Binding var fahrenheit: Double
 
+    // Track if we already gave haptic feedback to avoid rate-limiting
+    @State private var hasGivenFeedback = false
+
     private var celsius: Double { (fahrenheit - 32) * 5 / 9 }
 
     var body: some View {
@@ -30,7 +33,7 @@ struct ConversionSliderView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                // Arrow
+                // Equals sign
                 Image(systemName: "equal")
                     .font(.title2)
                     .foregroundStyle(.secondary)
@@ -48,11 +51,15 @@ struct ConversionSliderView: View {
                 Spacer()
             }
 
-            // Slider
+            // Slider - only give haptic feedback once when starting to drag
             Slider(value: $fahrenheit, in: -40...140, step: 1) { editing in
-                if editing {
-                    // Light haptic when starting to drag
+                if editing && !hasGivenFeedback {
+                    // Light haptic only at the START of interaction
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    hasGivenFeedback = true
+                } else if !editing {
+                    // Reset when user stops dragging
+                    hasGivenFeedback = false
                 }
             }
             .tint(.orange)
