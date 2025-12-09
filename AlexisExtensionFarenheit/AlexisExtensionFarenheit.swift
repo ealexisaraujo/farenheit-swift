@@ -4,11 +4,14 @@
 //
 //  Displays temperature in °F and °C with automatic updates.
 //  Uses App Group to share data with main app.
+//  Fetches fresh weather data via WeatherKit when cache is stale.
 //  Logs are written to shared file for debugging via main app.
 //
 
 import WidgetKit
 import SwiftUI
+import WeatherKit
+import CoreLocation
 
 // MARK: - Timeline Entry
 
@@ -65,10 +68,15 @@ private let appGroupID = "group.alexisaraujo.alexisfarenheit"
 private let widgetKind = "AlexisExtensionFarenheit"
 
 /// Provides timeline data for the widget.
+/// Fetches fresh weather via WeatherKit when cache is stale (>30 min).
 /// Logs all operations for debugging via main app's Log Viewer.
 struct TemperatureProvider: TimelineProvider {
 
     private let logger = WidgetLogger.shared
+    private let weatherService = WeatherKit.WeatherService.shared
+
+    /// Cache is considered stale after 30 minutes
+    private let maxCacheAgeMinutes: Double = 30
 
     // MARK: - TimelineProvider Protocol
 
@@ -93,49 +101,124 @@ struct TemperatureProvider: TimelineProvider {
         logger.timeline("getTimeline() CALLED")
         logger.timeline("Family: \(context.family.description)")
 
-        let currentDate = Date()
         let cachedData = loadCachedData()
+        let location = loadLastKnownLocation()
 
-        var entries: [TemperatureEntry] = []
+        // Check if cache is stale
+        let cacheAgeMinutes: Double
+        if let lastUpdate = cachedData?.lastUpdate {
+            cacheAgeMinutes = Date().timeIntervalSince(lastUpdate) / 60
+        } else {
+            cacheAgeMinutes = Double.infinity
+        }
 
-        // Create entries for the next 4 hours
-        for hourOffset in 0..<4 {
-            guard let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset, to: currentDate) else {
-                continue
+        let needsFresh = cacheAgeMinutes > maxCacheAgeMinutes
+
+        logger.timeline("Cache age: \(Int(cacheAgeMinutes))m, needs fresh: \(needsFresh)")
+
+        // If we have location and cache is stale, fetch fresh weather
+        if needsFresh, let coords = location {
+            logger.timeline("Fetching fresh weather from WeatherKit...")
+
+            Task {
+                let entry = await fetchFreshWeather(
+                    location: coords,
+                    cachedCity: cachedData?.city ?? "Unknown",
+                    cachedCountry: cachedData?.country ?? ""
+                )
+
+                // Schedule next refresh in 30 minutes
+                let nextRefresh = Calendar.current.date(byAdding: .minute, value: 30, to: Date()) ?? Date()
+                let timeline = Timeline(entries: [entry], policy: .after(nextRefresh))
+
+                logger.timeline("Timeline created, next refresh: \(Self.timeFormatter.string(from: nextRefresh))")
+                logger.timeline("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+                completion(timeline)
             }
-
+        } else {
+            // Use cached data
             let entry: TemperatureEntry
             if let data = cachedData {
                 entry = TemperatureEntry.fromCache(
                     city: data.city,
                     country: data.country,
                     fahrenheit: data.fahrenheit,
-                    date: entryDate
+                    date: Date()
                 )
+                logger.timeline("Using cached data: \(data.city), \(Int(data.fahrenheit))°F")
             } else {
                 entry = TemperatureEntry(
-                    date: entryDate,
+                    date: Date(),
                     cityName: "Open App",
                     countryCode: "",
                     fahrenheit: 72,
                     celsius: 22.2,
                     isPlaceholder: true
                 )
+                logger.timeline("No cached data - showing placeholder")
             }
 
-            entries.append(entry)
+            // Schedule next refresh in 15 minutes if cache is still valid
+            let nextRefresh = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date()
+            let timeline = Timeline(entries: [entry], policy: .after(nextRefresh))
+
+            logger.timeline("Timeline created, next refresh: \(Self.timeFormatter.string(from: nextRefresh))")
+            logger.timeline("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+            completion(timeline)
         }
+    }
 
-        // Request refresh after 4 hours
-        let refreshDate = Calendar.current.date(byAdding: .hour, value: 4, to: currentDate) ?? currentDate
-        let timeline = Timeline(entries: entries, policy: .after(refreshDate))
+    // MARK: - WeatherKit Fetch
 
-        logger.timeline("Timeline created: \(entries.count) entries")
-        logger.timeline("Current: \(entries.first?.cityName ?? "nil"), \(entries.first?.fahrenheitText ?? "nil")")
-        logger.timeline("Next refresh: \(Self.timeFormatter.string(from: refreshDate))")
-        logger.timeline("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    /// Fetch fresh weather from WeatherKit
+    private func fetchFreshWeather(location: CLLocationCoordinate2D, cachedCity: String, cachedCountry: String) async -> TemperatureEntry {
+        let clLocation = CLLocation(latitude: location.latitude, longitude: location.longitude)
 
-        completion(timeline)
+        do {
+            let weather = try await weatherService.weather(for: clLocation, including: .current)
+            let tempF = weather.temperature.converted(to: .fahrenheit).value
+
+            logger.timeline("WeatherKit success: \(Int(tempF))°F")
+
+            // Save fresh data to cache for main app
+            saveFreshTemperature(city: cachedCity, country: cachedCountry, fahrenheit: tempF)
+
+            return TemperatureEntry.fromCache(
+                city: cachedCity,
+                country: cachedCountry,
+                fahrenheit: tempF,
+                date: Date()
+            )
+        } catch {
+            logger.error("WeatherKit error: \(error.localizedDescription)")
+
+            // Fall back to cached data on error
+            if let cached = loadCachedData() {
+                return TemperatureEntry.fromCache(
+                    city: cached.city,
+                    country: cached.country,
+                    fahrenheit: cached.fahrenheit,
+                    date: Date()
+                )
+            }
+
+            return .placeholder
+        }
+    }
+
+    /// Save fresh temperature to App Group (so main app sees it too)
+    private func saveFreshTemperature(city: String, country: String, fahrenheit: Double) {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+
+        defaults.set(city, forKey: "widget_city")
+        defaults.set(country, forKey: "widget_country")
+        defaults.set(fahrenheit, forKey: "widget_fahrenheit")
+        defaults.set(Date().timeIntervalSince1970, forKey: "widget_last_update")
+        defaults.synchronize()
+
+        logger.data("Saved fresh data: \(city), \(Int(fahrenheit))°F")
     }
 
     // MARK: - Data Loading
@@ -145,6 +228,8 @@ struct TemperatureProvider: TimelineProvider {
             logger.error("Cannot access App Group: \(appGroupID)")
             return nil
         }
+
+        defaults.synchronize()
 
         let city = defaults.string(forKey: "widget_city")
         let country = defaults.string(forKey: "widget_country") ?? ""
@@ -157,11 +242,24 @@ struct TemperatureProvider: TimelineProvider {
         }
 
         let updateDate = Date(timeIntervalSince1970: lastUpdate)
-        let ageMinutes = Int(Date().timeIntervalSince(updateDate) / 60)
-
-        logger.data("Loaded cache: \(cityName), \(Int(fahrenheit))°F (age: \(ageMinutes)m)")
-
         return (cityName, country, fahrenheit, updateDate)
+    }
+
+    private func loadLastKnownLocation() -> CLLocationCoordinate2D? {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+
+        defaults.synchronize()
+
+        let lat = defaults.double(forKey: "last_latitude")
+        let lon = defaults.double(forKey: "last_longitude")
+
+        guard lat != 0 && lon != 0 else {
+            logger.data("No location saved")
+            return nil
+        }
+
+        logger.data("Location: \(lat), \(lon)")
+        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
 
     private func loadCachedEntry() -> TemperatureEntry {

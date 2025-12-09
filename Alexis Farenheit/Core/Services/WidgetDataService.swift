@@ -55,35 +55,27 @@ final class WidgetDataService {
         defaults.set(country, forKey: Keys.country)
         defaults.set(fahrenheit, forKey: Keys.fahrenheit)
         defaults.set(Date().timeIntervalSince1970, forKey: Keys.lastUpdate)
+
+        // Force synchronize to ensure data is written before widget reads
         defaults.synchronize()
 
         logInfo("Saved to widget: \(city), \(Int(fahrenheit))°F", category: "Widget")
 
-        // Reload widget
-        reloadWidget()
+        // Small delay to ensure UserDefaults is synced across processes
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.reloadWidget()
+        }
     }
 
     /// Force widget to reload its timeline
     func reloadWidget() {
-        logInfo("Requesting widget reload (kind: \(Self.widgetKind))", category: "Widget")
+        logInfo("Requesting widget reload", category: "Widget")
 
-        WidgetCenter.shared.reloadTimelines(ofKind: Self.widgetKind)
+        // Use reloadAllTimelines - more reliable than reloadTimelines(ofKind:)
+        // According to Apple Developer Forums, ofKind sometimes doesn't trigger refresh
+        WidgetCenter.shared.reloadAllTimelines()
 
-        // Check current widget configurations
-        WidgetCenter.shared.getCurrentConfigurations { [weak self] result in
-            switch result {
-            case .success(let widgets):
-                if widgets.isEmpty {
-                    self?.logWarning("No widgets on home screen", category: "Widget")
-                } else {
-                    for widget in widgets {
-                        self?.logInfo("Widget active: \(widget.kind), family: \(widget.family.description)", category: "Widget")
-                    }
-                }
-            case .failure(let error):
-                self?.logError("Failed to get widget configs: \(error.localizedDescription)", category: "Widget")
-            }
-        }
+        logInfo("reloadAllTimelines() called", category: "Widget")
     }
 
     /// Load cached temperature data
