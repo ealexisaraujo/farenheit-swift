@@ -33,7 +33,7 @@ final class HomeViewModel: ObservableObject {
 
     /// Loading state for weather fetch
     @Published var isLoadingWeather: Bool = false
-    
+
     /// Last time weather was successfully updated
     @Published var lastUpdateTime: Date?
 
@@ -42,7 +42,7 @@ final class HomeViewModel: ObservableObject {
     private let locationService = LocationService()
     private let weatherService = WeatherService()
     private var cancellables = Set<AnyCancellable>()
-    
+
     /// Minimum interval between automatic refreshes (5 minutes)
     private let minimumRefreshInterval: TimeInterval = 5 * 60
 
@@ -57,12 +57,12 @@ final class HomeViewModel: ObservableObject {
     var displayCelsius: Double {
         (displayFahrenheit - 32) * 5 / 9
     }
-    
+
     /// Celsius conversion of manual slider value
     var manualCelsius: Double {
         (manualFahrenheit - 32) * 5 / 9
     }
-    
+
     /// Check if enough time has passed to allow auto-refresh
     private var canAutoRefresh: Bool {
         guard let lastUpdate = lastUpdateTime else { return true }
@@ -84,21 +84,21 @@ final class HomeViewModel: ObservableObject {
         logger.debug("🏠 View appeared - requesting permission")
         locationService.requestPermission()
     }
-    
+
     /// Called when app returns to foreground
     func onBecameActive() {
         logger.debug("🏠 App became active")
-        
+
         // Only auto-refresh if enough time has passed
         guard canAutoRefresh else {
             logger.debug("🏠 Skipping auto-refresh - last update too recent")
             return
         }
-        
+
         logger.debug("🏠 Auto-refreshing weather...")
         refreshWeatherIfPossible()
     }
-    
+
     /// Force refresh weather (user-initiated)
     func forceRefresh() {
         logger.debug("🏠 Force refresh requested")
@@ -118,7 +118,7 @@ final class HomeViewModel: ObservableObject {
             locationService.requestLocation()
             return
         }
-        
+
         Task {
             await weatherService.fetchWeather(for: location)
         }
@@ -127,29 +127,44 @@ final class HomeViewModel: ObservableObject {
     /// Handle city selection from search
     func handleCitySelection(_ completion: MKLocalSearchCompletion) {
         logger.debug("🏠 City selected: \(completion.title)")
-        
+
         // Update city info immediately for UI
         selectedCity = completion.title
         selectedCountry = ""
         errorMessage = nil
-        
+
         // Geocode and fetch weather for the selected city
         geocodeAndFetchWeather(for: completion.title)
     }
-    
+
     // MARK: - Widget Data
-    
-    /// Save weather data to widget
+
+    /// Save weather data to widget and location for background refresh
     private func saveWeatherToWidget() {
         guard selectedCity != "Detecting..." && selectedCity != "Unknown" else { return }
         guard let temp = currentFahrenheit else { return }
-        
+
         logger.debug("🏠 Saving to widget: \(self.selectedCity), \(temp)°F")
         WidgetDataService.shared.saveTemperature(
             city: selectedCity,
             country: selectedCountry,
             fahrenheit: temp
         )
+
+        // Also save location coordinates for background refresh
+        saveLocationForBackgroundRefresh()
+    }
+
+    /// Save location coordinates to App Group for background task access
+    private func saveLocationForBackgroundRefresh() {
+        guard let location = locationService.lastLocation else { return }
+        guard let defaults = UserDefaults(suiteName: "group.alexisaraujo.alexisfarenheit") else { return }
+
+        defaults.set(location.coordinate.latitude, forKey: "last_latitude")
+        defaults.set(location.coordinate.longitude, forKey: "last_longitude")
+        defaults.synchronize()
+
+        logger.debug("🏠 Saved location for background: \(location.coordinate.latitude), \(location.coordinate.longitude)")
     }
 
     // MARK: - Private Bindings
@@ -225,11 +240,11 @@ final class HomeViewModel: ObservableObject {
     /// Geocode city name and fetch weather
     private func geocodeAndFetchWeather(for cityName: String) {
         isLoadingWeather = true
-        
+
         let geocoder = CLGeocoder()
         geocoder.geocodeAddressString(cityName) { [weak self] placemarks, error in
             guard let self else { return }
-            
+
             if let error {
                 self.logger.error("🏠 Geocode error: \(error.localizedDescription)")
                 Task { @MainActor in
@@ -238,28 +253,28 @@ final class HomeViewModel: ObservableObject {
                 }
                 return
             }
-            
+
             guard let placemark = placemarks?.first else {
                 Task { @MainActor in
                     self.isLoadingWeather = false
                 }
                 return
             }
-            
+
             // Update country from geocode result
             if let country = placemark.isoCountryCode {
                 Task { @MainActor in
                     self.selectedCountry = country
                 }
             }
-            
+
             guard let location = placemark.location else {
                 Task { @MainActor in
                     self.isLoadingWeather = false
                 }
                 return
             }
-            
+
             Task { await self.weatherService.fetchWeather(for: location) }
         }
     }

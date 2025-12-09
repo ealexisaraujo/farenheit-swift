@@ -3,6 +3,10 @@ import SwiftUI
 /// Log viewer screen to display and export app/widget logs
 /// Useful for debugging widget updates and data sharing issues
 struct LogViewerView: View {
+    // MARK: - Environment
+    @Environment(\.dismiss) private var dismiss
+
+    // MARK: - State
     @State private var logs: [SharedLogger.LogEntry] = []
     @State private var selectedLevel: SharedLogger.Level? = nil
     @State private var selectedSource: String? = nil
@@ -28,7 +32,9 @@ struct LogViewerView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cerrar") {
-                        // Dismiss handled by parent
+                        // Debug: Close button tapped
+                        print("[LogViewer] Close button tapped")
+                        dismiss()
                     }
                 }
 

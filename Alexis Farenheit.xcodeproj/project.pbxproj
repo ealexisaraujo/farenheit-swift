@@ -381,6 +381,7 @@
 				DEVELOPMENT_TEAM = PN2FR53G7Y;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Alexis-Farenheit-Info.plist";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Necesitamos tu ubicacion para mostrar el clima local incluso al actualizar en segundo plano.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Necesitamos tu ubicacion para mostrar el clima local.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -416,6 +417,7 @@
 				DEVELOPMENT_TEAM = PN2FR53G7Y;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Alexis-Farenheit-Info.plist";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Necesitamos tu ubicacion para mostrar el clima local incluso al actualizar en segundo plano.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Necesitamos tu ubicacion para mostrar el clima local.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
