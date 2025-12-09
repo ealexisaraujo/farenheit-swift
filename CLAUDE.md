@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Alexis Farenheit is an iOS temperature conversion app with Home Screen widgets. It displays current weather for the user's location and converts between Fahrenheit and Celsius.
+Alexis Farenheit is an iOS temperature conversion app with Home Screen and Lock Screen widgets. It displays current weather for the user's location and converts between Fahrenheit and Celsius.
 
 **Platform**: iOS 17+ | **Language**: Swift 5.9+ / SwiftUI
 
@@ -42,7 +42,7 @@ Services (LocationService, WeatherService, WidgetDataService, BackgroundTaskServ
 | `Core/Services/BackgroundTaskService.swift` | BGTaskScheduler for widget refresh |
 | `Core/Services/SharedLogger.swift` | File-based logging (JSON in App Group) |
 | `Features/Home/ViewModels/HomeViewModel.swift` | Main view model |
-| `AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift` | Widget provider and views |
+| `AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift` | Widget provider and views (Home Screen + Lock Screen) |
 | `AlexisExtensionFarenheit/WidgetLogger.swift` | Widget-specific logging |
 
 ## Configuration IDs
@@ -106,7 +106,7 @@ WidgetLogger.widget("Timeline requested", category: "Timeline")
 - CoreLocation (GPS, geocoding)
 - WeatherKit (weather data)
 - MapKit (city search via MKLocalSearchCompleter)
-- WidgetKit (Home Screen widgets - small/medium/large)
+- WidgetKit (Home Screen widgets: small/medium/large | Lock Screen widgets: circular/rectangular/inline)
 - BackgroundTasks (BGTaskScheduler)
 
 No external dependencies (SPM/CocoaPods).

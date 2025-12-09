@@ -25,39 +25,72 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
         logger.debug("📍 LocationService initialized (auth: \(self.authorizationStatus.rawValue))")
     }
 
-    /// Request location permission
+    /// Request location permission - uses "Always" for best UX and background widget refresh
     func requestPermission() {
-        if authorizationStatus == .notDetermined {
-            locationManager.requestWhenInUseAuthorization()
-        } else if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
+        logger.debug("📍 requestPermission (status: \(self.authorizationStatus.rawValue))")
+
+        switch authorizationStatus {
+        case .notDetermined:
+            // First time - request "Always" permission
+            locationManager.requestAlwaysAuthorization()
+        case .authorizedWhenInUse:
+            // User gave "When In Use" - upgrade to "Always" for background refresh
+            locationManager.requestAlwaysAuthorization()
+            // Also get location now
             requestLocation()
-        } else {
+        case .authorizedAlways:
+            // Best case - full permission granted
+            requestLocation()
+        case .denied, .restricted:
             errorMessage = "Permiso de ubicación denegado. Habilítalo en Ajustes."
+        @unknown default:
+            locationManager.requestAlwaysAuthorization()
         }
     }
 
     /// Request a single location update
     func requestLocation() {
-        guard authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
+        switch authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            isRequesting = true
+            errorMessage = nil
+            locationManager.requestLocation()
+        case .notDetermined:
+            // Need permission first
+            requestPermission()
+        case .denied, .restricted:
             errorMessage = "Permiso de ubicación denegado. Habilítalo en Ajustes."
-            return
+        @unknown default:
+            requestPermission()
         }
-        isRequesting = true
-        errorMessage = nil
-        locationManager.requestLocation()
     }
 
     // MARK: - CLLocationManagerDelegate
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        authorizationStatus = manager.authorizationStatus
-        logger.debug("📍 Auth changed: \(manager.authorizationStatus.rawValue)")
+        let newStatus = manager.authorizationStatus
+        authorizationStatus = newStatus
+        logger.debug("📍 Auth changed: \(newStatus.rawValue)")
 
-        if manager.authorizationStatus == .authorizedWhenInUse || manager.authorizationStatus == .authorizedAlways {
+        switch newStatus {
+        case .authorizedAlways:
+            // Perfect - user granted full access
+            logger.debug("📍 Always authorization granted")
             requestLocation()
-        } else if manager.authorizationStatus == .denied || manager.authorizationStatus == .restricted {
+        case .authorizedWhenInUse:
+            // Good enough to work, but try to upgrade for background
+            logger.debug("📍 WhenInUse granted, requesting Always for background refresh")
+            requestLocation()
+            // iOS will show prompt to upgrade to Always (only once)
+            locationManager.requestAlwaysAuthorization()
+        case .denied, .restricted:
             isRequesting = false
             errorMessage = "Permiso de ubicación denegado. Habilítalo en Ajustes."
+        case .notDetermined:
+            // User hasn't decided yet - don't show error
+            logger.debug("📍 Status not determined yet")
+        @unknown default:
+            break
         }
     }
 

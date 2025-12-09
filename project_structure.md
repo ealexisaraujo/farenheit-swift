@@ -1,7 +1,7 @@
 # Alexis Farenheit - Project Structure
 
 ## Overview
-iOS Temperature Converter app with WidgetKit extension. Converts between Fahrenheit and Celsius, shows current weather via WeatherKit, and includes home screen widgets.
+iOS Temperature Converter app with WidgetKit extension. Converts between Fahrenheit and Celsius, shows current weather via WeatherKit, and includes Home Screen and Lock Screen widgets.
 
 ## Architecture
 - **Pattern**: MVVM with Combine bindings
@@ -58,11 +58,16 @@ AlexisExtensionFarenheit/               # Widget Extension
 ### ViewModels
 - **HomeViewModel**: Orchestrates location, weather, and UI state
 
-### Widget
+### Widget (Home Screen)
 - **TemperatureProvider**: TimelineProvider for widget updates
 - **SmallWidgetView**: Compact temperature display
 - **MediumWidgetView**: Temperature + conversion reference
 - **LargeWidgetView**: Full card with conversion table
+
+### Widget (Lock Screen - iOS 16+)
+- **AccessoryCircularView**: Gauge with °F center, °C in corner
+- **AccessoryRectangularView**: Horizontal layout with temperature hero
+- **AccessoryInlineView**: Single line text for date area
 
 ## Required Capabilities (Xcode)
 

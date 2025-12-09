@@ -477,6 +477,92 @@ struct LargeWidgetView: View {
     }
 }
 
+// MARK: - Lock Screen Widget Views (iOS 16+)
+
+/// Circular widget for Lock Screen - shows temperature prominently
+/// Optimized for glanceability - one number that matters most
+struct AccessoryCircularView: View {
+    let entry: TemperatureEntry
+
+    var body: some View {
+        Gauge(value: normalizedTemp, in: 0...1) {
+            Text("°F")
+                .font(.system(size: 8))
+        } currentValueLabel: {
+            Text("\(Int(entry.fahrenheit))°")
+                .font(.system(size: 22, weight: .semibold, design: .rounded))
+        } minimumValueLabel: {
+            Text("\(Int(entry.celsius))°")
+                .font(.system(size: 9, weight: .medium))
+        } maximumValueLabel: {
+            Text("C")
+                .font(.system(size: 9, weight: .medium))
+        }
+        .gaugeStyle(.accessoryCircular)
+        .widgetAccentable()
+    }
+
+    /// Normalize temperature for gauge display (0°F to 120°F range)
+    private var normalizedTemp: Double {
+        let clamped = min(max(entry.fahrenheit, 0), 120)
+        return clamped / 120
+    }
+}
+
+/// Rectangular widget for Lock Screen - shows city and both temperatures
+/// Design follows Apple HIG: clear hierarchy, instant readability, compact layout
+struct AccessoryRectangularView: View {
+    let entry: TemperatureEntry
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Temperature hero - the star of the show
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text("\(Int(entry.fahrenheit))")
+                    .font(.system(size: 36, weight: .semibold, design: .rounded))
+                Text("°F")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+            }
+
+            // Divider line for visual separation
+            Rectangle()
+                .fill(.secondary.opacity(0.4))
+                .frame(width: 1, height: 32)
+
+            // Secondary info - city and celsius
+            VStack(alignment: .leading, spacing: 2) {
+                // City with location pin
+                HStack(spacing: 3) {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 8))
+                    Text(entry.cityName)
+                        .font(.system(size: 13, weight: .medium))
+                        .lineLimit(1)
+                }
+
+                // Celsius conversion
+                Text(entry.celsiusText)
+                    .font(.system(size: 15, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .widgetAccentable()
+    }
+}
+
+/// Inline widget for Lock Screen - single line text
+struct AccessoryInlineView: View {
+    let entry: TemperatureEntry
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "thermometer.medium")
+            Text("\(entry.cityName): \(entry.fahrenheitText) / \(entry.celsiusText)")
+        }
+    }
+}
+
 // MARK: - Widget Definition
 
 struct AlexisExtensionFarenheit: Widget {
@@ -491,7 +577,14 @@ struct AlexisExtensionFarenheit: Widget {
         }
         .configurationDisplayName("Temp Converter")
         .description("Muestra temperatura en °F y °C con conversión rápida.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .supportedFamilies([
+            .systemSmall,
+            .systemMedium,
+            .systemLarge,
+            .accessoryCircular,
+            .accessoryRectangular,
+            .accessoryInline
+        ])
     }
 }
 
@@ -520,12 +613,20 @@ struct WidgetContentView: View {
 
     var body: some View {
         switch family {
+        // Home Screen widgets
         case .systemSmall:
             SmallWidgetView(entry: entry)
         case .systemMedium:
             MediumWidgetView(entry: entry)
         case .systemLarge:
             LargeWidgetView(entry: entry)
+        // Lock Screen widgets (iOS 16+)
+        case .accessoryCircular:
+            AccessoryCircularView(entry: entry)
+        case .accessoryRectangular:
+            AccessoryRectangularView(entry: entry)
+        case .accessoryInline:
+            AccessoryInlineView(entry: entry)
         default:
             SmallWidgetView(entry: entry)
         }
@@ -565,4 +666,24 @@ extension Color {
     AlexisExtensionFarenheit()
 } timeline: {
     TemperatureEntry.placeholder
+}
+
+// MARK: - Lock Screen Widget Previews
+
+#Preview("Lock Screen - Circular", as: .accessoryCircular) {
+    AlexisExtensionFarenheit()
+} timeline: {
+    TemperatureEntry.fromCache(city: "Chandler", country: "US", fahrenheit: 72)
+}
+
+#Preview("Lock Screen - Rectangular", as: .accessoryRectangular) {
+    AlexisExtensionFarenheit()
+} timeline: {
+    TemperatureEntry.fromCache(city: "Chandler", country: "US", fahrenheit: 72)
+}
+
+#Preview("Lock Screen - Inline", as: .accessoryInline) {
+    AlexisExtensionFarenheit()
+} timeline: {
+    TemperatureEntry.fromCache(city: "Chandler", country: "US", fahrenheit: 72)
 }

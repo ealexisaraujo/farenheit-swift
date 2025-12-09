@@ -8,13 +8,14 @@
 
 ## 📋 Resumen del Proyecto
 
-**Alexis Farenheit** es una aplicación iOS de conversión de temperatura con widget para Home Screen. La app muestra el clima actual de la ubicación del usuario y permite convertir entre Fahrenheit y Celsius.
+**Alexis Farenheit** es una aplicación iOS de conversión de temperatura con widgets para Home Screen y Lock Screen. La app muestra el clima actual de la ubicación del usuario y permite convertir entre Fahrenheit y Celsius.
 
 ### Características Principales
 - ✅ Detección automática de ubicación (CoreLocation)
 - ✅ Clima en tiempo real (WeatherKit)
 - ✅ Búsqueda de ciudades (MapKit)
-- ✅ Widget de Home Screen (WidgetKit) - 3 tamaños
+- ✅ Widget de Home Screen (WidgetKit) - 3 tamaños (small, medium, large)
+- ✅ Widget de Lock Screen (iOS 16+) - 3 estilos (circular, rectangular, inline)
 - ✅ Conversión manual F° ↔ C°
 - ✅ Background refresh del widget
 - ✅ Sistema de logging compartido (App + Widget)
@@ -203,10 +204,30 @@ struct TemperatureProvider: TimelineProvider {
 }
 ```
 
-### Widget Sizes
-- **Small**: Temperatura y ciudad solamente
-- **Medium**: Temperatura + tabla de conversiones
-- **Large**: Lista de ciudades (placeholder)
+### Home Screen Widget Sizes
+- **Small** (`systemSmall`): Temperatura y ciudad solamente
+- **Medium** (`systemMedium`): Temperatura + tabla de conversiones
+- **Large** (`systemLarge`): Temperatura grande con tabla de conversión completa
+
+### Lock Screen Widget Styles (iOS 16+)
+- **Circular** (`accessoryCircular`): Gauge circular con °F prominente y °C en esquina
+- **Rectangular** (`accessoryRectangular`): Layout horizontal con °F héroe, divider, ciudad y °C
+- **Inline** (`accessoryInline`): Texto en una línea junto a la fecha
+
+#### Diseño Lock Screen (UX/UI)
+```
+┌─────────────────────────────────────┐
+│  72°F  │  📍 Chandler               │  ← Rectangular
+│        │     22.2°C                 │
+└─────────────────────────────────────┘
+
+    ┌───────┐
+    │  72°  │  ← Circular (con Gauge)
+    │ 22°C  │
+    └───────┘
+
+🌡️ Chandler: 72°F / 22.2°C  ← Inline
+```
 
 ### Logging en Widget
 Usa `WidgetLogger` que escribe al mismo archivo que `SharedLogger`:
@@ -411,7 +432,7 @@ Button("Cerrar") {
 | CoreLocation | GPS y geocoding |
 | WeatherKit | Datos del clima |
 | MapKit | Búsqueda de ciudades |
-| WidgetKit | Home Screen widgets |
+| WidgetKit | Home Screen + Lock Screen widgets |
 | BackgroundTasks | Background refresh |
 | os.log | Logging del sistema |
 
@@ -426,7 +447,8 @@ Button("Cerrar") {
 - [ ] Temperatura se muestra correctamente
 - [ ] Búsqueda de ciudad funciona
 - [ ] Slider convierte F° ↔ C°
-- [ ] Widget muestra datos actuales
+- [ ] Widget Home Screen muestra datos actuales
+- [ ] Widget Lock Screen muestra datos actuales
 - [ ] Widget se actualiza al cambiar ciudad
 - [ ] Logs capturan eventos de app y widget
 - [ ] Export de logs funciona (TXT/JSON)
@@ -453,6 +475,7 @@ xcrun simctl spawn booted launchctl kickstart -k system/com.apple.backboardd
 4. **Multiple Cities**: Guardar lista de ciudades favoritas
 5. **Charts**: Gráfica de temperatura histórica
 6. **Localization**: Soporte multi-idioma completo
+7. **StandBy Mode** (iOS 17+): Optimizar widgets para modo StandBy
 
 ### Deprecation Warnings
 - `CLGeocoder` métodos deprecados en iOS 26.0+

@@ -26,9 +26,19 @@ Core/Services/
 ### Widget
 ```
 AlexisExtensionFarenheit/
-├── AlexisExtensionFarenheit.swift  # Provider + Views
+├── AlexisExtensionFarenheit.swift  # Provider + Views (Home + Lock Screen)
 └── WidgetLogger.swift              # Widget logging
 ```
+
+### Widget Families Soportadas
+| Tipo | Familia | Descripción |
+|------|---------|-------------|
+| Home Screen | `systemSmall` | Temperatura compacta |
+| Home Screen | `systemMedium` | Temp + conversiones |
+| Home Screen | `systemLarge` | Tabla completa |
+| Lock Screen | `accessoryCircular` | Gauge con °F/°C |
+| Lock Screen | `accessoryRectangular` | Layout horizontal |
+| Lock Screen | `accessoryInline` | Texto en línea |
 
 ---
 
@@ -108,6 +118,7 @@ print(WidgetDataService.shared.isAppGroupAvailable())
 | WeatherKit error | Habilitar en Developer Portal |
 | Location denied | Revisar permisos en Settings |
 | Widget datos viejos | Force save desde la app |
+| Lock Screen widget no aparece | Settings → Wallpaper → Customize Lock Screen |
 
 ---
 
