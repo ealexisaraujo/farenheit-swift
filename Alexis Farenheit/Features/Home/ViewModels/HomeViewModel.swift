@@ -376,8 +376,25 @@ final class HomeViewModel: ObservableObject {
                 if let index = cities.firstIndex(where: { $0.id == city.id }) {
                     cities[index] = cities[index].withWeather(fahrenheit: temp)
                     cityStorage.updateCity(cities[index])
+
+                    // If this is the current location city, also update widget data
+                    if cities[index].isCurrentLocation {
+                        let updatedCity = cities[index]
+                        WidgetDataService.shared.saveTemperature(
+                            city: updatedCity.name,
+                            country: updatedCity.countryCode,
+                            fahrenheit: temp
+                        )
+                        // Save coordinates for widget background refresh
+                        if let defaults = UserDefaults(suiteName: "group.alexisaraujo.alexisfarenheit") {
+                            defaults.set(updatedCity.latitude, forKey: "last_latitude")
+                            defaults.set(updatedCity.longitude, forKey: "last_longitude")
+                            defaults.synchronize()
+                        }
+                        logger.debug("🏠 Updated widget with current location: \(updatedCity.name), \(temp)°F")
+                    }
                 }
-                
+
                 // Performance tracking: End city weather fetch (success)
                 var successMetadata = metadata
                 successMetadata["temperature"] = String(format: "%.1f", temp)
@@ -531,6 +548,14 @@ final class HomeViewModel: ObservableObject {
 
     /// Update or create the current location city
     private func updateCurrentLocationCity(with location: CLLocation) {
+        // Save coordinates for widget immediately (before geocoding)
+        if let defaults = UserDefaults(suiteName: "group.alexisaraujo.alexisfarenheit") {
+            defaults.set(location.coordinate.latitude, forKey: "last_latitude")
+            defaults.set(location.coordinate.longitude, forKey: "last_longitude")
+            defaults.synchronize()
+            logger.debug("🏠 Saved location for widget: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+        }
+
         // Reverse geocode to get timezone
         let geocoder = CLGeocoder()
         geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, _ in
@@ -556,6 +581,15 @@ final class HomeViewModel: ObservableObject {
 
                     self.cities[existingIndex] = updatedCity
                     self.cityStorage.updateCity(updatedCity)
+
+                    // Update widget with new city name (coordinates already saved)
+                    if let temp = updatedCity.fahrenheit {
+                        WidgetDataService.shared.saveTemperature(
+                            city: cityName,
+                            country: countryCode,
+                            fahrenheit: temp
+                        )
+                    }
                 } else {
                     // Create new current location city
                     let newCity = CityModel(

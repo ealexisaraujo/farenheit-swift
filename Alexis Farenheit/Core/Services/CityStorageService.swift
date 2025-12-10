@@ -70,7 +70,7 @@ final class CityStorageService: ObservableObject {
     }
 
     /// Update an existing city (e.g., with new weather data)
-    /// Does NOT reload widgets for weather-only updates to avoid spam
+    /// Reloads widgets (throttled to avoid spam)
     func updateCity(_ city: CityModel) {
         guard let index = cities.firstIndex(where: { $0.id == city.id }) else {
             logger.warning("🏙️ City not found for update: \(city.name)")
@@ -78,9 +78,7 @@ final class CityStorageService: ObservableObject {
         }
 
         cities[index] = city
-        saveCitiesQuietly() // Don't reload widgets for temperature updates
-        // Reduced logging - only log important updates
-        // logger.debug("🏙️ Updated city: \(city.name)")
+        saveCities() // Reload widgets (throttled internally)
     }
 
     /// Update weather for a specific city
@@ -90,7 +88,7 @@ final class CityStorageService: ObservableObject {
         }
 
         cities[index] = cities[index].withWeather(fahrenheit: fahrenheit)
-        saveCitiesQuietly() // Don't reload widgets for temperature updates
+        saveCities() // Reload widgets (throttled internally)
     }
 
     /// Remove a city by ID (cannot remove current location)
@@ -214,11 +212,6 @@ final class CityStorageService: ObservableObject {
         } catch {
             logger.error("🏙️ Failed to save cities: \(error.localizedDescription)")
         }
-    }
-
-    /// Save cities without triggering widget reload (for weather updates)
-    private func saveCitiesQuietly() {
-        saveCities(reloadWidgets: false)
     }
 
     private func loadCities() {
