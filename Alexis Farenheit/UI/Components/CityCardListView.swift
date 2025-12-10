@@ -23,10 +23,21 @@ struct CityCardListView: View {
     @State private var deletingCity: UUID?
 
     /// Drag state for manual reordering
-    @State private var draggedCity: CityModel?
+    @GestureState private var dragState: DragState = .inactive
+    @State private var draggingItem: CityModel?
 
     // Maximum cities allowed
     private let maxCities = CityModel.maxCities
+
+    /// Check if there are editable cities (non-primary)
+    private var hasEditableCities: Bool {
+        cities.filter { !$0.isCurrentLocation && $0.sortOrder != 0 }.count > 0
+    }
+
+    /// Number of editable cities
+    private var editableCitiesCount: Int {
+        cities.filter { !$0.isCurrentLocation && $0.sortOrder != 0 }.count
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,6 +49,14 @@ struct CityCardListView: View {
                 reorderableList
             } else {
                 normalList
+            }
+        }
+        // Auto-exit edit mode when no editable cities remain
+        .onChange(of: editableCitiesCount) { _, newCount in
+            if newCount == 0 && isReorderMode {
+                withAnimation(.spring(response: 0.3)) {
+                    isReorderMode = false
+                }
             }
         }
     }
@@ -58,8 +77,8 @@ struct CityCardListView: View {
 
             Spacer()
 
-            // Reorder button
-            if cities.count > 1 {
+            // Reorder button - only show if there are editable cities
+            if hasEditableCities {
                 Button {
                     withAnimation(.spring(response: 0.3)) {
                         isReorderMode.toggle()
@@ -108,15 +127,19 @@ struct CityCardListView: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: deletingCity)
     }
 
-    // MARK: - Reorderable List
+    // MARK: - Reorderable List with Drag & Drop
 
     private var reorderableList: some View {
-        LazyVStack(spacing: 12) {
+        VStack(spacing: 12) {
             ForEach(Array(cities.enumerated()), id: \.element.id) { index, city in
                 let isPrimary = city.isCurrentLocation || index == 0
 
                 reorderableCard(for: city, at: index, isPrimary: isPrimary)
-                    .transition(.scale.combined(with: .opacity))
+                    .zIndex(draggingItem?.id == city.id ? 1 : 0)
+                    .offset(y: dragOffset(for: city, at: index))
+                    .gesture(
+                        isPrimary ? nil : dragGesture(for: city, at: index)
+                    )
             }
         }
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: cities.map(\.id))
@@ -127,9 +150,10 @@ struct CityCardListView: View {
             // Drag handle (disabled for primary)
             if !isPrimary {
                 Image(systemName: "line.3.horizontal")
-                    .font(.title3)
+                    .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(.secondary)
-                    .frame(width: 30)
+                    .frame(width: 30, height: 44)
+                    .contentShape(Rectangle())
             } else {
                 Image(systemName: "lock.fill")
                     .font(.caption)
@@ -218,7 +242,12 @@ struct CityCardListView: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(draggingItem?.id == city.id ? .regularMaterial : .ultraThinMaterial)
+                .shadow(
+                    color: draggingItem?.id == city.id ? .black.opacity(0.2) : .clear,
+                    radius: 8,
+                    y: 4
+                )
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .strokeBorder(
@@ -227,7 +256,62 @@ struct CityCardListView: View {
                         )
                 )
         )
-        .opacity(draggedCity?.id == city.id ? 0.5 : 1)
+        .scaleEffect(draggingItem?.id == city.id ? 1.02 : 1)
+    }
+
+    // MARK: - Drag Gesture
+
+    private func dragGesture(for city: CityModel, at index: Int) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.2)
+            .onEnded { _ in
+                withAnimation(.spring(response: 0.3)) {
+                    draggingItem = city
+                }
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            }
+            .sequenced(before: DragGesture())
+            .updating($dragState) { value, state, _ in
+                switch value {
+                case .second(true, let drag):
+                    state = .dragging(translation: drag?.translation ?? .zero)
+                default:
+                    state = .inactive
+                }
+            }
+            .onEnded { value in
+                guard case .second(true, let drag?) = value else {
+                    withAnimation(.spring(response: 0.3)) {
+                        draggingItem = nil
+                    }
+                    return
+                }
+
+                let dragDistance = drag.translation.height
+                let threshold: CGFloat = 60 // Card height threshold
+
+                if dragDistance > threshold {
+                    // Move down
+                    moveCity(at: index, direction: 1)
+                } else if dragDistance < -threshold {
+                    // Move up
+                    moveCity(at: index, direction: -1)
+                }
+
+                withAnimation(.spring(response: 0.3)) {
+                    draggingItem = nil
+                }
+            }
+    }
+
+    private func dragOffset(for city: CityModel, at index: Int) -> CGFloat {
+        guard draggingItem?.id == city.id else { return 0 }
+
+        switch dragState {
+        case .dragging(let translation):
+            return translation.height
+        default:
+            return 0
+        }
     }
 
     // MARK: - City Card
@@ -351,6 +435,31 @@ struct CityCardListView: View {
         }
 
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
+}
+
+// MARK: - Drag State
+
+enum DragState {
+    case inactive
+    case dragging(translation: CGSize)
+
+    var translation: CGSize {
+        switch self {
+        case .inactive:
+            return .zero
+        case .dragging(let translation):
+            return translation
+        }
+    }
+
+    var isDragging: Bool {
+        switch self {
+        case .inactive:
+            return false
+        case .dragging:
+            return true
+        }
     }
 }
 
