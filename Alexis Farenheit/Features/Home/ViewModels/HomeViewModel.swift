@@ -426,22 +426,18 @@ final class HomeViewModel: ObservableObject {
                 if let index = cities.firstIndex(where: { $0.id == city.id }) {
                     cities[index] = cities[index].withWeather(fahrenheit: temp)
                     cityStorage.updateCity(cities[index])
+                    // Note: Widget now uses saved_cities as single source of truth
+                    // CityStorageService.updateCity() handles widget reload with throttling
 
-                    // If this is the current location city, also update widget data
+                    // Save coordinates for background refresh (still needed for WeatherKit fetch)
                     if cities[index].isCurrentLocation {
                         let updatedCity = cities[index]
-                        WidgetDataService.shared.saveTemperature(
-                            city: updatedCity.name,
-                            country: updatedCity.countryCode,
-                            fahrenheit: temp
-                        )
-                        // Save coordinates for widget background refresh
                         if let defaults = UserDefaults(suiteName: "group.alexisaraujo.alexisfarenheit") {
                             defaults.set(updatedCity.latitude, forKey: "last_latitude")
                             defaults.set(updatedCity.longitude, forKey: "last_longitude")
                             defaults.synchronize()
                         }
-                        logger.debug("🏠 Updated widget with current location: \(updatedCity.name), \(temp)°F")
+                        logger.debug("🏠 Updated current location weather: \(updatedCity.name), \(temp)°F")
                     }
                 }
 
@@ -500,22 +496,6 @@ final class HomeViewModel: ObservableObject {
     }
 
     // MARK: - Widget Data
-
-    /// Save weather data to widget and location for background refresh
-    private func saveWeatherToWidget() {
-        guard selectedCity != "Detecting..." && selectedCity != "Unknown" else { return }
-        guard let temp = currentFahrenheit else { return }
-
-        logger.debug("🏠 Saving to widget: \(self.selectedCity), \(temp)°F")
-        WidgetDataService.shared.saveTemperature(
-            city: selectedCity,
-            country: selectedCountry,
-            fahrenheit: temp
-        )
-
-        // Also save location coordinates for background refresh
-        saveLocationForBackgroundRefresh()
-    }
 
     /// Save location coordinates to App Group for background task access
     private func saveLocationForBackgroundRefresh() {
@@ -621,6 +601,10 @@ final class HomeViewModel: ObservableObject {
 
                 // Check if we already have a current location city
                 if let existingIndex = self.cities.firstIndex(where: { $0.isCurrentLocation }) {
+                    // Check if city name changed (requires forced widget reload)
+                    let oldCityName = self.cities[existingIndex].name
+                    let cityNameChanged = oldCityName != cityName
+
                     // Update existing
                     var updatedCity = self.cities[existingIndex]
                     updatedCity.name = cityName
@@ -630,16 +614,17 @@ final class HomeViewModel: ObservableObject {
                     updatedCity.timeZoneIdentifier = timeZoneId
 
                     self.cities[existingIndex] = updatedCity
-                    self.cityStorage.updateCity(updatedCity)
 
-                    // Update widget with new city name (coordinates already saved)
-                    if let temp = updatedCity.fahrenheit {
-                        WidgetDataService.shared.saveTemperature(
-                            city: cityName,
-                            country: countryCode,
-                            fahrenheit: temp
-                        )
+                    // Use updateCurrentLocation when city name changes (forces widget reload)
+                    // Otherwise use regular updateCity (throttled)
+                    if cityNameChanged {
+                        self.logger.debug("🏠 City name changed: \(oldCityName) → \(cityName)")
+                        self.cityStorage.updateCurrentLocation(updatedCity)
+                    } else {
+                        self.cityStorage.updateCity(updatedCity)
                     }
+                    // Note: Widget now uses saved_cities as single source of truth
+                    // No need for separate WidgetDataService.saveTemperature() call
                 } else {
                     // Create new current location city
                     let newCity = CityModel(
@@ -668,20 +653,24 @@ final class HomeViewModel: ObservableObject {
 
     /// Bind to WeatherService published properties
     private func bindWeather() {
-        // Bind temperature - save to widget and update timestamp
+        // Bind temperature - update timestamp and save to storage
+        // Widget uses saved_cities as single source of truth
         weatherService.$currentTemperatureF
             .receive(on: RunLoop.main)
             .sink { [weak self] temp in
                 guard let self, let temp else { return }
                 self.currentFahrenheit = temp
                 self.lastUpdateTime = Date()
-                self.saveWeatherToWidget()
 
-                // Also update current location city temperature
+                // Update current location city temperature in storage
+                // This triggers widget reload via CityStorageService
                 if let index = self.cities.firstIndex(where: { $0.isCurrentLocation }) {
                     self.cities[index] = self.cities[index].withWeather(fahrenheit: temp)
                     self.cityStorage.updateCity(self.cities[index])
                 }
+
+                // Save coordinates for background refresh
+                self.saveLocationForBackgroundRefresh()
             }
             .store(in: &cancellables)
 

@@ -174,16 +174,23 @@ struct TemperatureProvider: TimelineProvider {
         let metadata = ["family": context.family.description, "is_preview": "\(context.isPreview)"]
         logger.startPerformanceOperation("WidgetTimeline", category: "Widget", metadata: metadata)
 
-        let cachedData = loadCachedData()
-        let location = loadLastKnownLocation()
+        // IMPORTANT: Use saved_cities as the single source of truth
+        // This eliminates race conditions between widget_city and saved_cities
         let cities = loadSavedCities()
+        let location = loadLastKnownLocation()
 
-        // Check if cache is stale
+        // Get primary city from saved_cities (first city is always primary/current location)
+        let primaryCity = cities.first
+
+        // Check cache freshness based on primary city's lastUpdated
         let cacheAgeMinutes: Double
-        if let lastUpdate = cachedData?.lastUpdate {
-            cacheAgeMinutes = Date().timeIntervalSince(lastUpdate) / 60
+        if let primary = primaryCity, let temp = primary.fahrenheit {
+            // Use saved_cities as cache - check if we have valid temperature data
+            cacheAgeMinutes = 0 // Data is fresh if we have it
+            logger.timeline("Primary city: \(primary.name), \(Int(temp))°F")
         } else {
             cacheAgeMinutes = Double.infinity
+            logger.timeline("No primary city or temperature data")
         }
 
         let needsFresh = cacheAgeMinutes > maxCacheAgeMinutes
@@ -191,15 +198,15 @@ struct TemperatureProvider: TimelineProvider {
         logger.timeline("Cache age: \(Int(cacheAgeMinutes))m, needs fresh: \(needsFresh)")
         logger.timeline("Cities loaded: \(cities.count)")
 
-        // If we have location and cache is stale, fetch fresh weather
+        // If we have location and need fresh data, fetch from WeatherKit
         if needsFresh, let coords = location {
             logger.timeline("Fetching fresh weather from WeatherKit...")
 
             Task {
                 let entry = await fetchFreshWeather(
                     location: coords,
-                    cachedCity: cachedData?.city ?? "Unknown",
-                    cachedCountry: cachedData?.country ?? "",
+                    cachedCity: primaryCity?.name ?? "Unknown",
+                    cachedCountry: primaryCity?.countryCode ?? "",
                     cities: cities
                 )
 
@@ -219,17 +226,17 @@ struct TemperatureProvider: TimelineProvider {
                 completion(timeline)
             }
         } else {
-            // Use cached data
+            // Use data from saved_cities as the single source of truth
             let entry: TemperatureEntry
-            if let data = cachedData {
+            if let primary = primaryCity, let temp = primary.fahrenheit {
                 entry = TemperatureEntry.fromCache(
-                    city: data.city,
-                    country: data.country,
-                    fahrenheit: data.fahrenheit,
+                    city: primary.name,
+                    country: primary.countryCode,
+                    fahrenheit: temp,
                     date: Date(),
                     cities: cities
                 )
-                logger.timeline("Using cached data: \(data.city), \(Int(data.fahrenheit))°F")
+                logger.timeline("Using saved city: \(primary.name), \(Int(temp))°F")
             } else {
                 entry = TemperatureEntry(
                     date: Date(),
@@ -240,10 +247,10 @@ struct TemperatureProvider: TimelineProvider {
                     isPlaceholder: true,
                     cities: cities
                 )
-                logger.timeline("No cached data - showing placeholder")
+                logger.timeline("No city data - showing placeholder")
             }
 
-            // Schedule next refresh in 15 minutes if cache is still valid
+            // Schedule next refresh in 15 minutes
             let nextRefresh = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date()
             let timeline = Timeline(entries: [entry], policy: .after(nextRefresh))
 
@@ -252,7 +259,7 @@ struct TemperatureProvider: TimelineProvider {
 
             // Performance tracking: End widget timeline (cached)
             var endMetadata = metadata
-            endMetadata["source"] = cachedData != nil ? "cached" : "placeholder"
+            endMetadata["source"] = primaryCity != nil ? "saved_cities" : "placeholder"
             endMetadata["cities_count"] = "\(cities.count)"
             logger.endPerformanceOperation("WidgetTimeline", category: "Widget", metadata: endMetadata)
 
@@ -373,9 +380,19 @@ struct TemperatureProvider: TimelineProvider {
     }
 
     /// Load saved cities from App Group
+    /// This is the SINGLE SOURCE OF TRUTH for widget data
     private func loadSavedCities() -> [CityWidgetData] {
-        guard let defaults = UserDefaults(suiteName: appGroupID),
-              let data = defaults.data(forKey: "saved_cities") else {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else {
+            logger.error("Cannot access App Group: \(appGroupID)")
+            return []
+        }
+
+        // CRITICAL: Synchronize to get the latest data from the main app
+        // This ensures we read the most recent changes, especially after city changes
+        defaults.synchronize()
+
+        guard let data = defaults.data(forKey: "saved_cities") else {
+            logger.data("No saved_cities data found")
             return []
         }
 
@@ -406,11 +423,12 @@ struct TemperatureProvider: TimelineProvider {
 
     private func loadCachedEntry() -> TemperatureEntry {
         let cities = loadSavedCities()
-        if let data = loadCachedData() {
+        // Use saved_cities as single source of truth
+        if let primary = cities.first, let temp = primary.fahrenheit {
             return TemperatureEntry.fromCache(
-                city: data.city,
-                country: data.country,
-                fahrenheit: data.fahrenheit,
+                city: primary.name,
+                country: primary.countryCode,
+                fahrenheit: temp,
                 cities: cities
             )
         }

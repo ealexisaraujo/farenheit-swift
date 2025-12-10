@@ -25,7 +25,7 @@ final class BackgroundTaskService {
 
     // MARK: - Dependencies
     private let weatherService = WeatherService()
-    private let widgetDataService = WidgetDataService.shared
+    private let cityStorage = CityStorageService.shared
     private let logger = Logger(subsystem: "alexisaraujo.AlexisFarenheit", category: "BackgroundTask")
 
     /// Location service for significant location changes (must keep strong reference)
@@ -95,8 +95,9 @@ final class BackgroundTaskService {
     }
 
     /// Fetch weather for location and update widget
+    /// Updates saved_cities which is the single source of truth for widgets
     private func fetchWeatherAndUpdateWidget(for location: CLLocation) async {
-        // Reverse geocode to get city name
+        // Reverse geocode to get city name and timezone
         let geocoder = CLGeocoder()
         do {
             let placemarks = try await geocoder.reverseGeocodeLocation(location)
@@ -104,13 +105,28 @@ final class BackgroundTaskService {
                 ?? placemarks.first?.administrativeArea
                 ?? "Unknown"
             let countryCode = placemarks.first?.isoCountryCode ?? ""
+            let timeZoneId = placemarks.first?.timeZone?.identifier ?? TimeZone.current.identifier
 
             // Fetch weather
             await weatherService.fetchWeather(for: location)
 
             if let temp = await MainActor.run(body: { weatherService.currentTemperatureF }) {
-                // Update widget
-                widgetDataService.saveTemperature(city: cityName, country: countryCode, fahrenheit: temp)
+                // Update saved_cities (single source of truth for widget)
+                await MainActor.run {
+                    // Create/update current location city
+                    let currentLocationCity = CityModel(
+                        name: cityName,
+                        countryCode: countryCode,
+                        latitude: location.coordinate.latitude,
+                        longitude: location.coordinate.longitude,
+                        timeZoneIdentifier: timeZoneId,
+                        fahrenheit: temp,
+                        lastUpdated: Date(),
+                        isCurrentLocation: true,
+                        sortOrder: 0
+                    )
+                    cityStorage.updateCurrentLocation(currentLocationCity)
+                }
 
                 logger.info("🔄 Widget updated from significant location: \(cityName), \(Int(temp))°F")
                 SharedLogger.shared.info("Widget updated: \(cityName), \(Int(temp))°F", category: "Background")
@@ -187,6 +203,7 @@ final class BackgroundTaskService {
     // MARK: - Private Methods
 
     /// Handle the background app refresh task
+    /// Updates saved_cities which is the single source of truth for widgets
     private func handleAppRefresh(task: BGAppRefreshTask) {
         // Debug: Starting refresh
         SharedLogger.shared.widget("Handling background refresh", category: "Background")
@@ -220,14 +237,18 @@ final class BackgroundTaskService {
 
             // Check if we got temperature (access @MainActor property safely)
             if let temp = await MainActor.run(body: { weatherService.currentTemperatureF }) {
-                // Save to widget
-                let city = loadLastKnownCity() ?? "Unknown"
-                let country = loadLastKnownCountry() ?? ""
+                // Update saved_cities - single source of truth for widget
+                await MainActor.run {
+                    // Update current location city with new temperature
+                    if let currentCity = cityStorage.currentLocationCity {
+                        let updatedCity = currentCity.withWeather(fahrenheit: temp)
+                        cityStorage.updateCity(updatedCity)
+                    }
+                }
 
-                widgetDataService.saveTemperature(city: city, country: country, fahrenheit: temp)
-
-                print("🔄 Background refresh complete: \(city), \(Int(temp))°F ✅")
-                SharedLogger.shared.widget("Background refresh: \(city), \(Int(temp))°F ✅", category: "Background")
+                let cityName = await MainActor.run { cityStorage.currentLocationCity?.name ?? "Unknown" }
+                print("🔄 Background refresh complete: \(cityName), \(Int(temp))°F ✅")
+                SharedLogger.shared.widget("Background refresh: \(cityName), \(Int(temp))°F ✅", category: "Background")
 
                 task.setTaskCompleted(success: true)
             } else {
@@ -253,16 +274,6 @@ final class BackgroundTaskService {
         guard lat != 0 && lon != 0 else { return nil }
 
         return CLLocationCoordinate2D(latitude: lat, longitude: lon)
-    }
-
-    /// Load last known city from UserDefaults
-    private func loadLastKnownCity() -> String? {
-        UserDefaults(suiteName: "group.alexisaraujo.alexisfarenheit")?.string(forKey: "widget_city")
-    }
-
-    /// Load last known country from UserDefaults
-    private func loadLastKnownCountry() -> String? {
-        UserDefaults(suiteName: "group.alexisaraujo.alexisfarenheit")?.string(forKey: "widget_country")
     }
 }
 

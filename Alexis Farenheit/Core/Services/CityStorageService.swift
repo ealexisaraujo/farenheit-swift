@@ -147,6 +147,7 @@ final class CityStorageService: ObservableObject {
     }
 
     /// Update or create current location city
+    /// Forces widget reload because city name change is a critical update
     func updateCurrentLocation(_ city: CityModel) {
         if let existingIndex = cities.firstIndex(where: { $0.isCurrentLocation }) {
             // Update existing current location - create new city with existing ID
@@ -172,7 +173,8 @@ final class CityStorageService: ObservableObject {
             reorderCities()
         }
 
-        saveCities()
+        // Force reload because city name change is critical for widget display
+        saveCities(forceReload: true)
         logger.info("🏙️ Updated current location: \(city.name)")
     }
 
@@ -189,24 +191,29 @@ final class CityStorageService: ObservableObject {
     private var lastWidgetReload: Date?
     private let widgetReloadThrottle: TimeInterval = 10 // Min 10 seconds between reloads
 
-    private func saveCities(reloadWidgets: Bool = true) {
+    /// Save cities to storage and optionally reload widgets
+    /// - Parameters:
+    ///   - reloadWidgets: Whether to reload widgets (default true)
+    ///   - forceReload: If true, bypasses throttling for critical updates like city changes
+    private func saveCities(reloadWidgets: Bool = true, forceReload: Bool = false) {
         do {
             let data = try JSONEncoder().encode(cities)
             defaults?.set(data, forKey: citiesKey)
             defaults?.synchronize()
-            // Reduced logging frequency - only log important saves
-            // logger.debug("🏙️ Saved \(self.cities.count) cities to storage")
 
-            // Only reload widgets if requested and not throttled
+            // Only reload widgets if requested
             if reloadWidgets {
                 let now = Date()
-                if let lastReload = lastWidgetReload,
-                   now.timeIntervalSince(lastReload) < widgetReloadThrottle {
+                let shouldThrottle = !forceReload &&
+                    lastWidgetReload != nil &&
+                    now.timeIntervalSince(lastWidgetReload!) < widgetReloadThrottle
+
+                if shouldThrottle {
                     // logger.debug("🏙️ Skipping widget reload - throttled")
                 } else {
                     WidgetCenter.shared.reloadAllTimelines()
                     lastWidgetReload = now
-                    logger.debug("🏙️ Triggered widget reload")
+                    logger.debug("🏙️ Triggered widget reload\(forceReload ? " (forced)" : "")")
                 }
             }
         } catch {
