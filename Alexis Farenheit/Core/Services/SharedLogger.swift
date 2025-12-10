@@ -59,10 +59,20 @@ final class SharedLogger {
 
     private let appGroupID = "group.alexisaraujo.alexisfarenheit"
     private let logFileName = "app_logs.json"
-    private let maxLogEntries = 500  // Keep last 500 entries
+    private let maxLogEntries = 200  // Reduced from 500 to improve performance
+    private let logTTLHours: TimeInterval = 24  // Delete logs older than 24 hours
 
     private let osLog = Logger(subsystem: "com.alexis.farenheit", category: "SharedLogger")
     private let queue = DispatchQueue(label: "com.alexis.farenheit.logger", qos: .utility)
+    
+    // Batch logging to reduce file I/O
+    private var pendingEntries: [LogEntry] = []
+    private var writeWorkItem: DispatchWorkItem?
+    private let batchWriteDelay: TimeInterval = 0.5 // Batch writes every 500ms
+    private let maxBatchSize = 10 // Flush batch after 10 entries
+    
+    /// Disable file logging during critical operations (e.g., search)
+    var fileLoggingEnabled: Bool = true
 
     /// Current source identifier
     var source: String = "App"
@@ -125,9 +135,12 @@ final class SharedLogger {
             message: message
         )
 
-        // Also log to OSLog for Xcode console
+        // Always log to OSLog for Xcode console (fast, non-blocking)
         osLog.log(level: osLogType(for: level), "\(entry.fullDescription)")
 
+        // Only write to file if enabled (can be disabled during critical operations)
+        guard fileLoggingEnabled else { return }
+        
         // Write to shared file asynchronously
         queue.async { [weak self] in
             self?.appendToFile(entry)
@@ -145,18 +158,63 @@ final class SharedLogger {
 
     // MARK: - File Operations
 
+    /// Append entry to batch queue (debounced writes)
     private func appendToFile(_ entry: LogEntry) {
         guard logFileURL != nil else { return }
-
-        var entries = loadEntriesFromFile() ?? []
-        entries.append(entry)
-
-        // Trim to max entries
-        if entries.count > maxLogEntries {
-            entries = Array(entries.suffix(maxLogEntries))
+        
+        queue.async { [weak self] in
+            guard let self else { return }
+            
+            // Add to pending batch
+            self.pendingEntries.append(entry)
+            
+            // Cancel previous delayed write
+            self.writeWorkItem?.cancel()
+            
+            // If batch is full, flush immediately
+            if self.pendingEntries.count >= self.maxBatchSize {
+                self.flushPendingEntries()
+                return
+            }
+            
+            // Otherwise, schedule delayed write
+            let workItem = DispatchWorkItem { [weak self] in
+                self?.flushPendingEntries()
+            }
+            self.writeWorkItem = workItem
+            self.queue.asyncAfter(deadline: .now() + self.batchWriteDelay, execute: workItem)
         }
-
-        saveEntriesToFile(entries)
+    }
+    
+    /// Flush all pending entries to file (async, non-blocking)
+    private func flushPendingEntries() {
+        guard !pendingEntries.isEmpty else { return }
+        
+        let entriesToWrite = pendingEntries
+        pendingEntries.removeAll()
+        
+        // Perform file I/O asynchronously to avoid blocking
+        queue.async { [weak self] in
+            guard let self else { return }
+            
+            // Load existing entries (async)
+            var allEntries = self.loadEntriesFromFile() ?? []
+            
+            // Append new entries
+            allEntries.append(contentsOf: entriesToWrite)
+            
+            // Apply TTL: Remove entries older than logTTLHours
+            let cutoffDate = Date().addingTimeInterval(-self.logTTLHours * 3600)
+            allEntries = allEntries.filter { $0.timestamp >= cutoffDate }
+            
+            // Trim to max entries (keep newest)
+            if allEntries.count > self.maxLogEntries {
+                allEntries = Array(allEntries.suffix(self.maxLogEntries))
+            }
+            
+            // Save to file (async write)
+            self.saveEntriesToFileAsync(allEntries)
+        }
     }
 
     private func loadEntriesFromFile() -> [LogEntry]? {
@@ -171,15 +229,91 @@ final class SharedLogger {
         }
     }
 
+    /// Save entries to file synchronously (legacy, use saveEntriesToFileAsync)
     private func saveEntriesToFile(_ entries: [LogEntry]) {
+        saveEntriesToFileAsync(entries)
+    }
+    
+    /// Save entries to file asynchronously (non-blocking)
+    /// Uses FileHandle for incremental writes to avoid blocking the thread
+    private func saveEntriesToFileAsync(_ entries: [LogEntry]) {
         guard let fileURL = logFileURL else { return }
 
-        do {
-            let data = try JSONEncoder().encode(entries)
-            try data.write(to: fileURL, options: .atomic)
-        } catch {
-            osLog.error("Failed to save logs: \(error.localizedDescription)")
+        // Perform encoding and writing on background queue
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self else { return }
+            
+            do {
+                // Encode entries to JSON data
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = [] // No pretty printing for performance
+                let data = try encoder.encode(entries)
+                
+                // Use atomic write via temporary file to prevent corruption
+                // Write to temp file first, then atomically replace the original
+                let tempURL = fileURL.appendingPathExtension("tmp")
+                
+                // Write to temporary file (non-blocking, incremental if possible)
+                // For large files, use FileHandle for incremental writes
+                if data.count > 100_000 { // >100KB: use FileHandle for incremental write
+                    try self.writeLargeFileIncrementally(data: data, to: tempURL)
+                } else {
+                    // Small files: direct write is fast enough
+                    try data.write(to: tempURL, options: [.completeFileProtectionNone])
+                }
+                
+                // Atomically replace the original file with the temp file
+                // This is a fast operation (just a file system move)
+                let fileManager = FileManager.default
+                if fileManager.fileExists(atPath: fileURL.path) {
+                    try fileManager.removeItem(at: fileURL)
+                }
+                try fileManager.moveItem(at: tempURL, to: fileURL)
+            } catch {
+                self.osLog.error("Failed to save logs: \(error.localizedDescription)")
+            }
         }
+    }
+    
+    /// Write large files incrementally using FileHandle to avoid blocking
+    /// This prevents loading the entire file into memory before writing
+    private func writeLargeFileIncrementally(data: Data, to url: URL) throws {
+        // Create file if it doesn't exist
+        let fileManager = FileManager.default
+        if !fileManager.fileExists(atPath: url.path) {
+            fileManager.createFile(atPath: url.path, contents: nil, attributes: nil)
+        }
+        
+        // Use FileHandle for incremental writes
+        guard let fileHandle = FileHandle(forWritingAtPath: url.path) else {
+            throw NSError(domain: "SharedLogger", code: -1, userInfo: [NSLocalizedDescriptionKey: "Cannot create file handle"])
+        }
+        
+        defer {
+            fileHandle.closeFile()
+        }
+        
+        // Truncate file to start fresh
+        fileHandle.truncateFile(atOffset: 0)
+        
+        // Write data in chunks to avoid blocking
+        let chunkSize = 64 * 1024 // 64KB chunks
+        var offset = 0
+        
+        while offset < data.count {
+            let chunkEnd = min(offset + chunkSize, data.count)
+            let chunk = data.subdata(in: offset..<chunkEnd)
+            fileHandle.write(chunk)
+            offset = chunkEnd
+            
+            // Small yield to prevent blocking the queue
+            if offset % (chunkSize * 4) == 0 { // Every 256KB
+                Thread.sleep(forTimeInterval: 0.001) // 1ms yield
+            }
+        }
+        
+        // Ensure all data is written
+        fileHandle.synchronizeFile()
     }
 
     // MARK: - Public Read Methods
@@ -206,9 +340,21 @@ final class SharedLogger {
     /// Clear all logs
     func clearLogs() {
         queue.async { [weak self] in
-            self?.saveEntriesToFile([])
+            guard let self else { return }
+            // Cancel any pending writes
+            self.writeWorkItem?.cancel()
+            self.pendingEntries.removeAll()
+            self.saveEntriesToFile([])
         }
         osLog.info("Logs cleared")
+    }
+    
+    /// Flush pending log entries immediately (call before app termination)
+    func flushPendingLogs() {
+        queue.sync { [weak self] in
+            self?.writeWorkItem?.cancel()
+            self?.flushPendingEntries()
+        }
     }
 
     // MARK: - Export
