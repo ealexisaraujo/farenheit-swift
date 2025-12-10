@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import CoreLocation
+import SwiftUI
 import os.log
 
 /// Lightweight CoreLocation wrapper for city lookup and permission handling.
@@ -25,26 +26,34 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
         logger.debug("📍 LocationService initialized (auth: \(self.authorizationStatus.rawValue))")
     }
 
-    /// Request location permission - uses "Always" for best UX and background widget refresh
+    /// Tracks if we already asked for Always upgrade (iOS only shows this once)
+    @AppStorage("hasRequestedAlwaysAuth") private var hasRequestedAlwaysAuth = false
+
+    /// Request location permission using iOS 13+ two-step flow:
+    /// Step 1: Request "When In Use" (shows Allow Once, Allow While Using, Don't Allow)
+    /// Step 2: If user chose "While Using", request "Always" upgrade
     func requestPermission() {
         logger.debug("📍 requestPermission (status: \(self.authorizationStatus.rawValue))")
 
         switch authorizationStatus {
         case .notDetermined:
-            // First time - request "Always" permission
-            locationManager.requestAlwaysAuthorization()
+            // Step 1: Request When In Use first (required by iOS 13+)
+            locationManager.requestWhenInUseAuthorization()
         case .authorizedWhenInUse:
-            // User gave "When In Use" - upgrade to "Always" for background refresh
-            locationManager.requestAlwaysAuthorization()
-            // Also get location now
+            // User chose "While Using" - try to upgrade to Always (only once)
             requestLocation()
+            if !hasRequestedAlwaysAuth {
+                hasRequestedAlwaysAuth = true
+                // Step 2: This shows "Keep While Using" vs "Change to Always"
+                locationManager.requestAlwaysAuthorization()
+            }
         case .authorizedAlways:
-            // Best case - full permission granted
+            // Best case - full permission, background refresh works
             requestLocation()
         case .denied, .restricted:
             errorMessage = "Permiso de ubicación denegado. Habilítalo en Ajustes."
         @unknown default:
-            locationManager.requestAlwaysAuthorization()
+            locationManager.requestWhenInUseAuthorization()
         }
     }
 
@@ -56,7 +65,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
             errorMessage = nil
             locationManager.requestLocation()
         case .notDetermined:
-            // Need permission first
+            // Need permission first - this will trigger the dialog
             requestPermission()
         case .denied, .restricted:
             errorMessage = "Permiso de ubicación denegado. Habilítalo en Ajustes."
@@ -69,26 +78,36 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let newStatus = manager.authorizationStatus
+        let previousStatus = authorizationStatus
         authorizationStatus = newStatus
-        logger.debug("📍 Auth changed: \(newStatus.rawValue)")
+        logger.debug("📍 Auth changed: \(previousStatus.rawValue) → \(newStatus.rawValue)")
 
         switch newStatus {
         case .authorizedAlways:
-            // Perfect - user granted full access
-            logger.debug("📍 Always authorization granted")
+            logger.debug("📍 Always authorized - background refresh enabled!")
             requestLocation()
+
         case .authorizedWhenInUse:
-            // Good enough to work, but try to upgrade for background
-            logger.debug("📍 WhenInUse granted, requesting Always for background refresh")
+            logger.debug("📍 When In Use authorized")
             requestLocation()
-            // iOS will show prompt to upgrade to Always (only once)
-            locationManager.requestAlwaysAuthorization()
+            // Immediately ask for Always upgrade if we haven't yet
+            // This creates the two-step flow Apple recommends
+            if !hasRequestedAlwaysAuth {
+                hasRequestedAlwaysAuth = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    self?.locationManager.requestAlwaysAuthorization()
+                }
+            }
+
         case .denied, .restricted:
             isRequesting = false
             errorMessage = "Permiso de ubicación denegado. Habilítalo en Ajustes."
+
         case .notDetermined:
-            // User hasn't decided yet - don't show error
-            logger.debug("📍 Status not determined yet")
+            // "Allow Once" expired or first launch - don't show error
+            // User will see permission dialog when they interact with location features
+            logger.debug("📍 Status not determined (Allow Once expired or first launch)")
+
         @unknown default:
             break
         }
