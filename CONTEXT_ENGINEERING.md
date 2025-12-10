@@ -67,38 +67,43 @@ private let cardHeight: CGFloat = 72
 private let cardSpacing: CGFloat = 12
 ```
 
-#### Algoritmo de Offset (Movimiento en Tiempo Real)
+#### Algoritmo de Offset para Cards Vecinas
 ```swift
-private func calculateOffset(for city: CityModel, at index: Int) -> CGFloat {
-    // Si es el item arrastrado, retorna su offset
-    if draggingItem?.id == city.id {
-        return dragOffset
-    }
+// La card arrastrada usa dragOffset directamente
+// Las cards vecinas usan calculateNeighborOffset con animación
 
-    // Si nada se está arrastrando, sin offset
-    guard let dragIndex = currentDragIndex, draggingItem != nil else {
+private func calculateNeighborOffset(for city: CityModel, at index: Int) -> CGFloat {
+    guard draggingItem?.id != city.id else { return 0 }
+    guard let draggingCity = draggingItem,
+          let originalDragIndex = cities.firstIndex(where: { $0.id == draggingCity.id }) else {
         return 0
     }
 
     let slotHeight = cardHeight + cardSpacing
     let slotsMoved = Int((dragOffset / slotHeight).rounded())
-    let targetIndex = max(1, min(cities.count - 1, dragIndex + slotsMoved))
+    let targetIndex = max(1, min(cities.count - 1, originalDragIndex + slotsMoved))
 
-    // Mover otras cards para hacer espacio
-    if dragIndex < targetIndex {
-        // Arrastrando hacia abajo
-        if index > dragIndex && index <= targetIndex {
-            return -slotHeight
+    if originalDragIndex < targetIndex {
+        if index > originalDragIndex && index <= targetIndex {
+            return -slotHeight  // Mover arriba
         }
-    } else if dragIndex > targetIndex {
-        // Arrastrando hacia arriba
-        if index >= targetIndex && index < dragIndex {
-            return slotHeight
+    } else if originalDragIndex > targetIndex {
+        if index >= targetIndex && index < originalDragIndex {
+            return slotHeight   // Mover abajo
         }
     }
-
     return 0
 }
+```
+
+#### Aplicación del Offset con Animación
+```swift
+reorderableCard(...)
+    .offset(y: isDragging ? dragOffset : neighborOffset)
+    .animation(
+        isDragging ? nil : .spring(response: 0.3, dampingFraction: 0.7),
+        value: neighborOffset
+    )
 ```
 
 #### Gesto Combinado (LongPress + Drag)
@@ -359,6 +364,81 @@ Widget (AlexisExtensionFarenheit)
 
 ---
 
+---
+
+## Optimizaciones de Performance (Sesión 2)
+
+### Problema: Múltiples Fetches Duplicados al Iniciar
+
+**Síntomas en logs:**
+- Weather se fetch 8+ veces para la misma ciudad
+- Widget reload se dispara en cada update de temperatura
+- "Updated city: Chandler" aparece repetidamente
+
+**Soluciones Implementadas:**
+
+#### 1. Throttling de Fetches por Ciudad
+```swift
+// HomeViewModel.swift
+private var lastFetchTime: [UUID: Date] = [:]
+private let minimumFetchInterval: TimeInterval = 30
+
+func fetchWeather(for city: CityModel) {
+    if let lastFetch = lastFetchTime[city.id],
+       Date().timeIntervalSince(lastFetch) < minimumFetchInterval {
+        logger.debug("Skipping - fetched recently")
+        return
+    }
+    lastFetchTime[city.id] = Date()
+    // ... fetch
+}
+```
+
+#### 2. Debounce en Location Updates
+```swift
+locationService.$lastLocation
+    .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
+    .removeDuplicates { old, new in
+        old.distance(from: new) < 100  // 100 metros
+    }
+```
+
+#### 3. Widget Reload Throttling
+```swift
+// CityStorageService.swift
+private var lastWidgetReload: Date?
+private let widgetReloadThrottle: TimeInterval = 10
+
+func saveCities(reloadWidgets: Bool = true) {
+    // Solo recargar si pasaron >10 segundos
+}
+
+func saveCitiesQuietly() {
+    saveCities(reloadWidgets: false)  // Para updates de temperatura
+}
+```
+
+#### 4. Flag de Carga Inicial
+```swift
+private var hasCompletedInitialLoad = false
+
+func onAppear() {
+    guard !hasCompletedInitialLoad else { return }
+    hasCompletedInitialLoad = true
+}
+```
+
+#### 5. Eliminación de Fetch Duplicado
+```swift
+func onBecameActive() {
+    // Solo llamar refreshAllCities()
+    // NO llamar refreshWeatherIfPossible() por separado
+    refreshAllCities()
+}
+```
+
+---
+
 ## Commits Relacionados
 
 - feat: add multi-city support with timezone slider
@@ -366,3 +446,5 @@ Widget (AlexisExtensionFarenheit)
 - feat: add reorder button and large widget multi-city
 - fix: edit mode auto-exit, drag-and-drop, medium widget
 - fix: widget updates on city changes, Apple-style drag
+- perf: fix duplicate weather fetches, add throttling
+- fix: neighboring cards animate during drag-and-drop

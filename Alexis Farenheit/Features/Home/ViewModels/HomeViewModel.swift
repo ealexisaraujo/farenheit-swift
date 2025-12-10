@@ -61,6 +61,15 @@ final class HomeViewModel: ObservableObject {
     /// Minimum interval between automatic refreshes (5 minutes)
     private let minimumRefreshInterval: TimeInterval = 5 * 60
 
+    /// Track if initial setup is complete to avoid duplicate fetches
+    private var hasCompletedInitialLoad = false
+
+    /// Track last fetch time per city to avoid duplicates
+    private var lastFetchTime: [UUID: Date] = [:]
+
+    /// Minimum interval between fetches for the same city (30 seconds)
+    private let minimumFetchInterval: TimeInterval = 30
+
     // MARK: - Computed Properties
 
     /// Display temperature for the main card - uses WeatherKit value if available
@@ -113,11 +122,14 @@ final class HomeViewModel: ObservableObject {
 
     /// Called when view appears for the first time
     func onAppear() {
+        guard !hasCompletedInitialLoad else {
+            logger.debug("🏠 View appeared - already loaded, skipping")
+            return
+        }
+
         logger.debug("🏠 View appeared - requesting permission")
         locationService.requestPermission()
-
-        // Lazy load weather for cities that have cached data (staggered)
-        lazyLoadInitialWeather()
+        hasCompletedInitialLoad = true
     }
 
     /// Lazy load weather on initial app launch
@@ -161,7 +173,8 @@ final class HomeViewModel: ObservableObject {
         }
 
         logger.debug("🏠 Auto-refreshing weather...")
-        refreshWeatherIfPossible()
+        // Only refresh all cities - this includes the primary city
+        // Don't call refreshWeatherIfPossible() separately to avoid duplicate fetches
         refreshAllCities()
     }
 
@@ -311,11 +324,23 @@ final class HomeViewModel: ObservableObject {
         cityStorage.moveCity(from: source, to: destination)
     }
 
-    /// Fetch weather for a specific city
+    /// Fetch weather for a specific city (with throttling)
     func fetchWeather(for city: CityModel) {
-        guard !loadingCityIds.contains(city.id) else { return }
+        // Skip if already loading
+        guard !loadingCityIds.contains(city.id) else {
+            logger.debug("🏠 Skipping fetch for \(city.name) - already loading")
+            return
+        }
+
+        // Throttle: Skip if fetched recently
+        if let lastFetch = lastFetchTime[city.id],
+           Date().timeIntervalSince(lastFetch) < minimumFetchInterval {
+            logger.debug("🏠 Skipping fetch for \(city.name) - fetched recently")
+            return
+        }
 
         loadingCityIds.insert(city.id)
+        lastFetchTime[city.id] = Date()
 
         Task {
             let tempService = WeatherService()
@@ -429,12 +454,18 @@ final class HomeViewModel: ObservableObject {
 
     /// Bind to LocationService published properties
     private func bindLocation() {
-        // When location updates, fetch weather and update current location city
+        // When location updates, update current location city
+        // Use debounce to avoid multiple rapid updates
         locationService.$lastLocation
             .compactMap { $0 }
+            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
+            .removeDuplicates { old, new in
+                // Consider same location if within 100 meters
+                old.distance(from: new) < 100
+            }
             .sink { [weak self] location in
                 guard let self else { return }
-                Task { await self.weatherService.fetchWeather(for: location) }
+                // Only update city info, weather fetch is handled by refreshAllCities
                 self.updateCurrentLocationCity(with: location)
             }
             .store(in: &cancellables)

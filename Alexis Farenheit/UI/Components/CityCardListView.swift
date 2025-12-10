@@ -140,15 +140,21 @@ struct CityCardListView: View {
             ForEach(Array(cities.enumerated()), id: \.element.id) { index, city in
                 let isPrimary = city.isCurrentLocation || index == 0
                 let isDragging = draggingItem?.id == city.id
+                let neighborOffset = calculateNeighborOffset(for: city, at: index)
 
                 reorderableCard(for: city, at: index, isPrimary: isPrimary)
                     .zIndex(isDragging ? 100 : Double(cities.count - index))
-                    .offset(y: calculateOffset(for: city, at: index))
-                    .scaleEffect(isDragging ? 1.03 : 1.0)
+                    .offset(y: isDragging ? dragOffset : neighborOffset)
+                    .scaleEffect(isDragging ? 1.05 : 1.0)
+                    .opacity(isDragging ? 0.9 : 1.0)
                     .shadow(
                         color: isDragging ? .black.opacity(0.3) : .clear,
-                        radius: isDragging ? 10 : 0,
-                        y: isDragging ? 5 : 0
+                        radius: isDragging ? 12 : 0,
+                        y: isDragging ? 8 : 0
+                    )
+                    .animation(
+                        isDragging ? nil : .spring(response: 0.3, dampingFraction: 0.7),
+                        value: neighborOffset
                     )
                     .gesture(
                         isPrimary ? nil : makeDragGesture(for: city, at: index)
@@ -158,37 +164,35 @@ struct CityCardListView: View {
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: cities.map(\.id))
     }
 
-    /// Calculate offset for each card during drag operation
-    private func calculateOffset(for city: CityModel, at index: Int) -> CGFloat {
-        // If this is the dragging item, return its drag offset
-        if draggingItem?.id == city.id {
-            return dragOffset
-        }
+    /// Calculate offset for neighboring cards during drag (not the dragged item)
+    private func calculateNeighborOffset(for city: CityModel, at index: Int) -> CGFloat {
+        // Don't offset the dragged item - it uses dragOffset directly
+        guard draggingItem?.id != city.id else { return 0 }
 
         // If nothing is being dragged, no offset
-        guard let dragIndex = currentDragIndex, draggingItem != nil else {
+        guard let draggingCity = draggingItem,
+              let originalDragIndex = cities.firstIndex(where: { $0.id == draggingCity.id }) else {
             return 0
         }
 
         // Calculate the total distance per card slot
         let slotHeight = cardHeight + cardSpacing
 
-        // Calculate how many slots the dragged item has moved
-        let slotsMovedRaw = dragOffset / slotHeight
-        let slotsMoved = Int(slotsMovedRaw.rounded())
+        // Calculate how many slots the dragged item has moved based on dragOffset
+        let slotsMoved = Int((dragOffset / slotHeight).rounded())
 
-        // Target index if we drop now
-        let targetIndex = max(1, min(cities.count - 1, dragIndex + slotsMoved))
+        // Calculate target index (where dragged item would go)
+        let targetIndex = max(1, min(cities.count - 1, originalDragIndex + slotsMoved))
 
-        // Move other cards to make room
-        if dragIndex < targetIndex {
-            // Dragging down: cards between dragIndex and targetIndex move up
-            if index > dragIndex && index <= targetIndex {
+        // Determine if this card needs to move
+        if originalDragIndex < targetIndex {
+            // Dragging down: cards between original position and target move UP
+            if index > originalDragIndex && index <= targetIndex {
                 return -slotHeight
             }
-        } else if dragIndex > targetIndex {
-            // Dragging up: cards between targetIndex and dragIndex move down
-            if index >= targetIndex && index < dragIndex {
+        } else if originalDragIndex > targetIndex {
+            // Dragging up: cards between target and original position move DOWN
+            if index >= targetIndex && index < originalDragIndex {
                 return slotHeight
             }
         }

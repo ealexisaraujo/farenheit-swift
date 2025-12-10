@@ -70,6 +70,7 @@ final class CityStorageService: ObservableObject {
     }
 
     /// Update an existing city (e.g., with new weather data)
+    /// Does NOT reload widgets for weather-only updates to avoid spam
     func updateCity(_ city: CityModel) {
         guard let index = cities.firstIndex(where: { $0.id == city.id }) else {
             logger.warning("🏙️ City not found for update: \(city.name)")
@@ -77,7 +78,7 @@ final class CityStorageService: ObservableObject {
         }
 
         cities[index] = city
-        saveCities()
+        saveCitiesQuietly() // Don't reload widgets for temperature updates
         logger.debug("🏙️ Updated city: \(city.name)")
     }
 
@@ -88,7 +89,7 @@ final class CityStorageService: ObservableObject {
         }
 
         cities[index] = cities[index].withWeather(fahrenheit: fahrenheit)
-        saveCities()
+        saveCitiesQuietly() // Don't reload widgets for temperature updates
     }
 
     /// Remove a city by ID (cannot remove current location)
@@ -185,19 +186,37 @@ final class CityStorageService: ObservableObject {
 
     // MARK: - Persistence
 
-    private func saveCities() {
+    /// Track last widget reload to avoid spamming
+    private var lastWidgetReload: Date?
+    private let widgetReloadThrottle: TimeInterval = 10 // Min 10 seconds between reloads
+
+    private func saveCities(reloadWidgets: Bool = true) {
         do {
             let data = try JSONEncoder().encode(cities)
             defaults?.set(data, forKey: citiesKey)
             defaults?.synchronize()
             logger.debug("🏙️ Saved \(self.cities.count) cities to storage")
 
-            // Reload widget timelines when cities change
-            WidgetCenter.shared.reloadAllTimelines()
-            logger.debug("🏙️ Triggered widget reload")
+            // Only reload widgets if requested and not throttled
+            if reloadWidgets {
+                let now = Date()
+                if let lastReload = lastWidgetReload,
+                   now.timeIntervalSince(lastReload) < widgetReloadThrottle {
+                    logger.debug("🏙️ Skipping widget reload - throttled")
+                } else {
+                    WidgetCenter.shared.reloadAllTimelines()
+                    lastWidgetReload = now
+                    logger.debug("🏙️ Triggered widget reload")
+                }
+            }
         } catch {
             logger.error("🏙️ Failed to save cities: \(error.localizedDescription)")
         }
+    }
+
+    /// Save cities without triggering widget reload (for weather updates)
+    private func saveCitiesQuietly() {
+        saveCities(reloadWidgets: false)
     }
 
     private func loadCities() {
