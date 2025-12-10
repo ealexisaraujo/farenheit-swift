@@ -23,6 +23,13 @@ final class WeatherService: ObservableObject {
     func fetchWeather(for location: CLLocation) async {
         logger.debug("🌤️ Fetching weather for \(location.coordinate.latitude), \(location.coordinate.longitude)")
 
+        // Performance tracking: Start weather fetch operation
+        let metadata = [
+            "latitude": String(format: "%.4f", location.coordinate.latitude),
+            "longitude": String(format: "%.4f", location.coordinate.longitude)
+        ]
+        PerformanceMonitor.shared.startOperation("WeatherFetch", category: "Network", metadata: metadata)
+
         isLoading = true
         errorMessage = nil
 
@@ -34,12 +41,23 @@ final class WeatherService: ObservableObject {
             let tempF = weather.temperature.converted(to: .fahrenheit).value
             logger.debug("🌤️ Temperature: \(tempF)°F")
 
+            // Performance tracking: Log successful fetch
+            var successMetadata = metadata
+            successMetadata["temperature"] = String(format: "%.1f", tempF)
+            PerformanceMonitor.shared.endOperation("WeatherFetch", category: "Network", metadata: successMetadata)
+
             currentTemperatureF = tempF
             errorMessage = nil
 
         } catch {
             let nsError = error as NSError
             logger.error("🌤️ Error: \(error.localizedDescription)")
+
+            // Performance tracking: Log failed fetch
+            var errorMetadata = metadata
+            errorMetadata["error"] = error.localizedDescription
+            errorMetadata["error_domain"] = nsError.domain
+            PerformanceMonitor.shared.endOperation("WeatherFetch", category: "Network", metadata: errorMetadata, forceLog: true)
 
             // User-friendly error message
             if nsError.domain.contains("WeatherDaemon") || nsError.domain.contains("JWT") {

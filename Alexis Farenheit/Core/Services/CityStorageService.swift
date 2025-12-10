@@ -79,7 +79,8 @@ final class CityStorageService: ObservableObject {
 
         cities[index] = city
         saveCitiesQuietly() // Don't reload widgets for temperature updates
-        logger.debug("🏙️ Updated city: \(city.name)")
+        // Reduced logging - only log important updates
+        // logger.debug("🏙️ Updated city: \(city.name)")
     }
 
     /// Update weather for a specific city
@@ -195,14 +196,15 @@ final class CityStorageService: ObservableObject {
             let data = try JSONEncoder().encode(cities)
             defaults?.set(data, forKey: citiesKey)
             defaults?.synchronize()
-            logger.debug("🏙️ Saved \(self.cities.count) cities to storage")
+            // Reduced logging frequency - only log important saves
+            // logger.debug("🏙️ Saved \(self.cities.count) cities to storage")
 
             // Only reload widgets if requested and not throttled
             if reloadWidgets {
                 let now = Date()
                 if let lastReload = lastWidgetReload,
                    now.timeIntervalSince(lastReload) < widgetReloadThrottle {
-                    logger.debug("🏙️ Skipping widget reload - throttled")
+                    // logger.debug("🏙️ Skipping widget reload - throttled")
                 } else {
                     WidgetCenter.shared.reloadAllTimelines()
                     lastWidgetReload = now

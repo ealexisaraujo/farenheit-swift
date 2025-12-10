@@ -50,6 +50,9 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
 
     /// Request a single location update
     func requestLocation() {
+        // Performance tracking: Start location request
+        PerformanceMonitor.shared.startOperation("LocationRequest", category: "Location")
+
         switch authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
             isRequesting = true
@@ -57,10 +60,13 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
             locationManager.requestLocation()
         case .notDetermined:
             // Need permission first
+            PerformanceMonitor.shared.endOperation("LocationRequest", category: "Location", metadata: ["status": "not_determined"], forceLog: true)
             requestPermission()
         case .denied, .restricted:
+            PerformanceMonitor.shared.endOperation("LocationRequest", category: "Location", metadata: ["status": "denied"], forceLog: true)
             errorMessage = "Permiso de ubicación denegado. Habilítalo en Ajustes."
         @unknown default:
+            PerformanceMonitor.shared.endOperation("LocationRequest", category: "Location", metadata: ["status": "unknown"], forceLog: true)
             requestPermission()
         }
     }
@@ -98,13 +104,29 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
         guard let location = locations.last else { return }
         logger.debug("📍 Location: \(location.coordinate.latitude), \(location.coordinate.longitude)")
 
+        // Performance tracking: End location request (successful)
+        let metadata = [
+            "latitude": String(format: "%.4f", location.coordinate.latitude),
+            "longitude": String(format: "%.4f", location.coordinate.longitude),
+            "accuracy": String(format: "%.0f", location.horizontalAccuracy)
+        ]
+        PerformanceMonitor.shared.endOperation("LocationRequest", category: "Location", metadata: metadata)
+
         lastLocation = location
         isRequesting = false
+
+        // Performance tracking: Start reverse geocoding
+        PerformanceMonitor.shared.startOperation("ReverseGeocode", category: "Location")
         reverseGeocode(location)
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         logger.error("📍 Error: \(error.localizedDescription)")
+
+        // Performance tracking: End location request (failed)
+        let metadata = ["error": error.localizedDescription]
+        PerformanceMonitor.shared.endOperation("LocationRequest", category: "Location", metadata: metadata, forceLog: true)
+
         errorMessage = error.localizedDescription
         isRequesting = false
     }
@@ -116,14 +138,27 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
 
             if let error {
                 self.logger.error("📍 Geocode error: \(error.localizedDescription)")
+
+                // Performance tracking: End reverse geocode (failed)
+                let metadata = ["error": error.localizedDescription]
+                PerformanceMonitor.shared.endOperation("ReverseGeocode", category: "Location", metadata: metadata, forceLog: true)
+
                 self.errorMessage = error.localizedDescription
                 return
             }
 
-            guard let placemark = placemarks?.first else { return }
+            guard let placemark = placemarks?.first else {
+                // Performance tracking: End reverse geocode (no placemark)
+                PerformanceMonitor.shared.endOperation("ReverseGeocode", category: "Location", metadata: ["status": "no_placemark"], forceLog: true)
+                return
+            }
 
             let city = placemark.locality ?? placemark.administrativeArea ?? "Unknown"
             let country = placemark.isoCountryCode ?? ""
+
+            // Performance tracking: End reverse geocode (successful)
+            let metadata = ["city": city, "country": country]
+            PerformanceMonitor.shared.endOperation("ReverseGeocode", category: "Location", metadata: metadata)
 
             DispatchQueue.main.async {
                 self.currentCity = city

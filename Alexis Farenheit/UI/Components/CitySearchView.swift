@@ -14,20 +14,43 @@ final class CitySearchCompleter: NSObject, ObservableObject, MKLocalSearchComple
         c.resultTypes = .address
         return c
     }()
+    
+    // Debouncing to prevent searching on every keystroke
+    private var searchWorkItem: DispatchWorkItem?
+    private let debounceDelay: TimeInterval = 0.3 // Wait 300ms after typing stops
 
     override init() {
         super.init()
         completer.delegate = self
     }
 
-    /// Update search query
+    /// Update search query (debounced)
     func update(query: String) {
+        // Cancel previous search
+        searchWorkItem?.cancel()
+        
         if query.isEmpty {
             clear()
             return
         }
-        completer.queryFragment = query
-        isSearching = true
+        
+        // Disable file logging during active search to prevent I/O blocking
+        SharedLogger.shared.fileLoggingEnabled = false
+        
+        // Debounce: wait for user to stop typing
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.completer.queryFragment = query
+            self.isSearching = true
+            
+            // Re-enable file logging after search starts (with delay)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                SharedLogger.shared.fileLoggingEnabled = true
+            }
+        }
+        
+        searchWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + debounceDelay, execute: workItem)
     }
 
     func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
@@ -42,6 +65,13 @@ final class CitySearchCompleter: NSObject, ObservableObject, MKLocalSearchComple
 
     /// Clear all suggestions
     func clear() {
+        // Cancel any pending search
+        searchWorkItem?.cancel()
+        searchWorkItem = nil
+        
+        // Re-enable file logging when search is cleared
+        SharedLogger.shared.fileLoggingEnabled = true
+        
         suggestions = []
         isSearching = false
         completer.queryFragment = ""

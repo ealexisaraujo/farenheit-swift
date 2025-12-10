@@ -170,6 +170,10 @@ struct TemperatureProvider: TimelineProvider {
         logger.timeline("getTimeline() CALLED")
         logger.timeline("Family: \(context.family.description)")
 
+        // Performance tracking: Start widget timeline generation
+        let metadata = ["family": context.family.description, "is_preview": "\(context.isPreview)"]
+        logger.startPerformanceOperation("WidgetTimeline", category: "Widget", metadata: metadata)
+
         let cachedData = loadCachedData()
         let location = loadLastKnownLocation()
         let cities = loadSavedCities()
@@ -206,6 +210,12 @@ struct TemperatureProvider: TimelineProvider {
                 logger.timeline("Timeline created, next refresh: \(Self.timeFormatter.string(from: nextRefresh))")
                 logger.timeline("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
+                // Performance tracking: End widget timeline (fresh fetch)
+                var endMetadata = metadata
+                endMetadata["source"] = "fresh_fetch"
+                endMetadata["cities_count"] = "\(cities.count)"
+                logger.endPerformanceOperation("WidgetTimeline", category: "Widget", metadata: endMetadata)
+
                 completion(timeline)
             }
         } else {
@@ -240,6 +250,12 @@ struct TemperatureProvider: TimelineProvider {
             logger.timeline("Timeline created, next refresh: \(Self.timeFormatter.string(from: nextRefresh))")
             logger.timeline("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
+            // Performance tracking: End widget timeline (cached)
+            var endMetadata = metadata
+            endMetadata["source"] = cachedData != nil ? "cached" : "placeholder"
+            endMetadata["cities_count"] = "\(cities.count)"
+            logger.endPerformanceOperation("WidgetTimeline", category: "Widget", metadata: endMetadata)
+
             completion(timeline)
         }
     }
@@ -248,6 +264,14 @@ struct TemperatureProvider: TimelineProvider {
 
     /// Fetch fresh weather from WeatherKit
     private func fetchFreshWeather(location: CLLocationCoordinate2D, cachedCity: String, cachedCountry: String, cities: [CityWidgetData]) async -> TemperatureEntry {
+        // Performance tracking: Start widget weather fetch
+        let metadata = [
+            "latitude": String(format: "%.4f", location.latitude),
+            "longitude": String(format: "%.4f", location.longitude),
+            "city": cachedCity
+        ]
+        logger.startPerformanceOperation("WidgetWeatherFetch", category: "Widget", metadata: metadata)
+
         let clLocation = CLLocation(latitude: location.latitude, longitude: location.longitude)
 
         do {
@@ -255,6 +279,11 @@ struct TemperatureProvider: TimelineProvider {
             let tempF = weather.temperature.converted(to: .fahrenheit).value
 
             logger.timeline("WeatherKit success: \(Int(tempF))°F")
+
+            // Performance tracking: End widget weather fetch (success)
+            var successMetadata = metadata
+            successMetadata["temperature"] = String(format: "%.1f", tempF)
+            logger.endPerformanceOperation("WidgetWeatherFetch", category: "Widget", metadata: successMetadata)
 
             // Save fresh data to cache for main app
             saveFreshTemperature(city: cachedCity, country: cachedCountry, fahrenheit: tempF)
@@ -268,6 +297,11 @@ struct TemperatureProvider: TimelineProvider {
             )
         } catch {
             logger.error("WeatherKit error: \(error.localizedDescription)")
+
+            // Performance tracking: End widget weather fetch (error)
+            var errorMetadata = metadata
+            errorMetadata["error"] = error.localizedDescription
+            logger.endPerformanceOperation("WidgetWeatherFetch", category: "Widget", metadata: errorMetadata, forceLog: true)
 
             // Fall back to cached data on error
             if let cached = loadCachedData() {

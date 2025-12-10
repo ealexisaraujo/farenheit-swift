@@ -341,6 +341,14 @@ final class HomeViewModel: ObservableObject {
 
         loadingCityIds.insert(city.id)
         lastFetchTime[city.id] = Date()
+        
+        // Performance tracking: Start city weather fetch
+        let metadata = [
+            "city_id": city.id.uuidString,
+            "city_name": city.name,
+            "is_current_location": "\(city.isCurrentLocation)"
+        ]
+        PerformanceMonitor.shared.startOperation("CityWeatherFetch", category: "Network", metadata: metadata)
 
         Task {
             let tempService = WeatherService()
@@ -352,6 +360,14 @@ final class HomeViewModel: ObservableObject {
                     cities[index] = cities[index].withWeather(fahrenheit: temp)
                     cityStorage.updateCity(cities[index])
                 }
+                
+                // Performance tracking: End city weather fetch (success)
+                var successMetadata = metadata
+                successMetadata["temperature"] = String(format: "%.1f", temp)
+                PerformanceMonitor.shared.endOperation("CityWeatherFetch", category: "Network", metadata: successMetadata)
+            } else {
+                // Performance tracking: End city weather fetch (no temp)
+                PerformanceMonitor.shared.endOperation("CityWeatherFetch", category: "Network", metadata: metadata, forceLog: true)
             }
 
             loadingCityIds.remove(city.id)
