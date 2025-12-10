@@ -2,17 +2,18 @@ import SwiftUI
 import UIKit
 
 /// Premium time zone slider for navigating through 24 hours
-/// Allows users to see what time it is in different cities at any point in the day
+/// Range: 12:00 AM to 11:59 PM with fixed limits (no wrapping)
 struct TimeZoneSliderView: View {
     @ObservedObject var timeService: TimeZoneService
     @State private var isDragging = false
-    @State private var hasGivenHaptic = false
+    @State private var lastHapticHour: Int = -1
 
     /// Reference city for displaying the primary time
     var referenceCity: CityModel?
 
     private let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
     private let selectionFeedback = UISelectionFeedbackGenerator()
+    private let boundaryFeedback = UINotificationFeedbackGenerator()
 
     var body: some View {
         VStack(spacing: 16) {
@@ -100,8 +101,8 @@ struct TimeZoneSliderView: View {
                     // Track background with gradient
                     trackBackground(width: geometry.size.width)
 
-                    // Progress fill
-                    trackFill(width: geometry.size.width)
+                    // Current time indicator (vertical line)
+                    currentTimeIndicator(width: geometry.size.width)
 
                     // Thumb
                     sliderThumb
@@ -113,7 +114,7 @@ struct TimeZoneSliderView: View {
                                 }
                                 .onEnded { _ in
                                     isDragging = false
-                                    hasGivenHaptic = false
+                                    lastHapticHour = -1
                                 }
                         )
                 }
@@ -126,18 +127,19 @@ struct TimeZoneSliderView: View {
     }
 
     private func trackBackground(width: CGFloat) -> some View {
-        // Day/night gradient
+        // Day/night gradient - starts and ends dark (night)
         LinearGradient(
             stops: [
-                .init(color: Color(hex: "1a1a2e"), location: 0),      // Midnight - dark
-                .init(color: Color(hex: "16213e"), location: 0.2),    // Early morning
-                .init(color: Color(hex: "4a6fa5"), location: 0.25),   // Dawn
-                .init(color: Color(hex: "87CEEB"), location: 0.35),   // Morning
-                .init(color: Color(hex: "FFD700"), location: 0.5),    // Noon - bright
-                .init(color: Color(hex: "FFA500"), location: 0.7),    // Afternoon
-                .init(color: Color(hex: "FF6347"), location: 0.8),    // Sunset
-                .init(color: Color(hex: "4a4e69"), location: 0.85),   // Dusk
-                .init(color: Color(hex: "1a1a2e"), location: 1)       // Night
+                .init(color: Color(hex: "1a1a2e"), location: 0),      // 12 AM - Midnight
+                .init(color: Color(hex: "16213e"), location: 0.15),   // 3-4 AM
+                .init(color: Color(hex: "4a6fa5"), location: 0.22),   // 5 AM - Dawn
+                .init(color: Color(hex: "87CEEB"), location: 0.30),   // 7 AM - Morning
+                .init(color: Color(hex: "87CEEB"), location: 0.40),   // 9 AM
+                .init(color: Color(hex: "FFD700"), location: 0.50),   // 12 PM - Noon
+                .init(color: Color(hex: "FFA500"), location: 0.65),   // 3 PM - Afternoon
+                .init(color: Color(hex: "FF6347"), location: 0.75),   // 6 PM - Sunset
+                .init(color: Color(hex: "4a4e69"), location: 0.82),   // 8 PM - Dusk
+                .init(color: Color(hex: "1a1a2e"), location: 1.0)     // 11:59 PM - Night
             ],
             startPoint: .leading,
             endPoint: .trailing
@@ -148,17 +150,36 @@ struct TimeZoneSliderView: View {
             Capsule()
                 .strokeBorder(.white.opacity(0.1), lineWidth: 1)
         )
+        // Add end caps to indicate limits
+        .overlay(
+            HStack {
+                // Left cap (12 AM)
+                Circle()
+                    .fill(Color(hex: "1a1a2e"))
+                    .frame(width: 6, height: 6)
+                    .offset(x: 3)
+                Spacer()
+                // Right cap (11:59 PM)
+                Circle()
+                    .fill(Color(hex: "1a1a2e"))
+                    .frame(width: 6, height: 6)
+                    .offset(x: -3)
+            }
+        )
     }
 
-    private func trackFill(width: CGFloat) -> some View {
-        // Current time indicator line
-        let currentTimePosition = currentTimeOffset(for: width)
+    private func currentTimeIndicator(width: CGFloat) -> some View {
+        let currentProgress = Double(timeService.currentTimeMinutes) / 1439.0
+        let position = currentProgress * (width - 28) + 14
 
-        return Rectangle()
-            .fill(.white.opacity(0.3))
-            .frame(width: 2, height: 16)
-            .offset(x: currentTimePosition)
-            .opacity(timeService.isShowingCurrentTime ? 0 : 1)
+        return Group {
+            if !timeService.isShowingCurrentTime {
+                Rectangle()
+                    .fill(.white.opacity(0.4))
+                    .frame(width: 2, height: 18)
+                    .offset(x: position - 1)
+            }
+        }
     }
 
     private var sliderThumb: some View {
@@ -190,22 +211,33 @@ struct TimeZoneSliderView: View {
 
     private var hourMarkers: some View {
         HStack {
-            ForEach([0, 6, 12, 18, 24], id: \.self) { hour in
-                if hour == 0 {
-                    Text("12AM")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
-                } else if hour == 24 {
-                    Text("12AM")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
-                } else {
-                    Spacer()
-                    Text(hour == 12 ? "12PM" : "\(hour % 12)\(hour < 12 ? "AM" : "PM")")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-            }
+            Text("12 AM")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Text("6 AM")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Text("12 PM")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Text("6 PM")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Text("12 AM")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -257,21 +289,12 @@ struct TimeZoneSliderView: View {
         if let city = referenceCity {
             return timeService.formattedTimeWithPeriod(city)
         }
-        return timeService.adjustedTimeString
+        return timeService.selectedTimeString
     }
 
     private func thumbOffset(for width: CGFloat) -> CGFloat {
         let usableWidth = width - 28 // Subtract thumb width
         return timeService.sliderValue * usableWidth
-    }
-
-    private func currentTimeOffset(for width: CGFloat) -> CGFloat {
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: Date())
-        let minute = calendar.component(.minute, from: Date())
-        let totalMinutes = Double(hour * 60 + minute)
-        let progress = totalMinutes / (24 * 60)
-        return progress * (width - 28) + 14
     }
 
     private func handleDrag(value: DragGesture.Value, width: CGFloat) {
@@ -281,23 +304,36 @@ struct TimeZoneSliderView: View {
         }
 
         let usableWidth = width - 28
-        let progress = max(0, min(1, value.location.x / usableWidth))
+        var progress = value.location.x / usableWidth
+
+        // Clamp to 0...1 with hard stops
+        progress = max(0, min(1, progress))
+
+        // Haptic feedback at boundaries
+        if progress <= 0.01 || progress >= 0.99 {
+            if lastHapticHour != (progress <= 0.01 ? 0 : 24) {
+                boundaryFeedback.notificationOccurred(.warning)
+                lastHapticHour = progress <= 0.01 ? 0 : 24
+            }
+        }
+
         timeService.setSliderValue(progress)
 
         // Haptic at hour boundaries
-        let totalMinutes = Int(progress * 24 * 60)
-        if totalMinutes % 60 == 0 && !hasGivenHaptic {
+        let currentHour = timeService.selectedHour
+        if currentHour != lastHapticHour && lastHapticHour != 0 && lastHapticHour != 24 {
             selectionFeedback.selectionChanged()
-            hasGivenHaptic = true
-        } else if totalMinutes % 60 != 0 {
-            hasGivenHaptic = false
+            lastHapticHour = currentHour
         }
     }
 
     private func isPresetSelected(hour: Int) -> Bool {
-        let currentMinutes = Int(timeService.sliderValue * 24 * 60)
+        let selectedHour = timeService.selectedHour
+        let selectedMinute = timeService.selectedMinute
+        // Within 30 minutes of preset
         let presetMinutes = hour * 60
-        return abs(currentMinutes - presetMinutes) < 30 // Within 30 minutes
+        let selectedMinutes = selectedHour * 60 + selectedMinute
+        return abs(selectedMinutes - presetMinutes) < 30
     }
 }
 

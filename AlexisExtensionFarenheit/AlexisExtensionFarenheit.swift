@@ -24,6 +24,9 @@ struct TemperatureEntry: TimelineEntry {
     let celsius: Double
     let isPlaceholder: Bool
 
+    // Multi-city support for large widget
+    let cities: [CityWidgetData]
+
     /// Placeholder entry for widget preview
     static var placeholder: TemperatureEntry {
         TemperatureEntry(
@@ -32,19 +35,21 @@ struct TemperatureEntry: TimelineEntry {
             countryCode: "US",
             fahrenheit: 72,
             celsius: 22.2,
-            isPlaceholder: true
+            isPlaceholder: true,
+            cities: CityWidgetData.samples
         )
     }
 
     /// Create entry from cached data
-    static func fromCache(city: String, country: String, fahrenheit: Double, date: Date = Date()) -> TemperatureEntry {
+    static func fromCache(city: String, country: String, fahrenheit: Double, date: Date = Date(), cities: [CityWidgetData] = []) -> TemperatureEntry {
         TemperatureEntry(
             date: date,
             cityName: city,
             countryCode: country,
             fahrenheit: fahrenheit,
             celsius: (fahrenheit - 32) * 5 / 9,
-            isPlaceholder: false
+            isPlaceholder: false,
+            cities: cities
         )
     }
 
@@ -57,6 +62,70 @@ struct TemperatureEntry: TimelineEntry {
     var celsiusText: String {
         String(format: "%.1f°C", celsius)
     }
+}
+
+// MARK: - City Widget Data
+
+/// Simplified city data for widget display
+struct CityWidgetData: Identifiable, Codable {
+    let id: UUID
+    var name: String
+    var countryCode: String
+    var fahrenheit: Double?
+    var timeZoneIdentifier: String
+    var isCurrentLocation: Bool
+
+    var celsius: Double? {
+        guard let f = fahrenheit else { return nil }
+        return (f - 32) * 5 / 9
+    }
+
+    var timeZone: TimeZone {
+        TimeZone(identifier: timeZoneIdentifier) ?? .current
+    }
+
+    /// Get formatted local time string
+    func localTimeString() -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "h:mm a"
+        return formatter.string(from: Date())
+    }
+
+    /// Check if it's daytime (6AM - 6PM) in this city
+    var isDaytime: Bool {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let hour = calendar.component(.hour, from: Date())
+        return hour >= 6 && hour < 18
+    }
+
+    static let samples: [CityWidgetData] = [
+        CityWidgetData(
+            id: UUID(),
+            name: "Phoenix",
+            countryCode: "US",
+            fahrenheit: 95,
+            timeZoneIdentifier: "America/Phoenix",
+            isCurrentLocation: true
+        ),
+        CityWidgetData(
+            id: UUID(),
+            name: "Tokyo",
+            countryCode: "JP",
+            fahrenheit: 72,
+            timeZoneIdentifier: "Asia/Tokyo",
+            isCurrentLocation: false
+        ),
+        CityWidgetData(
+            id: UUID(),
+            name: "London",
+            countryCode: "GB",
+            fahrenheit: 55,
+            timeZoneIdentifier: "Europe/London",
+            isCurrentLocation: false
+        )
+    ]
 }
 
 // MARK: - Timeline Provider
@@ -103,6 +172,7 @@ struct TemperatureProvider: TimelineProvider {
 
         let cachedData = loadCachedData()
         let location = loadLastKnownLocation()
+        let cities = loadSavedCities()
 
         // Check if cache is stale
         let cacheAgeMinutes: Double
@@ -115,6 +185,7 @@ struct TemperatureProvider: TimelineProvider {
         let needsFresh = cacheAgeMinutes > maxCacheAgeMinutes
 
         logger.timeline("Cache age: \(Int(cacheAgeMinutes))m, needs fresh: \(needsFresh)")
+        logger.timeline("Cities loaded: \(cities.count)")
 
         // If we have location and cache is stale, fetch fresh weather
         if needsFresh, let coords = location {
@@ -124,7 +195,8 @@ struct TemperatureProvider: TimelineProvider {
                 let entry = await fetchFreshWeather(
                     location: coords,
                     cachedCity: cachedData?.city ?? "Unknown",
-                    cachedCountry: cachedData?.country ?? ""
+                    cachedCountry: cachedData?.country ?? "",
+                    cities: cities
                 )
 
                 // Schedule next refresh in 30 minutes
@@ -144,7 +216,8 @@ struct TemperatureProvider: TimelineProvider {
                     city: data.city,
                     country: data.country,
                     fahrenheit: data.fahrenheit,
-                    date: Date()
+                    date: Date(),
+                    cities: cities
                 )
                 logger.timeline("Using cached data: \(data.city), \(Int(data.fahrenheit))°F")
             } else {
@@ -154,7 +227,8 @@ struct TemperatureProvider: TimelineProvider {
                     countryCode: "",
                     fahrenheit: 72,
                     celsius: 22.2,
-                    isPlaceholder: true
+                    isPlaceholder: true,
+                    cities: cities
                 )
                 logger.timeline("No cached data - showing placeholder")
             }
@@ -173,7 +247,7 @@ struct TemperatureProvider: TimelineProvider {
     // MARK: - WeatherKit Fetch
 
     /// Fetch fresh weather from WeatherKit
-    private func fetchFreshWeather(location: CLLocationCoordinate2D, cachedCity: String, cachedCountry: String) async -> TemperatureEntry {
+    private func fetchFreshWeather(location: CLLocationCoordinate2D, cachedCity: String, cachedCountry: String, cities: [CityWidgetData]) async -> TemperatureEntry {
         let clLocation = CLLocation(latitude: location.latitude, longitude: location.longitude)
 
         do {
@@ -189,7 +263,8 @@ struct TemperatureProvider: TimelineProvider {
                 city: cachedCity,
                 country: cachedCountry,
                 fahrenheit: tempF,
-                date: Date()
+                date: Date(),
+                cities: cities
             )
         } catch {
             logger.error("WeatherKit error: \(error.localizedDescription)")
@@ -200,7 +275,8 @@ struct TemperatureProvider: TimelineProvider {
                     city: cached.city,
                     country: cached.country,
                     fahrenheit: cached.fahrenheit,
-                    date: Date()
+                    date: Date(),
+                    cities: cities
                 )
             }
 
@@ -262,12 +338,46 @@ struct TemperatureProvider: TimelineProvider {
         return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
 
+    /// Load saved cities from App Group
+    private func loadSavedCities() -> [CityWidgetData] {
+        guard let defaults = UserDefaults(suiteName: appGroupID),
+              let data = defaults.data(forKey: "saved_cities") else {
+            return []
+        }
+
+        do {
+            // Decode full CityModel array
+            let decoder = JSONDecoder()
+            let cityModels = try decoder.decode([SavedCityModel].self, from: data)
+
+            // Convert to widget data (take first 3)
+            let widgetCities = cityModels.prefix(3).map { model in
+                CityWidgetData(
+                    id: model.id,
+                    name: model.name,
+                    countryCode: model.countryCode,
+                    fahrenheit: model.fahrenheit,
+                    timeZoneIdentifier: model.timeZoneIdentifier,
+                    isCurrentLocation: model.isCurrentLocation
+                )
+            }
+
+            logger.data("Loaded \(widgetCities.count) cities for widget")
+            return Array(widgetCities)
+        } catch {
+            logger.error("Failed to decode cities: \(error.localizedDescription)")
+            return []
+        }
+    }
+
     private func loadCachedEntry() -> TemperatureEntry {
+        let cities = loadSavedCities()
         if let data = loadCachedData() {
             return TemperatureEntry.fromCache(
                 city: data.city,
                 country: data.country,
-                fahrenheit: data.fahrenheit
+                fahrenheit: data.fahrenheit,
+                cities: cities
             )
         }
         return .placeholder
@@ -280,6 +390,22 @@ struct TemperatureProvider: TimelineProvider {
         df.dateFormat = "HH:mm:ss"
         return df
     }()
+}
+
+// MARK: - Saved City Model (for decoding from main app)
+
+/// Mirrors CityModel from main app for decoding
+private struct SavedCityModel: Codable {
+    let id: UUID
+    var name: String
+    var countryCode: String
+    var latitude: Double
+    var longitude: Double
+    var timeZoneIdentifier: String
+    var fahrenheit: Double?
+    var lastUpdated: Date?
+    var isCurrentLocation: Bool
+    var sortOrder: Int
 }
 
 // MARK: - Conversion Data
@@ -403,6 +529,8 @@ struct MediumWidgetView: View {
     }
 }
 
+// MARK: - Large Widget with Multi-City Support
+
 struct LargeWidgetView: View {
     let entry: TemperatureEntry
 
@@ -410,70 +538,138 @@ struct LargeWidgetView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
-                HStack(spacing: 4) {
-                    Image(systemName: "location.fill")
-                        .font(.caption)
-                    Text(entry.cityName)
-                        .font(.headline)
-                    if !entry.countryCode.isEmpty {
-                        Text(entry.countryCode)
-                            .font(.subheadline)
-                            .foregroundStyle(Color.secondary)
+                Text("Tiempo Mundial")
+                    .font(.headline)
+                    .foregroundStyle(Color.white)
+                Spacer()
+                Image(systemName: "globe.americas.fill")
+                    .font(.title2)
+                    .foregroundStyle(Color.cyan)
+            }
+
+            // City cards (up to 3)
+            if entry.cities.isEmpty {
+                // Fallback to single city display
+                singleCityView
+            } else {
+                // Multi-city display
+                VStack(spacing: 8) {
+                    ForEach(entry.cities.prefix(3)) { city in
+                        cityRow(city)
                     }
                 }
-                Spacer()
-                Image(systemName: "thermometer.medium")
-                    .font(.title2)
-                    .foregroundStyle(Color.yellow)
             }
-            .foregroundStyle(Color.white)
 
             Spacer()
 
-            // Temperature
+            // Footer with conversion hint
+            HStack {
+                Text("Desliza en la app para cambiar hora")
+                    .font(.caption2)
+                    .foregroundStyle(Color.white.opacity(0.5))
+                Spacer()
+                Text(entry.date, style: .time)
+                    .font(.caption2)
+                    .foregroundStyle(Color.white.opacity(0.5))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+    }
+
+    // Single city fallback
+    private var singleCityView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 4) {
+                Image(systemName: "location.fill")
+                    .font(.caption)
+                Text(entry.cityName)
+                    .font(.headline)
+                if !entry.countryCode.isEmpty {
+                    Text(entry.countryCode)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.secondary)
+                }
+            }
+            .foregroundStyle(Color.white)
+
             HStack(alignment: .firstTextBaseline, spacing: 0) {
                 Text("\(Int(entry.fahrenheit))")
-                    .font(.system(size: 80, weight: .ultraLight, design: .rounded))
+                    .font(.system(size: 64, weight: .ultraLight, design: .rounded))
                 Text("°F")
-                    .font(.system(size: 32, weight: .light))
+                    .font(.system(size: 24, weight: .light))
             }
             .foregroundStyle(Color.white)
 
             Text(entry.celsiusText)
-                .font(.title)
+                .font(.title2)
                 .foregroundStyle(Color.white.opacity(0.7))
+        }
+    }
+
+    // City row for multi-city display
+    private func cityRow(_ city: CityWidgetData) -> some View {
+        HStack(spacing: 12) {
+            // Day/night indicator
+            Image(systemName: city.isDaytime ? "sun.max.fill" : "moon.fill")
+                .font(.system(size: 16))
+                .foregroundStyle(city.isDaytime ? .yellow : .white.opacity(0.7))
+                .frame(width: 24)
+
+            // City info
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    if city.isCurrentLocation {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.blue)
+                    }
+                    Text(city.name)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+
+                    if !city.countryCode.isEmpty {
+                        Text(city.countryCode)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
+                }
+
+                Text(city.localTimeString())
+                    .font(.system(size: 13, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
 
             Spacer()
 
-            // Conversion table
-            VStack(spacing: 8) {
-                Text("Tabla de conversión")
-                    .font(.caption)
-                    .foregroundStyle(Color.white.opacity(0.6))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            // Temperature
+            if let temp = city.fahrenheit {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(Int(temp))°")
+                        .font(.system(size: 28, weight: .light, design: .rounded))
+                        .foregroundStyle(.white)
 
-                HStack(spacing: 0) {
-                    ForEach(conversionTable) { item in
-                        let isHighlighted = item.fahrenheit == Int(entry.fahrenheit.rounded())
-                        VStack(spacing: 4) {
-                            Text(item.fText)
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                            Text(item.cText)
-                                .font(.caption2)
-                                .foregroundStyle(Color.white.opacity(0.7))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
-                        .background(isHighlighted ? Color.yellow.opacity(0.3) : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    if let celsius = city.celsius {
+                        Text("\(Int(celsius))°C")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.6))
                     }
                 }
+            } else {
+                Text("--°")
+                    .font(.system(size: 28, weight: .light, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.5))
             }
-            .padding(.top, 8)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(city.isCurrentLocation
+                    ? Color.white.opacity(0.15)
+                    : Color.white.opacity(0.08))
+        )
     }
 }
 
@@ -576,7 +772,7 @@ struct AlexisExtensionFarenheit: Widget {
                 }
         }
         .configurationDisplayName("Temp Converter")
-        .description("Muestra temperatura en °F y °C con conversión rápida.")
+        .description("Muestra temperatura en °F y °C. Widget grande muestra 3 ciudades.")
         .supportedFamilies([
             .systemSmall,
             .systemMedium,
@@ -662,7 +858,18 @@ extension Color {
     TemperatureEntry.fromCache(city: "Detroit", country: "US", fahrenheit: 62)
 }
 
-#Preview("Large", as: .systemLarge) {
+#Preview("Large - Multi City", as: .systemLarge) {
+    AlexisExtensionFarenheit()
+} timeline: {
+    TemperatureEntry.fromCache(
+        city: "Phoenix",
+        country: "US",
+        fahrenheit: 95,
+        cities: CityWidgetData.samples
+    )
+}
+
+#Preview("Large - Single City", as: .systemLarge) {
     AlexisExtensionFarenheit()
 } timeline: {
     TemperatureEntry.placeholder

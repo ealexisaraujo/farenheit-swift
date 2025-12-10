@@ -16,39 +16,29 @@ struct CityCardListView: View {
     /// Callback when add city is tapped
     var onAddCity: (() -> Void)?
 
-    /// Whether we're in edit mode
-    @State private var editMode: EditMode = .inactive
+    /// Whether we're in edit/reorder mode
+    @State private var isReorderMode = false
 
     /// City being deleted (for animation)
     @State private var deletingCity: UUID?
+
+    /// Drag state for manual reordering
+    @State private var draggedCity: CityModel?
 
     // Maximum cities allowed
     private let maxCities = CityModel.maxCities
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
+            // Header with reorder button
             listHeader
 
             // City cards
-            LazyVStack(spacing: 12) {
-                ForEach(cities) { city in
-                    cityCard(for: city)
-                        .transition(.asymmetric(
-                            insertion: .scale(scale: 0.8).combined(with: .opacity),
-                            removal: .scale(scale: 0.8).combined(with: .opacity)
-                        ))
-                }
-                .onMove(perform: handleMove)
-
-                // Add city button
-                if cities.count < maxCities {
-                    addCityButton
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
-                }
+            if isReorderMode {
+                reorderableList
+            } else {
+                normalList
             }
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: cities.count)
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: deletingCity)
         }
     }
 
@@ -68,22 +58,176 @@ struct CityCardListView: View {
 
             Spacer()
 
-            // Edit button
+            // Reorder button
             if cities.count > 1 {
                 Button {
                     withAnimation(.spring(response: 0.3)) {
-                        editMode = editMode == .active ? .inactive : .active
+                        isReorderMode.toggle()
                     }
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
-                    Text(editMode == .active ? "Listo" : "Editar")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.blue)
+                    HStack(spacing: 6) {
+                        Image(systemName: isReorderMode ? "checkmark" : "arrow.up.arrow.down")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(isReorderMode ? "Listo" : "Ordenar")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .foregroundStyle(isReorderMode ? .green : .blue)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(isReorderMode ? Color.green.opacity(0.15) : Color.blue.opacity(0.15))
+                    )
                 }
             }
         }
         .padding(.horizontal, 4)
         .padding(.bottom, 16)
+    }
+
+    // MARK: - Normal List
+
+    private var normalList: some View {
+        LazyVStack(spacing: 12) {
+            ForEach(cities) { city in
+                cityCard(for: city)
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.8).combined(with: .opacity),
+                        removal: .scale(scale: 0.8).combined(with: .opacity)
+                    ))
+            }
+
+            // Add city button
+            if cities.count < maxCities {
+                addCityButton
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: cities.count)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: deletingCity)
+    }
+
+    // MARK: - Reorderable List
+
+    private var reorderableList: some View {
+        LazyVStack(spacing: 12) {
+            ForEach(Array(cities.enumerated()), id: \.element.id) { index, city in
+                let isPrimary = city.isCurrentLocation || index == 0
+
+                reorderableCard(for: city, at: index, isPrimary: isPrimary)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: cities.map(\.id))
+    }
+
+    private func reorderableCard(for city: CityModel, at index: Int, isPrimary: Bool) -> some View {
+        HStack(spacing: 12) {
+            // Drag handle (disabled for primary)
+            if !isPrimary {
+                Image(systemName: "line.3.horizontal")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 30)
+            } else {
+                Image(systemName: "lock.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 30)
+            }
+
+            // Position indicator
+            ZStack {
+                Circle()
+                    .fill(isPrimary ? Color.blue : Color.secondary.opacity(0.3))
+                    .frame(width: 28, height: 28)
+
+                Text("\(index + 1)")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(isPrimary ? .white : .primary)
+            }
+
+            // City info
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    if isPrimary {
+                        Image(systemName: "location.fill")
+                            .font(.caption)
+                            .foregroundStyle(.blue)
+                    }
+                    Text(city.name)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.primary)
+                }
+
+                HStack(spacing: 8) {
+                    if let temp = city.fahrenheit {
+                        Text("\(Int(temp))°F")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.orange)
+                    }
+                    Text(timeService.formattedTimeWithPeriod(city))
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            // Move buttons (for non-primary cities)
+            if !isPrimary {
+                VStack(spacing: 4) {
+                    // Move up
+                    Button {
+                        moveCity(at: index, direction: -1)
+                    } label: {
+                        Image(systemName: "chevron.up")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(canMoveUp(at: index) ? .blue : .secondary.opacity(0.3))
+                            .frame(width: 32, height: 24)
+                    }
+                    .disabled(!canMoveUp(at: index))
+
+                    // Move down
+                    Button {
+                        moveCity(at: index, direction: 1)
+                    } label: {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(canMoveDown(at: index) ? .blue : .secondary.opacity(0.3))
+                            .frame(width: 32, height: 24)
+                    }
+                    .disabled(!canMoveDown(at: index))
+                }
+            }
+
+            // Delete button (for non-primary cities)
+            if !isPrimary {
+                Button {
+                    deleteCity(city)
+                } label: {
+                    Image(systemName: "trash.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.red)
+                        .frame(width: 32, height: 32)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(
+                            isPrimary ? Color.blue.opacity(0.3) : Color.clear,
+                            lineWidth: 1
+                        )
+                )
+        )
+        .opacity(draggedCity?.id == city.id ? 0.5 : 1)
     }
 
     // MARK: - City Card
@@ -92,20 +236,13 @@ struct CityCardListView: View {
     private func cityCard(for city: CityModel) -> some View {
         let isPrimary = city.isCurrentLocation || city.sortOrder == 0
 
-        ZStack {
-            CityCardView(
-                city: city,
-                timeService: timeService,
-                isPrimary: isPrimary,
-                onDelete: isPrimary ? nil : { deleteCity(city) }
-            )
-            .opacity(deletingCity == city.id ? 0.5 : 1)
-
-            // Delete overlay in edit mode
-            if editMode == .active && !isPrimary {
-                deleteOverlay(for: city)
-            }
-        }
+        CityCardView(
+            city: city,
+            timeService: timeService,
+            isPrimary: isPrimary,
+            onDelete: isPrimary ? nil : { deleteCity(city) }
+        )
+        .opacity(deletingCity == city.id ? 0.5 : 1)
         .swipeActions(edge: .trailing, allowsFullSwipe: !isPrimary) {
             if !isPrimary {
                 Button(role: .destructive) {
@@ -115,28 +252,6 @@ struct CityCardListView: View {
                 }
             }
         }
-    }
-
-    private func deleteOverlay(for city: CityModel) -> some View {
-        HStack {
-            Spacer()
-
-            Button {
-                deleteCity(city)
-            } label: {
-                ZStack {
-                    Circle()
-                        .fill(.red)
-                        .frame(width: 28, height: 28)
-
-                    Image(systemName: "minus")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.white)
-                }
-            }
-            .offset(x: 10, y: 0)
-        }
-        .transition(.scale.combined(with: .opacity))
     }
 
     // MARK: - Add Button
@@ -212,18 +327,29 @@ struct CityCardListView: View {
         }
     }
 
-    private func handleMove(from source: IndexSet, to destination: Int) {
-        // Prevent moving current location
-        if source.contains(0) && cities.first?.isCurrentLocation == true {
-            return
+    private func canMoveUp(at index: Int) -> Bool {
+        // Can't move if at position 1 (position 0 is always current location)
+        let minPosition = cities.first?.isCurrentLocation == true ? 1 : 0
+        return index > minPosition
+    }
+
+    private func canMoveDown(at index: Int) -> Bool {
+        return index < cities.count - 1
+    }
+
+    private func moveCity(at index: Int, direction: Int) {
+        let newIndex = index + direction
+
+        // Validate move
+        let minIndex = cities.first?.isCurrentLocation == true ? 1 : 0
+        guard newIndex >= minIndex && newIndex < cities.count else { return }
+
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            let source = IndexSet(integer: index)
+            let destination = direction > 0 ? newIndex + 1 : newIndex
+            onReorder?(source, destination)
         }
 
-        // Prevent moving to position 0 if current location is there
-        if destination == 0 && cities.first?.isCurrentLocation == true {
-            return
-        }
-
-        onReorder?(source, destination)
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 }
