@@ -288,7 +288,8 @@ final class SharedLogger {
                     try self.writeLargeFileIncrementally(data: data, to: tempURL)
                 } else {
                     // Small files: direct write is fast enough
-                    try data.write(to: tempURL, options: [.completeFileProtectionNone])
+                    // Use atomic write for safety (file will be moved atomically anyway)
+                    try data.write(to: tempURL, options: .atomic)
                 }
                 
                 // Atomically replace the original file with the temp file
