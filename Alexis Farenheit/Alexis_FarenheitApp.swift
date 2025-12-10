@@ -23,6 +23,9 @@ struct Alexis_FarenheitApp: App {
         print("🚀 App initializing...")
         BackgroundTaskService.shared.registerBackgroundTasks()
 
+        // Setup significant location monitoring (creates its own LocationService)
+        BackgroundTaskService.shared.setupBackgroundLocationMonitoring()
+
         // Re-enable file logging after init
         SharedLogger.shared.fileLoggingEnabled = true
     }
@@ -45,16 +48,22 @@ struct Alexis_FarenheitApp: App {
             // Debug: App going to background
             print("🚀 App going to background - scheduling refresh")
             SharedLogger.shared.info("App moved to background", category: "Lifecycle")
-            
+
             // Flush pending logs before going to background
             SharedLogger.shared.flushPendingLogs()
 
             // Schedule background refresh when app goes to background
             BackgroundTaskService.shared.scheduleAppRefresh()
 
+            // Start monitoring significant location changes (background)
+            BackgroundTaskService.shared.startSignificantLocationMonitoring()
+
         case .active:
             // Debug: App became active
             print("🚀 App became active")
+
+            // Stop significant location monitoring (use standard updates in foreground)
+            BackgroundTaskService.shared.stopSignificantLocationMonitoring()
 
         case .inactive:
             // Debug: App became inactive (transitioning)

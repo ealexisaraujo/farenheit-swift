@@ -6,6 +6,7 @@ import os.log
 
 /// Lightweight CoreLocation wrapper for city lookup and permission handling.
 /// Provides location updates and reverse geocoding to city names.
+/// Supports Significant Location Changes for background updates when user moves between cities.
 final class LocationService: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let logger = Logger(subsystem: "com.alexis.farenheit", category: "Location")
     private let locationManager = CLLocationManager()
@@ -18,10 +19,18 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
     @Published var isRequesting: Bool = false
     @Published var errorMessage: String?
 
+    /// Callback when location changes significantly (for background updates)
+    var onSignificantLocationChange: ((CLLocation) -> Void)?
+
+    /// Whether significant location monitoring is active
+    @Published var isMonitoringSignificantChanges: Bool = false
+
     override init() {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
+        // Note: allowsBackgroundLocationUpdates is NOT needed for significantLocationChanges
+        // The system will wake the app automatically when location changes significantly
         authorizationStatus = locationManager.authorizationStatus
         logger.debug("📍 LocationService initialized (auth: \(self.authorizationStatus.rawValue))")
     }
@@ -80,6 +89,44 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
         }
     }
 
+    // MARK: - Significant Location Changes (Background Updates)
+
+    /// Start monitoring significant location changes.
+    /// This allows the app to wake up when user moves ~500m+ (e.g., between cities).
+    /// Battery-efficient: uses cell towers instead of GPS.
+    /// Requires "Always" authorization for background wake-up.
+    func startMonitoringSignificantLocationChanges() {
+        guard CLLocationManager.significantLocationChangeMonitoringAvailable() else {
+            logger.warning("📍 Significant location changes not available on this device")
+            return
+        }
+
+        // Only works with Always authorization for background wake
+        guard authorizationStatus == .authorizedAlways else {
+            logger.debug("📍 Significant changes requires Always authorization (current: \(self.authorizationStatus.rawValue))")
+            // Still start - it will work while app is in foreground with whenInUse
+            if authorizationStatus == .authorizedWhenInUse {
+                locationManager.startMonitoringSignificantLocationChanges()
+                isMonitoringSignificantChanges = true
+                logger.debug("📍 Started significant location monitoring (foreground only)")
+            }
+            return
+        }
+
+        locationManager.startMonitoringSignificantLocationChanges()
+        isMonitoringSignificantChanges = true
+        logger.info("📍 Started significant location monitoring (background enabled) ✅")
+        SharedLogger.shared.info("Significant location monitoring started", category: "Location")
+    }
+
+    /// Stop monitoring significant location changes.
+    /// Call when app enters foreground to switch back to standard location updates.
+    func stopMonitoringSignificantLocationChanges() {
+        locationManager.stopMonitoringSignificantLocationChanges()
+        isMonitoringSignificantChanges = false
+        logger.debug("📍 Stopped significant location monitoring")
+    }
+
     // MARK: - CLLocationManagerDelegate
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -121,18 +168,33 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
-        logger.debug("📍 Location: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+
+        // Check if this is a significant location change (background update)
+        let isSignificantChange = isMonitoringSignificantChanges && !isRequesting
+
+        if isSignificantChange {
+            logger.info("📍 Significant location change detected: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+            SharedLogger.shared.info("Significant location change: \(location.coordinate.latitude), \(location.coordinate.longitude)", category: "Location")
+        } else {
+            logger.debug("📍 Location: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+        }
 
         // Performance tracking: End location request (successful)
         let metadata = [
             "latitude": String(format: "%.4f", location.coordinate.latitude),
             "longitude": String(format: "%.4f", location.coordinate.longitude),
-            "accuracy": String(format: "%.0f", location.horizontalAccuracy)
+            "accuracy": String(format: "%.0f", location.horizontalAccuracy),
+            "is_significant_change": "\(isSignificantChange)"
         ]
         PerformanceMonitor.shared.endOperation("LocationRequest", category: "Location", metadata: metadata)
 
         lastLocation = location
         isRequesting = false
+
+        // Notify callback for significant location changes (used by app delegate/background handler)
+        if isSignificantChange {
+            onSignificantLocationChange?(location)
+        }
 
         // Performance tracking: Start reverse geocoding
         PerformanceMonitor.shared.startOperation("ReverseGeocode", category: "Location")

@@ -439,6 +439,167 @@ func onBecameActive() {
 
 ---
 
+## Optimizaciones de Performance (Sesión 3 - Diciembre 2024)
+
+### Problema: FileIO Blocking y Widget Sync
+
+**Síntomas en logs:**
+- `LogFileWrite: 4.37s` - Escrituras bloqueantes
+- `LogFileRead: 2.35s` - Lecturas lentas al inicio
+- `END without START` - Race conditions en performance tracking
+- `"app_logs.json.tmp" couldn't be moved` - Error de archivo temporal
+- Widget mostraba ciudad diferente a la app
+
+**Soluciones Implementadas:**
+
+#### 1. Simplificación de SharedLogger
+```swift
+// Antes: Temp file + move (causaba errores)
+// Después: Data.write directo con .atomic
+try data.write(to: fileURL, options: [.atomic])
+
+// Cache persistente (no expira por tiempo)
+private var cachedEntries: [LogEntry]?
+private var cacheIsValid: Bool = false
+```
+
+#### 2. Eliminación de Performance Tracking en FileIO
+```swift
+// Removido startOperation/endOperation en SharedLogger
+// Solo NSLog y OSLog - sin file I/O durante operaciones
+```
+
+#### 3. Widget Location Sync
+```swift
+// En fetchWeather(for city:) - sincroniza widget cuando es current location
+if cities[index].isCurrentLocation {
+    WidgetDataService.shared.saveTemperature(...)
+    defaults.set(updatedCity.latitude, forKey: "last_latitude")
+    defaults.set(updatedCity.longitude, forKey: "last_longitude")
+}
+
+// En updateCurrentLocationCity() - guarda coordenadas inmediatamente
+if let defaults = UserDefaults(suiteName: appGroupID) {
+    defaults.set(location.coordinate.latitude, forKey: "last_latitude")
+    defaults.set(location.coordinate.longitude, forKey: "last_longitude")
+}
+```
+
+#### 4. CityStorageService - Widget Reload Activo
+```swift
+// Antes: saveCitiesQuietly() no recargaba widgets
+// Después: Siempre usa saveCities() con throttling interno
+func updateCity(_ city: CityModel) {
+    cities[index] = city
+    saveCities() // Reload widgets (throttled internally)
+}
+```
+
+---
+
+## Significant Location Changes (Sesión 3 - Diciembre 2024)
+
+### Arquitectura de Background Location
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         MAIN APP                                 │
+│                                                                  │
+│  ┌──────────────────┐      ┌─────────────────────────────────┐  │
+│  │  HomeViewModel   │      │    BackgroundTaskService        │  │
+│  │  LocationService │      │    (dedicated LocationService)  │  │
+│  │  (foreground)    │      │    - Significant Location Changes│  │
+│  └────────┬─────────┘      │    - BGAppRefreshTask           │  │
+│           │                └──────────────┬──────────────────┘  │
+│           │                               │                      │
+│           ▼                               ▼                      │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │              App Group (UserDefaults)                        ││
+│  │  - last_latitude, last_longitude (coordenadas actuales)     ││
+│  │  - widget_city, widget_country, widget_fahrenheit           ││
+│  │  - saved_cities (lista de ciudades)                         ││
+│  └─────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Flujo cuando usuario se mueve de ciudad (app cerrada)
+
+1. **Sistema detecta** movimiento significativo (~500m+, torres celulares)
+2. **iOS despierta** la app en background
+3. **LocationService** recibe `didUpdateLocations`
+4. **Callback** `onSignificantLocationChange` se dispara
+5. **BackgroundTaskService**:
+   - Guarda nuevas coordenadas en App Group
+   - Hace reverse geocode para nombre de ciudad
+   - Fetcha weather de WeatherKit
+   - Actualiza widget via `WidgetDataService.saveTemperature()`
+6. **Widget se recarga** con la nueva ciudad y temperatura
+
+### Archivos Modificados
+
+| Archivo | Cambios |
+|---------|---------|
+| `LocationService.swift` | + `onSignificantLocationChange` callback, + `startMonitoringSignificantLocationChanges()`, + `stopMonitoringSignificantLocationChanges()` |
+| `BackgroundTaskService.swift` | + `setupBackgroundLocationMonitoring()`, + `handleSignificantLocationChange()`, + `fetchWeatherAndUpdateWidget()` |
+| `Alexis_FarenheitApp.swift` | + Setup y lifecycle de significant location monitoring |
+
+### Código Clave - LocationService
+
+```swift
+/// Callback when location changes significantly (for background updates)
+var onSignificantLocationChange: ((CLLocation) -> Void)?
+
+func startMonitoringSignificantLocationChanges() {
+    guard CLLocationManager.significantLocationChangeMonitoringAvailable() else { return }
+    locationManager.startMonitoringSignificantLocationChanges()
+    isMonitoringSignificantChanges = true
+}
+
+func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    // Check if this is a significant location change (background update)
+    let isSignificantChange = isMonitoringSignificantChanges && !isRequesting
+
+    if isSignificantChange {
+        onSignificantLocationChange?(location)
+    }
+}
+```
+
+### Código Clave - BackgroundTaskService
+
+```swift
+func setupBackgroundLocationMonitoring() {
+    let bgLocationService = LocationService()
+    self.locationService = bgLocationService
+
+    bgLocationService.onSignificantLocationChange = { [weak self] location in
+        self?.handleSignificantLocationChange(location)
+    }
+}
+
+private func handleSignificantLocationChange(_ location: CLLocation) {
+    saveLocationToAppGroup(location)
+    Task {
+        await fetchWeatherAndUpdateWidget(for: location)
+    }
+}
+```
+
+### Requisitos para Funcionamiento
+
+1. ✅ **Permiso "Always"** - Usuario debe dar permiso "Siempre"
+2. ✅ **`NSLocationAlwaysAndWhenInUseUsageDescription`** - Ya configurado
+3. ✅ **No requiere Background Mode "Location updates"** - Significant Location Changes es especial
+
+### Limitaciones
+
+- **~500m mínimo** - iOS solo notifica cambios "significativos"
+- **iOS decide cuándo** - No hay garantía de tiempo exacto
+- **Requiere permiso "Always"** - Con "When In Use" solo funciona en foreground
+- **Batería optimizada** - Usa torres celulares, no GPS continuo
+
+---
+
 ## Commits Relacionados
 
 - feat: add multi-city support with timezone slider
@@ -448,3 +609,6 @@ func onBecameActive() {
 - fix: widget updates on city changes, Apple-style drag
 - perf: fix duplicate weather fetches, add throttling
 - fix: neighboring cards animate during drag-and-drop
+- perf: simplify SharedLogger, fix cache, remove FileIO tracking
+- fix: widget location sync with current location city
+- feat: add significant location changes for background updates

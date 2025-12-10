@@ -64,17 +64,17 @@ final class SharedLogger {
 
     private let osLog = Logger(subsystem: "com.alexis.farenheit", category: "SharedLogger")
     private let queue = DispatchQueue(label: "com.alexis.farenheit.logger", qos: .utility)
-    
+
     // Batch logging to reduce file I/O
     private var pendingEntries: [LogEntry] = []
     private var writeWorkItem: DispatchWorkItem?
     private let batchWriteDelay: TimeInterval = 2.0 // Batch writes every 2 seconds (increased from 500ms)
     private let maxBatchSize = 50 // Flush batch after 50 entries (increased from 10)
-    
+
     // Cache current entries in memory to avoid reading file on every write
     private var cachedEntries: [LogEntry]?
     private var cacheIsValid: Bool = false // Simple flag instead of time-based
-    
+
     /// Disable file logging during critical operations (e.g., search)
     var fileLoggingEnabled: Bool = true {
         didSet {
@@ -154,7 +154,7 @@ final class SharedLogger {
 
         // Only write to file if enabled (can be disabled during critical operations)
         guard fileLoggingEnabled else { return }
-        
+
         // Write to shared file asynchronously
         queue.async { [weak self] in
             self?.appendToFile(entry)
@@ -175,22 +175,22 @@ final class SharedLogger {
     /// Append entry to batch queue (debounced writes)
     private func appendToFile(_ entry: LogEntry) {
         guard logFileURL != nil else { return }
-        
+
         queue.async { [weak self] in
             guard let self else { return }
-            
+
             // Add to pending batch
             self.pendingEntries.append(entry)
-            
+
             // Cancel previous delayed write
             self.writeWorkItem?.cancel()
-            
+
             // If batch is full, flush immediately
             if self.pendingEntries.count >= self.maxBatchSize {
                 self.flushPendingEntries()
                 return
             }
-            
+
             // Otherwise, schedule delayed write
             let workItem = DispatchWorkItem { [weak self] in
                 self?.flushPendingEntries()
@@ -199,7 +199,7 @@ final class SharedLogger {
             self.queue.asyncAfter(deadline: .now() + self.batchWriteDelay, execute: workItem)
         }
     }
-    
+
     /// Flush all pending entries to file (async, non-blocking)
     private func flushPendingEntries() {
         guard !pendingEntries.isEmpty else { return }
@@ -254,7 +254,7 @@ final class SharedLogger {
     private func saveEntriesToFile(_ entries: [LogEntry]) {
         saveEntriesToFileAsync(entries)
     }
-    
+
     /// Save entries to file asynchronously (non-blocking)
     /// Uses direct write without temp file to avoid move errors
     private func saveEntriesToFileAsync(_ entries: [LogEntry]) {
@@ -278,7 +278,7 @@ final class SharedLogger {
             }
         }
     }
-    
+
     // MARK: - Public Read Methods
 
     /// Load all log entries from shared file
@@ -321,7 +321,7 @@ final class SharedLogger {
         }
         osLog.info("Logs cleared")
     }
-    
+
     /// Flush pending log entries immediately (call before app termination)
     func flushPendingLogs() {
         queue.sync { [weak self] in

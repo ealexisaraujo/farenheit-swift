@@ -4,6 +4,7 @@
 //
 //  Background task service to refresh widget data without opening the app.
 //  Uses BGTaskScheduler to periodically fetch weather data and update the widget.
+//  Also handles Significant Location Changes to update widget when user moves cities.
 //
 
 import Foundation
@@ -27,10 +28,96 @@ final class BackgroundTaskService {
     private let widgetDataService = WidgetDataService.shared
     private let logger = Logger(subsystem: "alexisaraujo.AlexisFarenheit", category: "BackgroundTask")
 
+    /// Location service for significant location changes (must keep strong reference)
+    private var locationService: LocationService?
+
     // MARK: - Init
     private init() {
         print("🔄 BackgroundTaskService initialized")
         SharedLogger.shared.info("BackgroundTaskService initialized", category: "Background")
+    }
+
+    // MARK: - Significant Location Changes
+
+    /// Setup background location monitoring.
+    /// Creates a dedicated LocationService for monitoring significant location changes.
+    /// Call this early in app lifecycle (init).
+    func setupBackgroundLocationMonitoring() {
+        // Create dedicated location service for background monitoring
+        let bgLocationService = LocationService()
+        self.locationService = bgLocationService
+
+        // Set callback for when location changes significantly
+        bgLocationService.onSignificantLocationChange = { [weak self] location in
+            self?.handleSignificantLocationChange(location)
+        }
+
+        logger.info("🔄 Background location monitoring configured")
+    }
+
+    /// Start monitoring significant location changes (call when app goes to background)
+    func startSignificantLocationMonitoring() {
+        locationService?.startMonitoringSignificantLocationChanges()
+        logger.debug("🔄 Started significant location monitoring")
+    }
+
+    /// Stop monitoring significant location changes (call when app enters foreground)
+    func stopSignificantLocationMonitoring() {
+        locationService?.stopMonitoringSignificantLocationChanges()
+        logger.debug("🔄 Stopped significant location monitoring")
+    }
+
+    /// Handle significant location change - fetch weather and update widget
+    private func handleSignificantLocationChange(_ location: CLLocation) {
+        logger.info("🔄 Handling significant location change...")
+        SharedLogger.shared.info("Significant location change - updating widget", category: "Background")
+
+        // Save new coordinates to App Group immediately
+        saveLocationToAppGroup(location)
+
+        // Fetch weather for new location and update widget
+        Task {
+            await fetchWeatherAndUpdateWidget(for: location)
+        }
+    }
+
+    /// Save location coordinates to App Group for widget access
+    private func saveLocationToAppGroup(_ location: CLLocation) {
+        guard let defaults = UserDefaults(suiteName: "group.alexisaraujo.alexisfarenheit") else {
+            return
+        }
+
+        defaults.set(location.coordinate.latitude, forKey: "last_latitude")
+        defaults.set(location.coordinate.longitude, forKey: "last_longitude")
+        defaults.synchronize()
+
+        logger.debug("🔄 Saved new location to App Group: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+    }
+
+    /// Fetch weather for location and update widget
+    private func fetchWeatherAndUpdateWidget(for location: CLLocation) async {
+        // Reverse geocode to get city name
+        let geocoder = CLGeocoder()
+        do {
+            let placemarks = try await geocoder.reverseGeocodeLocation(location)
+            let cityName = placemarks.first?.locality
+                ?? placemarks.first?.administrativeArea
+                ?? "Unknown"
+            let countryCode = placemarks.first?.isoCountryCode ?? ""
+
+            // Fetch weather
+            await weatherService.fetchWeather(for: location)
+
+            if let temp = await MainActor.run(body: { weatherService.currentTemperatureF }) {
+                // Update widget
+                widgetDataService.saveTemperature(city: cityName, country: countryCode, fahrenheit: temp)
+
+                logger.info("🔄 Widget updated from significant location: \(cityName), \(Int(temp))°F")
+                SharedLogger.shared.info("Widget updated: \(cityName), \(Int(temp))°F", category: "Background")
+            }
+        } catch {
+            logger.error("🔄 Failed to geocode location: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - Public Methods
