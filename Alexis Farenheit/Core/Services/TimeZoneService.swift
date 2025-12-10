@@ -3,52 +3,69 @@ import Combine
 
 /// Service for time zone calculations and time slider functionality
 /// Manages the selected time offset and calculates times for all cities
+/// Slider range: 12:00 AM (0:00) to 11:59 PM (23:59) with fixed limits
 final class TimeZoneService: ObservableObject {
     static let shared = TimeZoneService()
 
-    /// The base reference time (usually current time)
-    @Published var baseTime: Date = Date()
+    /// The base reference date (today's date at midnight)
+    @Published var baseDate: Date = Date()
 
-    /// Time offset in minutes from baseTime (-720 to +720, representing ±12 hours)
-    /// This is controlled by the slider
-    @Published var timeOffsetMinutes: Int = 0
+    /// Selected time in minutes from midnight (0 to 1439)
+    /// 0 = 12:00 AM, 720 = 12:00 PM, 1439 = 11:59 PM
+    @Published var selectedMinutes: Int = 0
 
-    /// Timer to update baseTime every minute
+    /// Timer to update current time marker
     private var timer: Timer?
+
+    /// Current time in minutes from midnight (for the "now" indicator)
+    var currentTimeMinutes: Int {
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: Date())
+        let minute = calendar.component(.minute, from: Date())
+        return hour * 60 + minute
+    }
 
     // MARK: - Computed Properties
 
-    /// The adjusted time based on slider offset
-    var adjustedTime: Date {
-        baseTime.addingTimeInterval(TimeInterval(timeOffsetMinutes * 60))
+    /// The selected time as a Date object (today at selected time)
+    var selectedTime: Date {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: baseDate)
+        return startOfDay.addingTimeInterval(TimeInterval(selectedMinutes * 60))
     }
 
-    /// Formatted string for current slider time
-    var adjustedTimeString: String {
+    /// Formatted string for selected time
+    var selectedTimeString: String {
         let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        formatter.dateStyle = .none
-        return formatter.string(from: adjustedTime)
+        formatter.dateFormat = "h:mm a"
+        return formatter.string(from: selectedTime)
     }
 
-    /// Hour value (0-23) of adjusted time
-    var adjustedHour: Int {
-        Calendar.current.component(.hour, from: adjustedTime)
+    /// Hour value (0-23) of selected time
+    var selectedHour: Int {
+        selectedMinutes / 60
     }
 
-    /// Minute value (0-59) of adjusted time
-    var adjustedMinute: Int {
-        Calendar.current.component(.minute, from: adjustedTime)
+    /// Minute value (0-59) of selected time
+    var selectedMinute: Int {
+        selectedMinutes % 60
     }
 
-    /// Whether we're showing current time (offset is 0)
+    /// Whether we're showing current time
     var isShowingCurrentTime: Bool {
-        timeOffsetMinutes == 0
+        abs(selectedMinutes - currentTimeMinutes) < 5 // Within 5 minutes
+    }
+
+    /// Slider value normalized to 0...1 range
+    var sliderValue: Double {
+        Double(selectedMinutes) / 1439.0 // 1439 = 23:59
     }
 
     // MARK: - Init
 
     private init() {
+        // Initialize to current time
+        selectedMinutes = currentTimeMinutes
         startTimer()
     }
 
@@ -59,26 +76,26 @@ final class TimeZoneService: ObservableObject {
     // MARK: - Timer
 
     private func startTimer() {
-        // Update baseTime every minute
+        // Update baseDate at midnight
         timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            self?.baseTime = Date()
+            self?.baseDate = Date()
         }
     }
 
     // MARK: - Time Calculations
 
-    /// Get the time in a specific timezone at the adjusted time
+    /// Get the time in a specific timezone at the selected time
     func timeInCity(_ city: CityModel) -> Date {
         let cityTimeZone = city.timeZone
         let localTimeZone = TimeZone.current
 
-        // Get offsets at the adjusted time
-        let localOffset = localTimeZone.secondsFromGMT(for: adjustedTime)
-        let cityOffset = cityTimeZone.secondsFromGMT(for: adjustedTime)
+        // Get offsets at the selected time
+        let localOffset = localTimeZone.secondsFromGMT(for: selectedTime)
+        let cityOffset = cityTimeZone.secondsFromGMT(for: selectedTime)
 
         // Calculate the time in the city
         let offsetDifference = TimeInterval(cityOffset - localOffset)
-        return adjustedTime.addingTimeInterval(offsetDifference)
+        return selectedTime.addingTimeInterval(offsetDifference)
     }
 
     /// Get formatted time string for a city
@@ -87,7 +104,7 @@ final class TimeZoneService: ObservableObject {
         formatter.timeZone = city.timeZone
         formatter.timeStyle = style
         formatter.dateStyle = .none
-        return formatter.string(from: adjustedTime)
+        return formatter.string(from: selectedTime)
     }
 
     /// Get formatted time with AM/PM for a city
@@ -95,20 +112,20 @@ final class TimeZoneService: ObservableObject {
         let formatter = DateFormatter()
         formatter.timeZone = city.timeZone
         formatter.dateFormat = "h:mm a"
-        return formatter.string(from: adjustedTime)
+        return formatter.string(from: selectedTime)
     }
 
-    /// Get hour (0-23) in a city at adjusted time
+    /// Get hour (0-23) in a city at selected time
     func hourInCity(_ city: CityModel) -> Int {
         var calendar = Calendar.current
         calendar.timeZone = city.timeZone
-        return calendar.component(.hour, from: adjustedTime)
+        return calendar.component(.hour, from: selectedTime)
     }
 
     /// Get time difference string between local and city
     func timeDifferenceString(for city: CityModel) -> String {
-        let localOffset = TimeZone.current.secondsFromGMT(for: adjustedTime)
-        let cityOffset = city.timeZone.secondsFromGMT(for: adjustedTime)
+        let localOffset = TimeZone.current.secondsFromGMT(for: selectedTime)
+        let cityOffset = city.timeZone.secondsFromGMT(for: selectedTime)
         let hoursDiff = (cityOffset - localOffset) / 3600
 
         if hoursDiff == 0 {
@@ -129,11 +146,11 @@ final class TimeZoneService: ObservableObject {
     /// Check if it's a "tomorrow" relative to local timezone
     func isTomorrow(in city: CityModel) -> Bool {
         let localCalendar = Calendar.current
-        let localDay = localCalendar.component(.day, from: adjustedTime)
+        let localDay = localCalendar.component(.day, from: selectedTime)
 
         var cityCalendar = Calendar.current
         cityCalendar.timeZone = city.timeZone
-        let cityDay = cityCalendar.component(.day, from: adjustedTime)
+        let cityDay = cityCalendar.component(.day, from: selectedTime)
 
         return cityDay > localDay
     }
@@ -141,11 +158,11 @@ final class TimeZoneService: ObservableObject {
     /// Check if it's "yesterday" relative to local timezone
     func isYesterday(in city: CityModel) -> Bool {
         let localCalendar = Calendar.current
-        let localDay = localCalendar.component(.day, from: adjustedTime)
+        let localDay = localCalendar.component(.day, from: selectedTime)
 
         var cityCalendar = Calendar.current
         cityCalendar.timeZone = city.timeZone
-        let cityDay = cityCalendar.component(.day, from: adjustedTime)
+        let cityDay = cityCalendar.component(.day, from: selectedTime)
 
         return cityDay < localDay
     }
@@ -164,47 +181,26 @@ final class TimeZoneService: ObservableObject {
 
     /// Reset to current time
     func resetToCurrentTime() {
-        timeOffsetMinutes = 0
-        baseTime = Date()
+        selectedMinutes = currentTimeMinutes
     }
 
-    /// Set specific time (useful for quick selections)
+    /// Set specific time by hour (0-23)
     func setTime(hour: Int, minute: Int = 0) {
-        let calendar = Calendar.current
-        let now = Date()
-        let currentHour = calendar.component(.hour, from: now)
-        let currentMinute = calendar.component(.minute, from: now)
-
-        let targetMinutes = hour * 60 + minute
-        let currentMinutes = currentHour * 60 + currentMinute
-
-        timeOffsetMinutes = targetMinutes - currentMinutes
+        let clampedHour = max(0, min(23, hour))
+        let clampedMinute = max(0, min(59, minute))
+        selectedMinutes = clampedHour * 60 + clampedMinute
     }
 
-    /// Convert slider value (0...1) to time offset
+    /// Set slider value from normalized 0...1 range
+    /// Clamped to prevent wrapping
     func setSliderValue(_ value: Double) {
-        // Slider goes from 0 (midnight) to 1 (23:59)
-        // We convert this to minutes offset from current time
-        let targetMinutes = Int(value * 24 * 60) // 0 to 1440
-        let calendar = Calendar.current
-        let currentHour = calendar.component(.hour, from: baseTime)
-        let currentMinute = calendar.component(.minute, from: baseTime)
-        let currentMinutes = currentHour * 60 + currentMinute
-
-        timeOffsetMinutes = targetMinutes - currentMinutes
+        let clampedValue = max(0, min(1, value))
+        selectedMinutes = Int(clampedValue * 1439) // 0 to 1439 (11:59 PM)
     }
 
-    /// Get slider value (0...1) from current offset
-    var sliderValue: Double {
-        let calendar = Calendar.current
-        let currentHour = calendar.component(.hour, from: baseTime)
-        let currentMinute = calendar.component(.minute, from: baseTime)
-        let currentMinutes = currentHour * 60 + currentMinute
-
-        let targetMinutes = currentMinutes + timeOffsetMinutes
-        // Normalize to 0-1440 range
-        let normalizedMinutes = ((targetMinutes % 1440) + 1440) % 1440
-        return Double(normalizedMinutes) / (24 * 60)
+    /// Set time directly in minutes from midnight
+    func setMinutes(_ minutes: Int) {
+        selectedMinutes = max(0, min(1439, minutes))
     }
 }
 
@@ -222,9 +218,19 @@ extension TimeZoneService {
 
     /// Format minutes to HH:MM string
     static func formatMinutes(_ totalMinutes: Int) -> String {
-        let normalizedMinutes = ((totalMinutes % 1440) + 1440) % 1440
-        let hours = normalizedMinutes / 60
-        let minutes = normalizedMinutes % 60
+        let clampedMinutes = max(0, min(1439, totalMinutes))
+        let hours = clampedMinutes / 60
+        let minutes = clampedMinutes % 60
         return String(format: "%02d:%02d", hours, minutes)
+    }
+
+    /// Format minutes to 12-hour format
+    static func formatMinutes12Hour(_ totalMinutes: Int) -> String {
+        let clampedMinutes = max(0, min(1439, totalMinutes))
+        let hours = clampedMinutes / 60
+        let minutes = clampedMinutes % 60
+        let period = hours < 12 ? "AM" : "PM"
+        let displayHour = hours == 0 ? 12 : (hours > 12 ? hours - 12 : hours)
+        return String(format: "%d:%02d %@", displayHour, minutes, period)
     }
 }
