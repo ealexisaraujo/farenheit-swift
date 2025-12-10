@@ -114,6 +114,14 @@ struct CitySearchButton: View {
             })
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
+            .onAppear {
+                // Disable file logging when search opens
+                SharedLogger.shared.fileLoggingEnabled = false
+            }
+            .onDisappear {
+                // Re-enable file logging when search closes
+                SharedLogger.shared.fileLoggingEnabled = true
+            }
         }
     }
 }
@@ -155,10 +163,17 @@ struct CitySearchSheet: View {
                 completer.update(query: newValue)
             }
             .onAppear {
+                // Disable file logging when search sheet appears to prevent I/O blocking
+                SharedLogger.shared.fileLoggingEnabled = false
+                
                 // Auto-focus search field
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     isSearchFocused = true
                 }
+            }
+            .onDisappear {
+                // Re-enable file logging when search sheet closes
+                SharedLogger.shared.fileLoggingEnabled = true
             }
         }
     }

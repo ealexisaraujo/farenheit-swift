@@ -71,8 +71,23 @@ final class SharedLogger {
     private let batchWriteDelay: TimeInterval = 2.0 // Batch writes every 2 seconds (increased from 500ms)
     private let maxBatchSize = 50 // Flush batch after 50 entries (increased from 10)
     
+    // Cache current entries in memory to avoid reading file on every write
+    private var cachedEntries: [LogEntry]?
+    private var lastCacheUpdate: Date?
+    private let cacheValidityInterval: TimeInterval = 5.0 // Cache valid for 5 seconds
+    
     /// Disable file logging during critical operations (e.g., search)
-    var fileLoggingEnabled: Bool = true
+    var fileLoggingEnabled: Bool = true {
+        didSet {
+            // If disabling, flush any pending writes immediately to avoid blocking
+            if !fileLoggingEnabled && !pendingEntries.isEmpty {
+                queue.async { [weak self] in
+                    self?.writeWorkItem?.cancel()
+                    self?.flushPendingEntries()
+                }
+            }
+        }
+    }
 
     /// Current source identifier
     var source: String = "App"
@@ -197,8 +212,19 @@ final class SharedLogger {
         queue.async { [weak self] in
             guard let self else { return }
             
-            // Load existing entries (async)
-            var allEntries = self.loadEntriesFromFile() ?? []
+            // Use cached entries if available and recent, otherwise load from file
+            var allEntries: [LogEntry]
+            if let cached = self.cachedEntries,
+               let lastUpdate = self.lastCacheUpdate,
+               Date().timeIntervalSince(lastUpdate) < self.cacheValidityInterval {
+                // Use cache - much faster than reading file
+                allEntries = cached
+            } else {
+                // Load from file and update cache
+                allEntries = self.loadEntriesFromFile() ?? []
+                self.cachedEntries = allEntries
+                self.lastCacheUpdate = Date()
+            }
             
             // Append new entries
             allEntries.append(contentsOf: entriesToWrite)
@@ -211,6 +237,10 @@ final class SharedLogger {
             if allEntries.count > self.maxLogEntries {
                 allEntries = Array(allEntries.suffix(self.maxLogEntries))
             }
+            
+            // Update cache
+            self.cachedEntries = allEntries
+            self.lastCacheUpdate = Date()
             
             // Save to file (async write)
             self.saveEntriesToFileAsync(allEntries)
@@ -363,7 +393,17 @@ final class SharedLogger {
     func loadLogs() -> [LogEntry] {
         var result: [LogEntry] = []
         queue.sync {
-            result = loadEntriesFromFile() ?? []
+            // Use cache if available and recent
+            if let cached = cachedEntries,
+               let lastUpdate = lastCacheUpdate,
+               Date().timeIntervalSince(lastUpdate) < cacheValidityInterval {
+                result = cached
+            } else {
+                result = loadEntriesFromFile() ?? []
+                // Update cache
+                cachedEntries = result
+                lastCacheUpdate = Date()
+            }
         }
         return result.sorted { $0.timestamp > $1.timestamp }  // Newest first
     }
@@ -385,6 +425,9 @@ final class SharedLogger {
             // Cancel any pending writes
             self.writeWorkItem?.cancel()
             self.pendingEntries.removeAll()
+            // Clear cache
+            self.cachedEntries = []
+            self.lastCacheUpdate = Date()
             self.saveEntriesToFile([])
         }
         osLog.info("Logs cleared")
