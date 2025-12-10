@@ -401,7 +401,7 @@ Button("Cerrar") {
 6. Widget UI se actualiza
 ```
 
-### Background Refresh Flow
+### Background Refresh Flow (BGAppRefreshTask)
 ```
 1. App va a background
    ↓
@@ -413,12 +413,39 @@ Button("Cerrar") {
 4. [iOS decide cuándo ejecutar]
    ↓
 5. handleAppRefresh()
-   - Lee última ubicación de App Group
-   - Fetch weather
+   - Lee última ubicación de App Group (last_latitude, last_longitude)
+   - Fetch weather de WeatherKit
    - Save to widget
    ↓
 6. Widget se actualiza (si iOS lo permite)
 ```
+
+### Significant Location Changes Flow (Ciudad cambia cuando app cerrada)
+```
+1. Usuario se mueve ~500m+ (torres celulares detectan)
+   ↓
+2. iOS despierta la app en background
+   ↓
+3. LocationService recibe didUpdateLocations
+   ↓
+4. isSignificantChange detectado → callback onSignificantLocationChange
+   ↓
+5. BackgroundTaskService.handleSignificantLocationChange()
+   - saveLocationToAppGroup() guarda nuevas coordenadas
+   - fetchWeatherAndUpdateWidget()
+     - Reverse geocode → nombre de ciudad
+     - WeatherKit fetch → temperatura
+     - WidgetDataService.saveTemperature()
+   ↓
+6. WidgetCenter.reloadAllTimelines()
+   ↓
+7. Widget muestra nueva ciudad y temperatura
+```
+
+**Requisitos para Significant Location Changes:**
+- Permiso "Always" (Always Allow location access)
+- No requiere Background Mode "Location updates"
+- Info.plist: `NSLocationAlwaysAndWhenInUseUsageDescription`
 
 ---
 
@@ -472,25 +499,26 @@ xcrun simctl spawn booted launchctl kickstart -k system/com.apple.backboardd
 1. **Push Notifications**: Para updates más confiables del widget
 2. **Watch App**: Companion para Apple Watch
 3. **Intent Configuration**: Widget configurable por el usuario
-4. **Multiple Cities**: Guardar lista de ciudades favoritas
+4. ~~**Multiple Cities**: Guardar lista de ciudades favoritas~~ ✅ Implementado (Sesión 1)
 5. **Charts**: Gráfica de temperatura histórica
 6. **Localization**: Soporte multi-idioma completo
 7. **StandBy Mode** (iOS 17+): Optimizar widgets para modo StandBy
 
 ### Deprecation Warnings
 - `CLGeocoder` métodos deprecados en iOS 26.0+
-- Migrar a `MKReverseGeocodingRequest` cuando sea necesario
+- Migrar a `MKGeocodingRequest` / `MKReverseGeocodingRequest` cuando sea necesario
 
 ### Known Issues
 - El error `CFPrefsPlistSource` aparece en logs pero no afecta funcionalidad
 - Widget refresh timing es controlado por iOS, no garantizado
+- Significant Location Changes requiere permiso "Always" - con "When In Use" solo funciona en foreground
 
 ---
 
 ## 🔐 Seguridad
 
 - No se almacenan datos sensibles
-- Ubicación solo se usa mientras la app está activa
+- Ubicación se usa en foreground y para significant location changes (background)
 - No hay autenticación de usuario
 - Datos compartidos via App Group (sandboxed)
 
@@ -503,8 +531,9 @@ xcrun simctl spawn booted launchctl kickstart -k system/com.apple.backboardd
 - [Keeping a Widget Up To Date](https://developer.apple.com/documentation/widgetkit/keeping-a-widget-up-to-date)
 - [Background Tasks](https://developer.apple.com/documentation/backgroundtasks)
 - [App Groups](https://developer.apple.com/documentation/bundleresources/entitlements/com_apple_security_application-groups)
+- [Significant Location Changes](https://developer.apple.com/documentation/corelocation/getting_the_user_s_location/using_the_significant-change_location_service)
 
 ---
 
 *Documento generado como parte del desarrollo de Alexis Farenheit iOS App*
-
+*Última actualización: Diciembre 2024 - Sesión 3*

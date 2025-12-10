@@ -14,16 +14,21 @@
 ## Key Files
 
 ### Services
+
 ```
 Core/Services/
-├── LocationService.swift       # GPS + Geocoding
+├── LocationService.swift       # GPS + Geocoding + Significant Location Changes
 ├── WeatherService.swift        # WeatherKit
 ├── WidgetDataService.swift     # App Group sharing
-├── BackgroundTaskService.swift # Background refresh
-└── SharedLogger.swift          # Logging system
+├── BackgroundTaskService.swift # Background refresh + Significant Location
+├── CityStorageService.swift    # Multi-city persistence
+├── TimeZoneService.swift       # Time slider logic
+├── SharedLogger.swift          # File-based logging (JSON)
+└── PerformanceMonitor.swift    # Performance tracking
 ```
 
 ### Widget
+
 ```
 AlexisExtensionFarenheit/
 ├── AlexisExtensionFarenheit.swift  # Provider + Views (Home + Lock Screen)
@@ -71,15 +76,20 @@ WidgetLogger.info("Data loaded", category: "Data")
 ## Xcode Capabilities Required
 
 ### Main App Target ✓
+
 - App Groups: `group.alexisaraujo.alexisfarenheit`
 - WeatherKit
 - Background Modes: fetch, processing
 
 ### Widget Extension Target ✓
+
 - App Groups: `group.alexisaraujo.alexisfarenheit`
 
 ### Info Tab (Main App)
+
 - `BGTaskSchedulerPermittedIdentifiers`: Array con `alexisaraujo.AlexisFarenheit.refresh`
+- `NSLocationWhenInUseUsageDescription`
+- `NSLocationAlwaysAndWhenInUseUsageDescription`
 
 ---
 
@@ -119,6 +129,45 @@ print(WidgetDataService.shared.isAppGroupAvailable())
 | Location denied | Revisar permisos en Settings |
 | Widget datos viejos | Force save desde la app |
 | Lock Screen widget no aparece | Settings → Wallpaper → Customize Lock Screen |
+| Widget no actualiza en background | Verificar permiso "Always Allow" location |
+| Significant location no funciona | Requiere dispositivo real (~500m+ movimiento) |
+
+---
+
+## Background Location (Significant Changes)
+
+### Cómo funciona
+
+- Usa torres celulares (no GPS) → eficiente en batería
+- Detecta movimiento ~500m+ → iOS despierta app
+- App fetch weather → actualiza widget
+- No requiere Background Mode "Location updates"
+
+### Métodos clave
+
+```swift
+// LocationService
+locationService.startMonitoringSignificantLocationChanges()
+locationService.stopMonitoringSignificantLocationChanges()
+locationService.onSignificantLocationChange = { location in ... }
+
+// BackgroundTaskService
+BackgroundTaskService.shared.setupBackgroundLocationMonitoring()
+BackgroundTaskService.shared.startSignificantLocationMonitoring()
+BackgroundTaskService.shared.stopSignificantLocationMonitoring()
+```
+
+### App lifecycle
+
+```swift
+// Alexis_FarenheitApp.swift
+.onChange(of: scenePhase) {
+    case .background:
+        BackgroundTaskService.shared.startSignificantLocationMonitoring()
+    case .active:
+        BackgroundTaskService.shared.stopSignificantLocationMonitoring()
+}
+```
 
 ---
 
