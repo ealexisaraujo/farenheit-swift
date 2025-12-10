@@ -115,6 +115,39 @@ final class HomeViewModel: ObservableObject {
     func onAppear() {
         logger.debug("🏠 View appeared - requesting permission")
         locationService.requestPermission()
+
+        // Lazy load weather for cities that have cached data (staggered)
+        lazyLoadInitialWeather()
+    }
+
+    /// Lazy load weather on initial app launch
+    /// Uses cached data immediately, then refreshes stale data in background
+    private func lazyLoadInitialWeather() {
+        // Cities already have cached temperatures from storage
+        // Only refresh if data is stale (>15 min) or missing
+        let staleThreshold: TimeInterval = 15 * 60
+
+        // Primary city (current location) is handled by location service binding
+        // For other cities, check if they need refresh
+        let citiesToRefresh = cities.dropFirst().filter { city in
+            guard let lastUpdated = city.lastUpdated else {
+                return city.fahrenheit == nil
+            }
+            return Date().timeIntervalSince(lastUpdated) > staleThreshold
+        }
+
+        // Stagger the refresh to avoid blocking UI
+        for (index, city) in citiesToRefresh.enumerated() {
+            let delay = Double(index) * 0.5 // 500ms between each
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                await MainActor.run {
+                    fetchWeather(for: city)
+                }
+            }
+        }
+
+        logger.debug("🏠 Lazy load: \(citiesToRefresh.count) cities need refresh")
     }
 
     /// Called when app returns to foreground
@@ -300,10 +333,46 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
-    /// Refresh weather for all cities
+    /// Refresh weather for all cities with lazy/staggered loading
+    /// Primary city loads first, then others load with delay to avoid blocking UI
     func refreshAllCities() {
+        // Load primary city first (immediate)
+        if let primary = cities.first {
+            fetchWeather(for: primary)
+        }
+
+        // Load remaining cities with staggered delay (lazy loading)
+        let remainingCities = Array(cities.dropFirst())
+        for (index, city) in remainingCities.enumerated() {
+            // Stagger requests by 300ms each to avoid overwhelming the API and UI
+            let delay = Double(index + 1) * 0.3
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                await MainActor.run {
+                    fetchWeather(for: city)
+                }
+            }
+        }
+    }
+
+    /// Lazy load cities that don't have recent weather data
+    /// Only fetches weather for cities that are stale (>15 min old) or have no data
+    func lazyRefreshStaleCity() {
+        let staleThreshold: TimeInterval = 15 * 60 // 15 minutes
+
         for city in cities {
-            fetchWeather(for: city)
+            let isStale: Bool
+            if let lastUpdated = city.lastUpdated {
+                isStale = Date().timeIntervalSince(lastUpdated) > staleThreshold
+            } else {
+                isStale = city.fahrenheit == nil
+            }
+
+            if isStale && !loadingCityIds.contains(city.id) {
+                fetchWeather(for: city)
+                // Only fetch one stale city at a time to keep UI responsive
+                break
+            }
         }
     }
 
