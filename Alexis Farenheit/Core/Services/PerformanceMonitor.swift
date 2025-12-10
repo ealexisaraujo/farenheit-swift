@@ -25,13 +25,13 @@ final class PerformanceMonitor {
         let startTime: Date
         let signpostID: OSSignpostID
     }
-    
+
     private var activeOperations: [String: ActiveOperation] = [:]
     private let operationsQueue = DispatchQueue(label: "com.alexis.farenheit.performance", qos: .utility)
-    
+
     /// Maximum time before considering an operation orphaned (5 minutes)
     private let orphanTimeout: TimeInterval = 5 * 60
-    
+
     /// Timer to clean up orphaned operations
     private var orphanCleanupTimer: Timer?
 
@@ -73,23 +73,23 @@ final class PerformanceMonitor {
     private init() {
         osLog.info("PerformanceMonitor initialized")
         SharedLogger.shared.info("PerformanceMonitor initialized", category: "Performance")
-        
+
         // Start orphan cleanup timer
         startOrphanCleanupTimer()
     }
-    
+
     /// Start timer to clean up orphaned operations
     private func startOrphanCleanupTimer() {
         orphanCleanupTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             self?.cleanupOrphanedOperations()
         }
     }
-    
+
     /// Clean up operations that started but never ended (orphaned)
     private func cleanupOrphanedOperations() {
         operationsQueue.async { [weak self] in
             guard let self else { return }
-            
+
             let now = Date()
             let orphanedKeys = self.activeOperations.compactMap { key, operation -> String? in
                 if now.timeIntervalSince(operation.startTime) > self.orphanTimeout {
@@ -97,12 +97,12 @@ final class PerformanceMonitor {
                 }
                 return nil
             }
-            
+
             for key in orphanedKeys {
                 if let operation = self.activeOperations[key] {
                     // Close signpost
                     os_signpost(.end, log: self.signpostLog, name: "Operation", signpostID: operation.signpostID)
-                    
+
                     // Log warning
                     let components = key.split(separator: ".")
                     if components.count == 2 {
@@ -111,7 +111,7 @@ final class PerformanceMonitor {
                         NSLog("⚠️ [PERF] Orphaned operation cleaned: \(category)/\(opName)")
                         self.osLog.warning("Orphaned operation cleaned: \(category)/\(opName)")
                     }
-                    
+
                     // Remove from active operations
                     self.activeOperations.removeValue(forKey: key)
                 }
@@ -129,10 +129,10 @@ final class PerformanceMonitor {
     func startOperation(_ operation: String, category: String, metadata: [String: String]? = nil) {
         let key = "\(category).\(operation)"
         let startTime = Date()
-        
+
         // Create signpost ID
         let signpostID = OSSignpostID(log: signpostLog)
-        
+
         // Log start with NSLog for easy debugging
         NSLog("⏱️ [PERF] START: \(category)/\(operation)")
 
@@ -247,11 +247,11 @@ final class PerformanceMonitor {
         // Only write to file if operation is slow (>500ms) or has errors
         // This reduces file I/O significantly while still capturing important performance issues
         let shouldLogToFile = metric.duration > 0.5 || metric.metadata?.contains(where: { $0.key == "error" }) == true
-        
+
         if shouldLogToFile {
             let message = "\(metric.operation): \(metric.formattedDuration)\(metadataStr)"
             SharedLogger.shared.info(message, category: "Performance.\(metric.category)")
-            
+
             // Log warning if operation is slow
             if metric.duration > 1.0 {
                 SharedLogger.shared.warning("Slow operation: \(metric.operation) took \(metric.formattedDuration)", category: "Performance.\(metric.category)")
@@ -326,7 +326,7 @@ final class PerformanceMonitor {
 
         let usedBytes = Int64(info.resident_size)
         let totalBytes = Int64(ProcessInfo.processInfo.physicalMemory)
-        
+
         return (usedBytes, totalBytes)
     }
 
