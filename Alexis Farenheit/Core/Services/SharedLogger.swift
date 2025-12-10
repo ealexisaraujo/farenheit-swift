@@ -220,10 +220,33 @@ final class SharedLogger {
     private func loadEntriesFromFile() -> [LogEntry]? {
         guard let fileURL = logFileURL else { return nil }
 
+        // Performance tracking: Track file read (only for large operations)
+        let shouldTrack = FileManager.default.fileExists(atPath: fileURL.path)
+        if shouldTrack {
+            if let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
+               let fileSize = attributes[.size] as? Int64, fileSize > 50_000 { // Only track if > 50KB
+                PerformanceMonitor.shared.startOperation("LogFileRead", category: "FileIO", metadata: ["file": "app_logs.json"])
+            }
+        }
+
         do {
             let data = try Data(contentsOf: fileURL)
-            return try JSONDecoder().decode([LogEntry].self, from: data)
+            let entries = try JSONDecoder().decode([LogEntry].self, from: data)
+
+            // Performance tracking: End file read (only if we started tracking)
+            if shouldTrack, let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
+               let fileSize = attributes[.size] as? Int64, fileSize > 50_000 {
+                let metadata = ["entries_count": "\(entries.count)", "file_size_bytes": "\(data.count)"]
+                PerformanceMonitor.shared.endOperation("LogFileRead", category: "FileIO", metadata: metadata)
+            }
+
+            return entries
         } catch {
+            // Performance tracking: End file read (error)
+            if shouldTrack {
+                PerformanceMonitor.shared.endOperation("LogFileRead", category: "FileIO", metadata: ["error": error.localizedDescription], forceLog: true)
+            }
+
             // File doesn't exist or is corrupted - return empty
             return []
         }
@@ -238,6 +261,12 @@ final class SharedLogger {
     /// Uses FileHandle for incremental writes to avoid blocking the thread
     private func saveEntriesToFileAsync(_ entries: [LogEntry]) {
         guard let fileURL = logFileURL else { return }
+
+        // Only track performance for large writes (>50KB)
+        let shouldTrack = entries.count > 100
+        if shouldTrack {
+            PerformanceMonitor.shared.startOperation("LogFileWrite", category: "FileIO", metadata: ["entries_count": "\(entries.count)"])
+        }
 
         // Perform encoding and writing on background queue
         DispatchQueue.global(qos: .utility).async { [weak self] in
@@ -269,7 +298,18 @@ final class SharedLogger {
                     try fileManager.removeItem(at: fileURL)
                 }
                 try fileManager.moveItem(at: tempURL, to: fileURL)
+                
+                // Performance tracking: End file write (only if we started tracking)
+                if shouldTrack {
+                    let metadata = ["entries_count": "\(entries.count)", "file_size_bytes": "\(data.count)"]
+                    PerformanceMonitor.shared.endOperation("LogFileWrite", category: "FileIO", metadata: metadata)
+                }
             } catch {
+                // Performance tracking: End file write (error)
+                if shouldTrack {
+                    PerformanceMonitor.shared.endOperation("LogFileWrite", category: "FileIO", metadata: ["error": error.localizedDescription], forceLog: true)
+                }
+
                 self.osLog.error("Failed to save logs: \(error.localizedDescription)")
             }
         }

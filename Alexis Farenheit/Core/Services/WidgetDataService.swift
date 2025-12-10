@@ -46,7 +46,11 @@ final class WidgetDataService {
 
     /// Save temperature data for widget and trigger reload
     func saveTemperature(city: String, country: String, fahrenheit: Double) {
+        // Performance tracking: Start widget data save
+        PerformanceMonitor.shared.startOperation("WidgetDataSave", category: "Widget", metadata: ["city": city])
+        
         guard let defaults = sharedDefaults else {
+            PerformanceMonitor.shared.endOperation("WidgetDataSave", category: "Widget", metadata: ["error": "app_group_unavailable"], forceLog: true)
             logError("Cannot save - App Group not available", category: "Widget")
             return
         }
@@ -60,6 +64,9 @@ final class WidgetDataService {
         defaults.synchronize()
 
         logInfo("Saved to widget: \(city), \(Int(fahrenheit))°F", category: "Widget")
+        
+        // Performance tracking: End widget data save
+        PerformanceMonitor.shared.endOperation("WidgetDataSave", category: "Widget", metadata: ["city": city, "temperature": String(format: "%.1f", fahrenheit)])
 
         // Small delay to ensure UserDefaults is synced across processes
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
@@ -69,6 +76,9 @@ final class WidgetDataService {
 
     /// Force widget to reload its timeline
     func reloadWidget() {
+        // Performance tracking: Start widget reload
+        PerformanceMonitor.shared.startOperation("WidgetReload", category: "Widget")
+        
         logInfo("Requesting widget reload", category: "Widget")
 
         // Use reloadAllTimelines - more reliable than reloadTimelines(ofKind:)
@@ -76,6 +86,9 @@ final class WidgetDataService {
         WidgetCenter.shared.reloadAllTimelines()
 
         logInfo("reloadAllTimelines() called", category: "Widget")
+        
+        // Performance tracking: End widget reload (operation is synchronous)
+        PerformanceMonitor.shared.endOperation("WidgetReload", category: "Widget")
     }
 
     /// Load cached temperature data

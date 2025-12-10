@@ -20,6 +20,9 @@ struct Alexis_FarenheitApp: App {
         // Debug: App initializing
         print("🚀 App initializing...")
         BackgroundTaskService.shared.registerBackgroundTasks()
+        
+        // Performance tracking: Log initial memory usage
+        PerformanceMonitor.shared.logMemoryUsage(context: "App Init")
     }
 
     var body: some Scene {
@@ -40,6 +43,9 @@ struct Alexis_FarenheitApp: App {
             // Debug: App going to background
             print("🚀 App going to background - scheduling refresh")
             SharedLogger.shared.info("App moved to background", category: "Lifecycle")
+            
+            // Flush pending logs before going to background
+            SharedLogger.shared.flushPendingLogs()
 
             // Schedule background refresh when app goes to background
             BackgroundTaskService.shared.scheduleAppRefresh()
@@ -48,6 +54,9 @@ struct Alexis_FarenheitApp: App {
             // Debug: App became active
             print("🚀 App became active")
             SharedLogger.shared.info("App became active", category: "Lifecycle")
+            
+            // Performance tracking: Log memory usage when app becomes active
+            PerformanceMonitor.shared.logMemoryUsage(context: "App Active")
 
         case .inactive:
             // Debug: App became inactive (transitioning)
