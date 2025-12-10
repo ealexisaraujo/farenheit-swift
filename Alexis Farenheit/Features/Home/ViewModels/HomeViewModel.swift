@@ -205,53 +205,103 @@ final class HomeViewModel: ObservableObject {
     }
 
     /// Handle city selection from search (legacy - replaces current city)
-    func handleCitySelection(_ completion: MKLocalSearchCompletion) {
-        logger.debug("🏠 City selected: \(completion.title)")
+    func handleCitySelection(_ result: CitySearchResult) {
+        logger.debug("🏠 City selected: \(result.title)")
 
         // Update city info immediately for UI
-        selectedCity = completion.title
+        selectedCity = result.title
         selectedCountry = ""
         errorMessage = nil
 
-        // Geocode and fetch weather for the selected city
-        geocodeAndFetchWeather(for: completion.title)
+        // Use the location from the search result directly
+        // iOS 26+: Use mapItem.location directly
+        // Legacy: Use placemark.coordinate
+        let location: CLLocation
+        if #available(iOS 26.0, *) {
+            location = result.mapItem.location
+        } else {
+            location = CLLocation(
+                latitude: result.mapItem.placemark.coordinate.latitude,
+                longitude: result.mapItem.placemark.coordinate.longitude
+            )
+        }
+        Task {
+            await weatherService.fetchWeather(for: location)
+        }
     }
 
     // MARK: - Multi-City Methods
 
-    /// Add a new city from search completion
-    func addCity(from completion: MKLocalSearchCompletion) {
+    /// Add a new city from search result (using MKLocalSearch)
+    func addCity(from result: CitySearchResult) {
         guard canAddCity else {
             errorMessage = "Máximo de \(CityModel.maxCities) ciudades alcanzado"
             return
         }
 
-        logger.debug("🏠 Adding city: \(completion.title)")
+        logger.debug("🏠 Adding city: \(result.title)")
 
-        // Geocode to get full details
-        let geocoder = CLGeocoder()
-        geocoder.geocodeAddressString(completion.title) { [weak self] placemarks, error in
-            guard let self else { return }
+        // Use MKMapItem directly to avoid deprecated MKPlacemark properties
+        addCityFromMapItem(result.mapItem, title: result.title)
+    }
 
-            if let error {
-                self.logger.error("🏠 Geocode error: \(error.localizedDescription)")
-                Task { @MainActor in
-                    self.errorMessage = "No se pudo encontrar la ubicación"
-                }
-                return
-            }
+    /// Add city from MKMapItem (from MKLocalSearch)
+    /// Uses iOS 26+ APIs when available, falls back to placemark for older versions
+    private func addCityFromMapItem(_ mapItem: MKMapItem, title: String) {
+        // Get coordinates from location (iOS 26+) or placemark (legacy)
+        let coordinate: CLLocationCoordinate2D
+        let cityName: String
+        let countryCode: String
+        let timeZoneId: String
 
-            guard let placemark = placemarks?.first else {
-                Task { @MainActor in
-                    self.errorMessage = "Ubicación no encontrada"
-                }
-                return
-            }
-
-            Task { @MainActor in
-                self.addCityFromPlacemark(placemark)
-            }
+        if #available(iOS 26.0, *) {
+            // iOS 26+: Use location and address properties
+            coordinate = mapItem.location.coordinate
+            cityName = mapItem.name ?? title
+            // Extract country code from address if available
+            // MKAddress only has fullAddress/shortAddress, so we use a default
+            countryCode = "XX"
+            timeZoneId = mapItem.timeZone?.identifier ?? TimeZone.current.identifier
+        } else {
+            // Legacy: Use placemark properties
+            let placemark = mapItem.placemark
+            coordinate = placemark.coordinate
+            cityName = placemark.locality ?? title
+            countryCode = placemark.isoCountryCode ?? placemark.countryCode ?? "XX"
+            timeZoneId = placemark.timeZone?.identifier ?? TimeZone.current.identifier
         }
+
+        let newCity = CityModel(
+            id: UUID(),
+            name: cityName,
+            countryCode: countryCode,
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
+            timeZoneIdentifier: timeZoneId,
+            fahrenheit: nil,
+            lastUpdated: nil,
+            isCurrentLocation: false,
+            sortOrder: cities.count
+        )
+
+        // Check for duplicates
+        let isDuplicate = cities.contains { existing in
+            existing.location.distance(from: newCity.location) < 1000
+        }
+
+        if isDuplicate {
+            errorMessage = "Esta ciudad ya está en tu lista"
+            return
+        }
+
+        // Add to list
+        cities.append(newCity)
+        cityStorage.addCity(newCity)
+
+        logger.info("🏠 Added city: \(newCity.name)")
+
+        // Fetch weather for new city
+        fetchWeather(for: newCity)
     }
 
     /// Add city from placemark

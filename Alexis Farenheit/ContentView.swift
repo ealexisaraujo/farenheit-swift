@@ -272,7 +272,7 @@ struct ContentView: View {
 struct AddCitySearchSheet: View {
     let canAddCity: Bool
     let remainingSlots: Int
-    let onCitySelected: (MKLocalSearchCompletion) -> Void
+    let onCitySelected: (CitySearchResult) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @StateObject private var completer = CitySearchCompleter()
@@ -377,10 +377,10 @@ struct AddCitySearchSheet: View {
     }
 
     private var resultsList: some View {
-        List(completer.suggestions, id: \.self) { suggestion in
+        List(completer.suggestions) { result in
             Button {
                 if canAddCity {
-                    selectCity(suggestion)
+                    selectCity(result)
                 }
             } label: {
                 HStack(spacing: 12) {
@@ -389,12 +389,12 @@ struct AddCitySearchSheet: View {
                         .font(.title2)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(suggestion.title)
+                        Text(result.title)
                             .font(.body)
                             .foregroundStyle(.primary)
 
-                        if !suggestion.subtitle.isEmpty {
-                            Text(suggestion.subtitle)
+                        if !result.subtitle.isEmpty {
+                            Text(result.subtitle)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -418,8 +418,8 @@ struct AddCitySearchSheet: View {
         .listStyle(.plain)
     }
 
-    private func selectCity(_ suggestion: MKLocalSearchCompletion) {
-        onCitySelected(suggestion)
+    private func selectCity(_ result: CitySearchResult) {
+        onCitySelected(result)
     }
 }
 

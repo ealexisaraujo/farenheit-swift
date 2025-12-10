@@ -2,32 +2,42 @@ import SwiftUI
 import Combine
 import MapKit
 
-/// City search autocomplete using MapKit
-/// Provides suggestions as user types and clears when a city is selected
+/// Search result model that can come from MKLocalSearch
+struct CitySearchResult: Identifiable, Hashable {
+    let id = UUID()
+    let title: String
+    let subtitle: String
+    let mapItem: MKMapItem
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    static func == (lhs: CitySearchResult, rhs: CitySearchResult) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
+/// City search using MKLocalSearch for better results with small cities
+/// MKLocalSearchCompleter doesn't find cities like "Metepec" in Mexico
 @MainActor
-final class CitySearchCompleter: NSObject, ObservableObject, MKLocalSearchCompleterDelegate {
-    @Published var suggestions: [MKLocalSearchCompletion] = []
+final class CitySearchCompleter: ObservableObject {
+    @Published var suggestions: [CitySearchResult] = []
     @Published var isSearching: Bool = false
 
-    private let completer: MKLocalSearchCompleter = {
-        let c = MKLocalSearchCompleter()
-        c.resultTypes = .address
-        return c
-    }()
+    // Legacy property for backwards compatibility
+    var legacySuggestions: [MKLocalSearchCompletion] { [] }
 
     // Debouncing to prevent searching on every keystroke
     private var searchWorkItem: DispatchWorkItem?
-    private let debounceDelay: TimeInterval = 0.3 // Wait 300ms after typing stops
-
-    override init() {
-        super.init()
-        completer.delegate = self
-    }
+    private var currentSearch: MKLocalSearch?
+    private let debounceDelay: TimeInterval = 0.4 // Wait 400ms after typing stops
 
     /// Update search query (debounced)
     func update(query: String) {
         // Cancel previous search
         searchWorkItem?.cancel()
+        currentSearch?.cancel()
 
         if query.isEmpty {
             clear()
@@ -40,27 +50,65 @@ final class CitySearchCompleter: NSObject, ObservableObject, MKLocalSearchComple
         // Debounce: wait for user to stop typing
         let workItem = DispatchWorkItem { [weak self] in
             guard let self else { return }
-            self.completer.queryFragment = query
-            self.isSearching = true
-
-            // Re-enable file logging after search starts (with delay)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                SharedLogger.shared.fileLoggingEnabled = true
-            }
+            self.performSearch(query: query)
         }
 
         searchWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + debounceDelay, execute: workItem)
     }
 
-    func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
-        suggestions = completer.results
-        isSearching = false
-    }
+    private func performSearch(query: String) {
+        isSearching = true
 
-    func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
-        // MKErrorDomain error 5 = "loading throttled" - normal during fast typing
-        isSearching = false
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = query
+        // Don't restrict to a specific region to allow worldwide search
+
+        let search = MKLocalSearch(request: request)
+        currentSearch = search
+
+        search.start { [weak self] response, error in
+            Task { @MainActor in
+                guard let self else { return }
+
+                self.isSearching = false
+
+                // Re-enable file logging
+                SharedLogger.shared.fileLoggingEnabled = true
+
+                if let error = error {
+                    // MKErrorDomain error 4 = cancelled (normal during typing)
+                    let nsError = error as NSError
+                    if nsError.code != 4 {
+                        print("[CitySearch] Search error: \(error.localizedDescription)")
+                    }
+                    return
+                }
+
+                guard let response = response else {
+                    self.suggestions = []
+                    return
+                }
+
+                // Convert MKMapItems to CitySearchResults
+                // Filter to only include places that look like cities/localities
+                self.suggestions = response.mapItems.compactMap { item -> CitySearchResult? in
+                    // Skip items without a name
+                    guard let name = item.name, !name.isEmpty else { return nil }
+
+                    // Build subtitle from location info
+                    let subtitle = Self.buildSubtitle(for: item, excludingName: name)
+
+                    return CitySearchResult(
+                        title: name,
+                        subtitle: subtitle,
+                        mapItem: item
+                    )
+                }
+
+                print("[CitySearch] Found \(self.suggestions.count) results for '\(query)'")
+            }
+        }
     }
 
     /// Clear all suggestions
@@ -68,20 +116,57 @@ final class CitySearchCompleter: NSObject, ObservableObject, MKLocalSearchComple
         // Cancel any pending search
         searchWorkItem?.cancel()
         searchWorkItem = nil
+        currentSearch?.cancel()
+        currentSearch = nil
 
         // Re-enable file logging when search is cleared
         SharedLogger.shared.fileLoggingEnabled = true
 
         suggestions = []
         isSearching = false
-        completer.queryFragment = ""
+    }
+
+    /// Build subtitle string from MKMapItem
+    /// Uses address for iOS 26+, placemark for older versions
+    @MainActor
+    private static func buildSubtitle(for item: MKMapItem, excludingName name: String) -> String {
+        if #available(iOS 26.0, *) {
+            // iOS 26+: Use MKAddress shortAddress or fullAddress
+            if let address = item.address {
+                // Use shortAddress if available, otherwise clean up fullAddress
+                if let shortAddr = address.shortAddress, !shortAddr.isEmpty {
+                    // Remove the name if it appears at the start
+                    return shortAddr
+                        .replacingOccurrences(of: "\(name), ", with: "")
+                        .replacingOccurrences(of: "\(name)\n", with: "")
+                        .replacingOccurrences(of: "\n", with: ", ")
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                } else {
+                    // Use fullAddress as fallback
+                    return address.fullAddress
+                        .replacingOccurrences(of: "\(name), ", with: "")
+                        .replacingOccurrences(of: "\(name)\n", with: "")
+                        .replacingOccurrences(of: "\n", with: ", ")
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+            }
+            return ""
+        } else {
+            // Legacy: use placemark properties
+            let subtitleParts = [
+                item.placemark.locality != name ? item.placemark.locality : nil,
+                item.placemark.administrativeArea,
+                item.placemark.country
+            ].compactMap { $0 }
+            return subtitleParts.joined(separator: ", ")
+        }
     }
 }
 
 /// Button that opens the city search sheet
 struct CitySearchButton: View {
     let currentCity: String
-    let onCitySelected: (MKLocalSearchCompletion) -> Void
+    let onCitySelected: (CitySearchResult) -> Void
 
     @State private var isShowingSearch = false
 
@@ -108,8 +193,8 @@ struct CitySearchButton: View {
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $isShowingSearch) {
-            CitySearchSheet(onCitySelected: { completion in
-                onCitySelected(completion)
+            CitySearchSheet(onCitySelected: { result in
+                onCitySelected(result)
                 isShowingSearch = false
             })
             .presentationDetents([.medium, .large])
@@ -128,7 +213,7 @@ struct CitySearchButton: View {
 
 /// Full-screen search sheet with proper keyboard handling
 struct CitySearchSheet: View {
-    let onCitySelected: (MKLocalSearchCompletion) -> Void
+    let onCitySelected: (CitySearchResult) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @StateObject private var completer = CitySearchCompleter()
@@ -252,9 +337,9 @@ struct CitySearchSheet: View {
 
     // MARK: - Actions
 
-    private func selectCity(_ suggestion: MKLocalSearchCompletion) {
-        print("[CitySearch] Selected: \(suggestion.title)")
-        onCitySelected(suggestion)
+    private func selectCity(_ result: CitySearchResult) {
+        print("[CitySearch] Selected: \(result.title)")
+        onCitySelected(result)
     }
 }
 
@@ -263,7 +348,7 @@ struct CitySearchSheet: View {
 /// Inline city search view - use CitySearchButton for better UX
 struct CitySearchView: View {
     @Binding var searchText: String
-    let onCitySelected: (MKLocalSearchCompletion) -> Void
+    let onCitySelected: (CitySearchResult) -> Void
 
     @StateObject private var completer = CitySearchCompleter()
     @FocusState private var isTextFieldFocused: Bool
@@ -334,9 +419,9 @@ struct CitySearchView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func suggestionRow(_ suggestion: MKLocalSearchCompletion) -> some View {
+    private func suggestionRow(_ result: CitySearchResult) -> some View {
         Button {
-            selectCity(suggestion)
+            selectCity(result)
         } label: {
             HStack {
                 Image(systemName: "mappin.circle.fill")
@@ -344,12 +429,12 @@ struct CitySearchView: View {
                     .font(.title3)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(suggestion.title)
+                    Text(result.title)
                         .font(.body)
                         .foregroundStyle(.primary)
 
-                    if !suggestion.subtitle.isEmpty {
-                        Text(suggestion.subtitle)
+                    if !result.subtitle.isEmpty {
+                        Text(result.subtitle)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -368,9 +453,9 @@ struct CitySearchView: View {
         .buttonStyle(.plain)
     }
 
-    private func selectCity(_ suggestion: MKLocalSearchCompletion) {
-        print("[CitySearch] Selected: \(suggestion.title)")
-        onCitySelected(suggestion)
+    private func selectCity(_ result: CitySearchResult) {
+        print("[CitySearch] Selected: \(result.title)")
+        onCitySelected(result)
         clearSearch()
         isTextFieldFocused = false
     }
@@ -401,8 +486,8 @@ struct StatefulPreviewWrapper<Value, Content: View>: View {
 #Preview("Search Button") {
     ZStack {
         Color.black.ignoresSafeArea()
-        CitySearchButton(currentCity: "Chandler") { completion in
-            print("Selected: \(completion.title)")
+        CitySearchButton(currentCity: "Chandler") { result in
+            print("Selected: \(result.title)")
         }
         .padding()
     }
@@ -410,8 +495,8 @@ struct StatefulPreviewWrapper<Value, Content: View>: View {
 }
 
 #Preview("Search Sheet") {
-    CitySearchSheet { completion in
-        print("Selected: \(completion.title)")
+    CitySearchSheet { result in
+        print("Selected: \(result.title)")
     }
     .preferredColorScheme(.dark)
 }
