@@ -244,13 +244,18 @@ final class PerformanceMonitor {
         // OSLog for Instruments
         osLog.info("⏱️ \(metric.category)/\(metric.operation): \(metric.formattedDuration)")
 
-        // SharedLogger for file-based logging
-        let message = "\(metric.operation): \(metric.formattedDuration)\(metadataStr)"
-        SharedLogger.shared.info(message, category: "Performance.\(metric.category)")
-
-        // Log warning if operation is slow
-        if metric.duration > 1.0 {
-            SharedLogger.shared.warning("Slow operation: \(metric.operation) took \(metric.formattedDuration)", category: "Performance.\(metric.category)")
+        // Only write to file if operation is slow (>500ms) or has errors
+        // This reduces file I/O significantly while still capturing important performance issues
+        let shouldLogToFile = metric.duration > 0.5 || metric.metadata?.contains(where: { $0.key == "error" }) == true
+        
+        if shouldLogToFile {
+            let message = "\(metric.operation): \(metric.formattedDuration)\(metadataStr)"
+            SharedLogger.shared.info(message, category: "Performance.\(metric.category)")
+            
+            // Log warning if operation is slow
+            if metric.duration > 1.0 {
+                SharedLogger.shared.warning("Slow operation: \(metric.operation) took \(metric.formattedDuration)", category: "Performance.\(metric.category)")
+            }
         }
     }
 

@@ -351,8 +351,25 @@ final class HomeViewModel: ObservableObject {
         PerformanceMonitor.shared.startOperation("CityWeatherFetch", category: "Network", metadata: metadata)
 
         Task {
+            // Ensure cleanup happens even if task is cancelled
+            defer {
+                loadingCityIds.remove(city.id)
+            }
+            
+            // Check if task was cancelled before starting
+            guard !Task.isCancelled else {
+                PerformanceMonitor.shared.endOperation("CityWeatherFetch", category: "Network", metadata: metadata, forceLog: true)
+                return
+            }
+            
             let tempService = WeatherService()
             await tempService.fetchWeather(for: city.location)
+            
+            // Check again if task was cancelled after fetch
+            guard !Task.isCancelled else {
+                PerformanceMonitor.shared.endOperation("CityWeatherFetch", category: "Network", metadata: metadata, forceLog: true)
+                return
+            }
 
             if let temp = tempService.currentTemperatureF {
                 // Update city with new temperature
@@ -369,8 +386,6 @@ final class HomeViewModel: ObservableObject {
                 // Performance tracking: End city weather fetch (no temp)
                 PerformanceMonitor.shared.endOperation("CityWeatherFetch", category: "Network", metadata: metadata, forceLog: true)
             }
-
-            loadingCityIds.remove(city.id)
         }
     }
 

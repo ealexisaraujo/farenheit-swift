@@ -68,8 +68,8 @@ final class SharedLogger {
     // Batch logging to reduce file I/O
     private var pendingEntries: [LogEntry] = []
     private var writeWorkItem: DispatchWorkItem?
-    private let batchWriteDelay: TimeInterval = 0.5 // Batch writes every 500ms
-    private let maxBatchSize = 10 // Flush batch after 10 entries
+    private let batchWriteDelay: TimeInterval = 2.0 // Batch writes every 2 seconds (increased from 500ms)
+    private let maxBatchSize = 50 // Flush batch after 50 entries (increased from 10)
     
     /// Disable file logging during critical operations (e.g., search)
     var fileLoggingEnabled: Bool = true
