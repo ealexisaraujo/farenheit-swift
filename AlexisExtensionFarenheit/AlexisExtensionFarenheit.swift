@@ -470,195 +470,156 @@ struct SmallWidgetView: View {
     }
 }
 
-/// Medium Widget - 2025 Award-Winning Design
-/// Features: Glass morphism, bold typography, visual hierarchy, smooth gradients
+/// Medium Widget - Clean 2025 Design
+/// Simple, readable, high contrast - shows 2 cities
 struct MediumWidgetView: View {
     let entry: TemperatureEntry
 
-    /// Temperature-based accent color
-    private var accentColor: Color {
-        switch entry.fahrenheit {
-        case ..<32: return Color(hex: "64B5F6") // Cold blue
-        case 32..<50: return Color(hex: "4DD0E1") // Cool cyan
-        case 50..<68: return Color(hex: "81C784") // Pleasant green
-        case 68..<86: return Color(hex: "FFB74D") // Warm orange
-        default: return Color(hex: "EF5350") // Hot red
-        }
-    }
-
-    /// Weather condition icon based on temperature
-    private var conditionIcon: String {
-        switch entry.fahrenheit {
-        case ..<32: return "snowflake"
-        case 32..<50: return "cloud.fill"
-        case 50..<68: return "cloud.sun.fill"
-        case 68..<86: return "sun.max.fill"
-        default: return "sun.max.trianglebadge.exclamationmark.fill"
-        }
-    }
-
     var body: some View {
-        HStack(spacing: 0) {
-            // MARK: - Left: Primary Temperature Display
-            VStack(alignment: .leading, spacing: 6) {
-                // Location header with glass pill
-                HStack(spacing: 6) {
-                    Image(systemName: "location.fill")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(accentColor)
+        HStack(spacing: 16) {
+            // Primary city (left side - larger)
+            primaryCityView
 
-                    Text(entry.cityName)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
+            // Divider
+            Rectangle()
+                .fill(.white.opacity(0.2))
+                .frame(width: 1)
+                .padding(.vertical, 8)
 
-                    if !entry.countryCode.isEmpty {
-                        Text(entry.countryCode)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.6))
-                    }
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(
-                    Capsule()
-                        .fill(.ultraThinMaterial)
-                        .environment(\.colorScheme, .dark)
-                )
-
-                Spacer()
-
-                // Hero temperature
-                HStack(alignment: .firstTextBaseline, spacing: 0) {
-                    Text("\(Int(entry.fahrenheit))")
-                        .font(.system(size: 56, weight: .ultraLight, design: .rounded))
-                        .foregroundStyle(.white)
-
-                    Text("°")
-                        .font(.system(size: 32, weight: .ultraLight, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.8))
-                        .offset(y: -8)
-                }
-
-                // Celsius with icon
-                HStack(spacing: 6) {
-                    Image(systemName: conditionIcon)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(accentColor)
-                        .symbolRenderingMode(.hierarchical)
-
-                    Text(entry.celsiusText)
-                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.7))
-                }
+            // Secondary city or conversion table (right side)
+            if let secondCity = entry.cities.dropFirst().first {
+                secondaryCityView(secondCity)
+            } else {
+                conversionView
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            // MARK: - Right: Visual Meter + Quick Conversion
-            VStack(spacing: 8) {
-                // Temperature meter visualization
-                temperatureMeter
-
-                Spacer()
-
-                // Quick conversion grid
-                conversionGrid
-            }
-            .frame(width: 110)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(16)
     }
 
-    // MARK: - Temperature Meter (Arc Gauge Style)
-    private var temperatureMeter: some View {
-        ZStack {
-            // Background arc
-            Circle()
-                .trim(from: 0.15, to: 0.85)
-                .stroke(
-                    .white.opacity(0.15),
-                    style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                )
-                .rotationEffect(.degrees(90))
+    // MARK: - Primary City View
+    private var primaryCityView: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // City name with location icon
+            HStack(spacing: 4) {
+                Image(systemName: "location.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.cyan)
 
-            // Progress arc
-            Circle()
-                .trim(from: 0.15, to: 0.15 + normalizedTemp * 0.7)
-                .stroke(
-                    LinearGradient(
-                        colors: [accentColor.opacity(0.6), accentColor],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                )
-                .rotationEffect(.degrees(90))
+                Text(entry.cityName)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+            }
 
-            // Center icon
-            Image(systemName: "thermometer.medium")
-                .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(accentColor)
-                .symbolRenderingMode(.hierarchical)
+            Spacer()
+
+            // Large temperature
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text("\(Int(entry.fahrenheit))")
+                    .font(.system(size: 52, weight: .thin, design: .rounded))
+                    .foregroundStyle(.white)
+
+                Text("°F")
+                    .font(.system(size: 20, weight: .light, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+
+            // Celsius
+            Text(entry.celsiusText)
+                .font(.system(size: 16, weight: .medium, design: .rounded))
+                .foregroundStyle(.white.opacity(0.6))
         }
-        .frame(width: 60, height: 60)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Quick Conversion Grid
-    private var conversionGrid: some View {
-        VStack(spacing: 4) {
-            // Header
-            Text("Conversión")
-                .font(.system(size: 9, weight: .semibold))
+    // MARK: - Secondary City View
+    private func secondaryCityView(_ city: CityWidgetData) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // City name
+            HStack(spacing: 4) {
+                Image(systemName: city.isDaytime ? "sun.max.fill" : "moon.fill")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(city.isDaytime ? .yellow : .white.opacity(0.7))
+
+                Text(city.name)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            // Temperature
+            if let temp = city.fahrenheit {
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text("\(Int(temp))")
+                        .font(.system(size: 36, weight: .light, design: .rounded))
+                        .foregroundStyle(.white)
+
+                    Text("°F")
+                        .font(.system(size: 14, weight: .light, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+
+                if let celsius = city.celsius {
+                    Text("\(Int(celsius))°C")
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+            } else {
+                Text("--°")
+                    .font(.system(size: 36, weight: .light, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+
+            // Local time
+            Text(city.localTimeString())
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white.opacity(0.5))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Conversion View (fallback when no second city)
+    private var conversionView: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("F° → C°")
+                .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(.white.opacity(0.5))
                 .textCase(.uppercase)
-                .tracking(0.5)
 
-            // Conversion rows
-            ForEach(quickConversions, id: \.f) { item in
-                HStack(spacing: 0) {
-                    Text("\(item.f)°")
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .foregroundStyle(isNearCurrent(item.f) ? accentColor : .white.opacity(0.7))
-                        .frame(width: 32, alignment: .trailing)
+            Spacer()
 
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.3))
-                        .frame(width: 20)
-
-                    Text("\(item.c)°")
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .foregroundStyle(isNearCurrent(item.f) ? accentColor : .white.opacity(0.7))
-                        .frame(width: 28, alignment: .leading)
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                conversionRow(32, 0)
+                conversionRow(50, 10)
+                conversionRow(68, 20)
+                conversionRow(86, 30)
+                conversionRow(100, 38)
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.white.opacity(0.08))
-        )
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Helpers
+    private func conversionRow(_ f: Int, _ c: Int) -> some View {
+        let isNear = abs(Int(entry.fahrenheit) - f) <= 8
 
-    /// Normalize temperature for gauge (0-120°F range)
-    private var normalizedTemp: Double {
-        let clamped = min(max(entry.fahrenheit, 0), 120)
-        return clamped / 120
-    }
+        return HStack(spacing: 4) {
+            Text("\(f)°")
+                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                .foregroundStyle(isNear ? .cyan : .white.opacity(0.7))
+                .frame(width: 36, alignment: .trailing)
 
-    /// Quick conversion reference points
-    private var quickConversions: [(f: Int, c: Int)] {
-        [(32, 0), (50, 10), (68, 20), (86, 30), (100, 38)]
-    }
+            Text("→")
+                .font(.system(size: 10))
+                .foregroundStyle(.white.opacity(0.4))
 
-    /// Check if conversion row is near current temperature
-    private func isNearCurrent(_ fahrenheit: Int) -> Bool {
-        abs(Int(entry.fahrenheit) - fahrenheit) <= 8
+            Text("\(c)°")
+                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                .foregroundStyle(isNear ? .cyan : .white.opacity(0.7))
+                .frame(width: 30, alignment: .leading)
+        }
     }
 }
 

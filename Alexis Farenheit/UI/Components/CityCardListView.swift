@@ -3,6 +3,7 @@ import UIKit
 
 /// List of city cards with reorder and delete capabilities
 /// Premium design with smooth animations and haptic feedback
+/// Uses Apple-style drag-and-drop with real-time card movement
 struct CityCardListView: View {
     @Binding var cities: [CityModel]
     @ObservedObject var timeService: TimeZoneService
@@ -22,9 +23,14 @@ struct CityCardListView: View {
     /// City being deleted (for animation)
     @State private var deletingCity: UUID?
 
-    /// Drag state for manual reordering
-    @GestureState private var dragState: DragState = .inactive
+    /// Drag state tracking
     @State private var draggingItem: CityModel?
+    @State private var dragOffset: CGFloat = 0
+    @State private var currentDragIndex: Int?
+
+    // Card dimensions for offset calculations
+    private let cardHeight: CGFloat = 72
+    private let cardSpacing: CGFloat = 12
 
     // Maximum cities allowed
     private let maxCities = CityModel.maxCities
@@ -127,22 +133,131 @@ struct CityCardListView: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: deletingCity)
     }
 
-    // MARK: - Reorderable List with Drag & Drop
+    // MARK: - Reorderable List with Drag & Drop (Apple Style)
 
     private var reorderableList: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: cardSpacing) {
             ForEach(Array(cities.enumerated()), id: \.element.id) { index, city in
                 let isPrimary = city.isCurrentLocation || index == 0
+                let isDragging = draggingItem?.id == city.id
 
                 reorderableCard(for: city, at: index, isPrimary: isPrimary)
-                    .zIndex(draggingItem?.id == city.id ? 1 : 0)
-                    .offset(y: dragOffset(for: city, at: index))
+                    .zIndex(isDragging ? 100 : Double(cities.count - index))
+                    .offset(y: calculateOffset(for: city, at: index))
+                    .scaleEffect(isDragging ? 1.03 : 1.0)
+                    .shadow(
+                        color: isDragging ? .black.opacity(0.3) : .clear,
+                        radius: isDragging ? 10 : 0,
+                        y: isDragging ? 5 : 0
+                    )
                     .gesture(
-                        isPrimary ? nil : dragGesture(for: city, at: index)
+                        isPrimary ? nil : makeDragGesture(for: city, at: index)
                     )
             }
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: cities.map(\.id))
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: cities.map(\.id))
+    }
+
+    /// Calculate offset for each card during drag operation
+    private func calculateOffset(for city: CityModel, at index: Int) -> CGFloat {
+        // If this is the dragging item, return its drag offset
+        if draggingItem?.id == city.id {
+            return dragOffset
+        }
+
+        // If nothing is being dragged, no offset
+        guard let dragIndex = currentDragIndex, draggingItem != nil else {
+            return 0
+        }
+
+        // Calculate the total distance per card slot
+        let slotHeight = cardHeight + cardSpacing
+
+        // Calculate how many slots the dragged item has moved
+        let slotsMovedRaw = dragOffset / slotHeight
+        let slotsMoved = Int(slotsMovedRaw.rounded())
+
+        // Target index if we drop now
+        let targetIndex = max(1, min(cities.count - 1, dragIndex + slotsMoved))
+
+        // Move other cards to make room
+        if dragIndex < targetIndex {
+            // Dragging down: cards between dragIndex and targetIndex move up
+            if index > dragIndex && index <= targetIndex {
+                return -slotHeight
+            }
+        } else if dragIndex > targetIndex {
+            // Dragging up: cards between targetIndex and dragIndex move down
+            if index >= targetIndex && index < dragIndex {
+                return slotHeight
+            }
+        }
+
+        return 0
+    }
+
+    /// Create drag gesture for reordering
+    private func makeDragGesture(for city: CityModel, at index: Int) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.15)
+            .onEnded { _ in
+                // Start drag
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    draggingItem = city
+                    currentDragIndex = index
+                }
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            }
+            .sequenced(before: DragGesture())
+            .onChanged { value in
+                switch value {
+                case .second(true, let drag):
+                    if let drag = drag {
+                        dragOffset = drag.translation.height
+
+                        // Haptic feedback when crossing slot boundaries
+                        let slotHeight = cardHeight + cardSpacing
+                        let slotsMoved = Int((dragOffset / slotHeight).rounded())
+                        let potentialIndex = max(1, min(cities.count - 1, index + slotsMoved))
+
+                        if potentialIndex != currentDragIndex {
+                            UISelectionFeedbackGenerator().selectionChanged()
+                            currentDragIndex = potentialIndex
+                        }
+                    }
+                default:
+                    break
+                }
+            }
+            .onEnded { value in
+                guard case .second(true, _) = value else {
+                    resetDragState()
+                    return
+                }
+
+                // Calculate final position
+                let slotHeight = cardHeight + cardSpacing
+                let slotsMoved = Int((dragOffset / slotHeight).rounded())
+                let targetIndex = max(1, min(cities.count - 1, index + slotsMoved))
+
+                // Perform the move if position changed
+                if targetIndex != index {
+                    let source = IndexSet(integer: index)
+                    let destination = targetIndex > index ? targetIndex + 1 : targetIndex
+                    onReorder?(source, destination)
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                }
+
+                resetDragState()
+            }
+    }
+
+    /// Reset all drag state
+    private func resetDragState() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            draggingItem = nil
+            dragOffset = 0
+            currentDragIndex = nil
+        }
     }
 
     private func reorderableCard(for city: CityModel, at index: Int, isPrimary: Bool) -> some View {
@@ -256,62 +371,6 @@ struct CityCardListView: View {
                         )
                 )
         )
-        .scaleEffect(draggingItem?.id == city.id ? 1.02 : 1)
-    }
-
-    // MARK: - Drag Gesture
-
-    private func dragGesture(for city: CityModel, at index: Int) -> some Gesture {
-        LongPressGesture(minimumDuration: 0.2)
-            .onEnded { _ in
-                withAnimation(.spring(response: 0.3)) {
-                    draggingItem = city
-                }
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            }
-            .sequenced(before: DragGesture())
-            .updating($dragState) { value, state, _ in
-                switch value {
-                case .second(true, let drag):
-                    state = .dragging(translation: drag?.translation ?? .zero)
-                default:
-                    state = .inactive
-                }
-            }
-            .onEnded { value in
-                guard case .second(true, let drag?) = value else {
-                    withAnimation(.spring(response: 0.3)) {
-                        draggingItem = nil
-                    }
-                    return
-                }
-
-                let dragDistance = drag.translation.height
-                let threshold: CGFloat = 60 // Card height threshold
-
-                if dragDistance > threshold {
-                    // Move down
-                    moveCity(at: index, direction: 1)
-                } else if dragDistance < -threshold {
-                    // Move up
-                    moveCity(at: index, direction: -1)
-                }
-
-                withAnimation(.spring(response: 0.3)) {
-                    draggingItem = nil
-                }
-            }
-    }
-
-    private func dragOffset(for city: CityModel, at index: Int) -> CGFloat {
-        guard draggingItem?.id == city.id else { return 0 }
-
-        switch dragState {
-        case .dragging(let translation):
-            return translation.height
-        default:
-            return 0
-        }
     }
 
     // MARK: - City Card
@@ -435,31 +494,6 @@ struct CityCardListView: View {
         }
 
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-    }
-}
-
-// MARK: - Drag State
-
-enum DragState {
-    case inactive
-    case dragging(translation: CGSize)
-
-    var translation: CGSize {
-        switch self {
-        case .inactive:
-            return .zero
-        case .dragging(let translation):
-            return translation
-        }
-    }
-
-    var isDragging: Bool {
-        switch self {
-        case .inactive:
-            return false
-        case .dragging:
-            return true
-        }
     }
 }
 

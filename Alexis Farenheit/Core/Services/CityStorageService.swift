@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import CoreLocation
 import SwiftUI
+import WidgetKit
 import os.log
 
 /// Service for persisting and managing saved cities
@@ -190,6 +191,10 @@ final class CityStorageService: ObservableObject {
             defaults?.set(data, forKey: citiesKey)
             defaults?.synchronize()
             logger.debug("🏙️ Saved \(self.cities.count) cities to storage")
+
+            // Reload widget timelines when cities change
+            WidgetCenter.shared.reloadAllTimelines()
+            logger.debug("🏙️ Triggered widget reload")
         } catch {
             logger.error("🏙️ Failed to save cities: \(error.localizedDescription)")
         }
