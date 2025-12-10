@@ -16,13 +16,15 @@ struct Alexis_FarenheitApp: App {
 
     // MARK: - Init
     init() {
+        // Disable file logging during init to prevent blocking
+        SharedLogger.shared.fileLoggingEnabled = false
+
         // Register background tasks early in app lifecycle
-        // Debug: App initializing
         print("🚀 App initializing...")
         BackgroundTaskService.shared.registerBackgroundTasks()
-        
-        // Performance tracking: Log initial memory usage
-        PerformanceMonitor.shared.logMemoryUsage(context: "App Init")
+
+        // Re-enable file logging after init
+        SharedLogger.shared.fileLoggingEnabled = true
     }
 
     var body: some Scene {
@@ -53,10 +55,6 @@ struct Alexis_FarenheitApp: App {
         case .active:
             // Debug: App became active
             print("🚀 App became active")
-            SharedLogger.shared.info("App became active", category: "Lifecycle")
-            
-            // Performance tracking: Log memory usage when app becomes active
-            PerformanceMonitor.shared.logMemoryUsage(context: "App Active")
 
         case .inactive:
             // Debug: App became inactive (transitioning)

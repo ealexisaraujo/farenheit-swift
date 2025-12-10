@@ -54,11 +54,19 @@
 
 ✅ **TODAS LAS SOLUCIONES CRÍTICAS HAN SIDO IMPLEMENTADAS**
 
-### Mejoras Adicionales Implementadas
+### Mejoras Implementadas (v2 - 2025-12-10)
 
-- **Escritura incremental con FileHandle**: Para archivos >100KB, usa escritura por chunks de 64KB con yield periódico para evitar bloqueos
-- **Escritura atómica mejorada**: Usa archivo temporal + move para atomicidad sin bloquear
+- **Escritura simplificada**: Eliminada la lógica compleja de temp file + move que causaba errores. Ahora usa `Data.write(to:options:.atomic)` directamente
+- **Cache persistente**: Cambiado de cache con TTL de 5s a cache válido mientras la app esté activa. Solo lee archivo una vez por sesión
+- **Eliminado performance tracking en FileIO**: Los `startOperation`/`endOperation` en SharedLogger causaban race conditions y "END without START"
+- **PerformanceMonitor sin file I/O**: Todas las métricas ahora van solo a NSLog y OSLog, sin escribir a SharedLogger
+- **File logging deshabilitado durante init**: La app deshabilita file logging durante `init()` para evitar I/O blocking al arrancar
 - **TTL automático**: Elimina logs >24h en cada escritura
 - **Cleanup de operaciones huérfanas**: Timer cada 60s limpia operaciones >5min sin finalizar
-- **Modo silent en búsqueda**: Desactiva file logging durante búsqueda activa para evitar I/O blocking
+- **Modo silent en búsqueda**: Desactiva file logging cuando se abre el sheet de búsqueda
 
+### Errores Corregidos
+
+1. ✅ `"app_logs.json.tmp" couldn't be moved` - Eliminada la lógica de temp file manual
+2. ✅ `END without START` en FileIO - Eliminado el tracking de performance en operaciones de archivo
+3. ✅ `LogFileRead: 2.35s` - Cache ahora persiste toda la sesión, no solo 5 segundos

@@ -72,7 +72,7 @@ final class PerformanceMonitor {
 
     private init() {
         osLog.info("PerformanceMonitor initialized")
-        SharedLogger.shared.info("PerformanceMonitor initialized", category: "Performance")
+        print("PerformanceMonitor initialized")
 
         // Start orphan cleanup timer
         startOrphanCleanupTimer()
@@ -237,26 +237,15 @@ final class PerformanceMonitor {
     // MARK: - Logging
 
     private func logMetric(_ metric: PerformanceMetric) {
-        // NSLog for easy console viewing
+        // NSLog for easy console viewing (no file I/O)
         let metadataStr = metric.metadata.map { " | \($0.map { "\($0.key):\($0.value)" }.joined(separator: ", "))" } ?? ""
-        NSLog("⏱️ [PERF] END: \(metric.category)/\(metric.operation) | Duration: \(metric.formattedDuration)\(metadataStr)")
+        NSLog("⏱️ \(metric.category)/\(metric.operation): \(metric.formattedDuration)")
 
-        // OSLog for Instruments
+        // OSLog for Instruments (no file I/O)
         osLog.info("⏱️ \(metric.category)/\(metric.operation): \(metric.formattedDuration)")
 
-        // Only write to file if operation is slow (>500ms) or has errors
-        // This reduces file I/O significantly while still capturing important performance issues
-        let shouldLogToFile = metric.duration > 0.5 || metric.metadata?.contains(where: { $0.key == "error" }) == true
-
-        if shouldLogToFile {
-            let message = "\(metric.operation): \(metric.formattedDuration)\(metadataStr)"
-            SharedLogger.shared.info(message, category: "Performance.\(metric.category)")
-
-            // Log warning if operation is slow
-            if metric.duration > 1.0 {
-                SharedLogger.shared.warning("Slow operation: \(metric.operation) took \(metric.formattedDuration)", category: "Performance.\(metric.category)")
-            }
-        }
+        // Skip file logging to prevent I/O during performance-sensitive operations
+        // Console logs (NSLog + OSLog) are sufficient for debugging
     }
 
     // MARK: - Metrics Retrieval
@@ -330,7 +319,7 @@ final class PerformanceMonitor {
         return (usedBytes, totalBytes)
     }
 
-    /// Log current memory usage
+    /// Log current memory usage (console only, no file I/O)
     func logMemoryUsage(context: String = "") {
         let (used, total) = currentMemoryUsage()
         let usedMB = Double(used) / 1024 / 1024
@@ -339,9 +328,9 @@ final class PerformanceMonitor {
 
         let message = "Memory\(context.isEmpty ? "" : " (\(context))"): \(String(format: "%.1f", usedMB))MB / \(String(format: "%.1f", totalMB))MB (\(String(format: "%.1f", percentage))%)"
 
-        NSLog("💾 [MEM] \(message)")
+        NSLog("💾 \(message)")
         osLog.info("💾 \(message)")
-        SharedLogger.shared.info(message, category: "Performance.Memory")
+        // Skip file logging to prevent I/O blocking
     }
 
     // MARK: - File I/O Tracking
@@ -371,7 +360,7 @@ final class PerformanceMonitor {
             self?.metrics.removeAll()
             self?.activeOperations.removeAll()
         }
-        SharedLogger.shared.info("Performance metrics cleared", category: "Performance")
+        osLog.info("Performance metrics cleared")
     }
 
     /// Export metrics as JSON for analysis

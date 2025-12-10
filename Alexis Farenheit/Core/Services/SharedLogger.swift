@@ -73,8 +73,7 @@ final class SharedLogger {
     
     // Cache current entries in memory to avoid reading file on every write
     private var cachedEntries: [LogEntry]?
-    private var lastCacheUpdate: Date?
-    private let cacheValidityInterval: TimeInterval = 5.0 // Cache valid for 5 seconds
+    private var cacheIsValid: Bool = false // Simple flag instead of time-based
     
     /// Disable file logging during critical operations (e.g., search)
     var fileLoggingEnabled: Bool = true {
@@ -204,79 +203,48 @@ final class SharedLogger {
     /// Flush all pending entries to file (async, non-blocking)
     private func flushPendingEntries() {
         guard !pendingEntries.isEmpty else { return }
-        
+
         let entriesToWrite = pendingEntries
         pendingEntries.removeAll()
-        
-        // Perform file I/O asynchronously to avoid blocking
-        queue.async { [weak self] in
-            guard let self else { return }
-            
-            // Use cached entries if available and recent, otherwise load from file
-            var allEntries: [LogEntry]
-            if let cached = self.cachedEntries,
-               let lastUpdate = self.lastCacheUpdate,
-               Date().timeIntervalSince(lastUpdate) < self.cacheValidityInterval {
-                // Use cache - much faster than reading file
-                allEntries = cached
-            } else {
-                // Load from file and update cache
-                allEntries = self.loadEntriesFromFile() ?? []
-                self.cachedEntries = allEntries
-                self.lastCacheUpdate = Date()
-            }
-            
-            // Append new entries
-            allEntries.append(contentsOf: entriesToWrite)
-            
-            // Apply TTL: Remove entries older than logTTLHours
-            let cutoffDate = Date().addingTimeInterval(-self.logTTLHours * 3600)
-            allEntries = allEntries.filter { $0.timestamp >= cutoffDate }
-            
-            // Trim to max entries (keep newest)
-            if allEntries.count > self.maxLogEntries {
-                allEntries = Array(allEntries.suffix(self.maxLogEntries))
-            }
-            
-            // Update cache
-            self.cachedEntries = allEntries
-            self.lastCacheUpdate = Date()
-            
-            // Save to file (async write)
-            self.saveEntriesToFileAsync(allEntries)
+
+        // Use cached entries if available, otherwise load from file (only once)
+        var allEntries: [LogEntry]
+        if cacheIsValid, let cached = cachedEntries {
+            // Use cache - no file I/O needed
+            allEntries = cached
+        } else {
+            // Load from file once and mark cache valid
+            allEntries = loadEntriesFromFile() ?? []
+            cacheIsValid = true
         }
+
+        // Append new entries
+        allEntries.append(contentsOf: entriesToWrite)
+
+        // Apply TTL: Remove entries older than logTTLHours
+        let cutoffDate = Date().addingTimeInterval(-logTTLHours * 3600)
+        allEntries = allEntries.filter { $0.timestamp >= cutoffDate }
+
+        // Trim to max entries (keep newest)
+        if allEntries.count > maxLogEntries {
+            allEntries = Array(allEntries.suffix(maxLogEntries))
+        }
+
+        // Update cache (always valid after this)
+        cachedEntries = allEntries
+
+        // Save to file (async write on background thread)
+        saveEntriesToFileAsync(allEntries)
     }
 
     private func loadEntriesFromFile() -> [LogEntry]? {
         guard let fileURL = logFileURL else { return nil }
 
-        // Performance tracking: Track file read (only for large operations)
-        let shouldTrack = FileManager.default.fileExists(atPath: fileURL.path)
-        if shouldTrack {
-            if let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
-               let fileSize = attributes[.size] as? Int64, fileSize > 50_000 { // Only track if > 50KB
-                PerformanceMonitor.shared.startOperation("LogFileRead", category: "FileIO", metadata: ["file": "app_logs.json"])
-            }
-        }
-
         do {
             let data = try Data(contentsOf: fileURL)
             let entries = try JSONDecoder().decode([LogEntry].self, from: data)
-
-            // Performance tracking: End file read (only if we started tracking)
-            if shouldTrack, let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
-               let fileSize = attributes[.size] as? Int64, fileSize > 50_000 {
-                let metadata = ["entries_count": "\(entries.count)", "file_size_bytes": "\(data.count)"]
-                PerformanceMonitor.shared.endOperation("LogFileRead", category: "FileIO", metadata: metadata)
-            }
-
             return entries
         } catch {
-            // Performance tracking: End file read (error)
-            if shouldTrack {
-                PerformanceMonitor.shared.endOperation("LogFileRead", category: "FileIO", metadata: ["error": error.localizedDescription], forceLog: true)
-            }
-
             // File doesn't exist or is corrupted - return empty
             return []
         }
@@ -288,121 +256,42 @@ final class SharedLogger {
     }
     
     /// Save entries to file asynchronously (non-blocking)
-    /// Uses FileHandle for incremental writes to avoid blocking the thread
+    /// Uses direct write without temp file to avoid move errors
     private func saveEntriesToFileAsync(_ entries: [LogEntry]) {
         guard let fileURL = logFileURL else { return }
-
-        // Only track performance for large writes (>50KB)
-        let shouldTrack = entries.count > 100
-        if shouldTrack {
-            PerformanceMonitor.shared.startOperation("LogFileWrite", category: "FileIO", metadata: ["entries_count": "\(entries.count)"])
-        }
 
         // Perform encoding and writing on background queue
         DispatchQueue.global(qos: .utility).async { [weak self] in
             guard let self else { return }
-            
+
             do {
                 // Encode entries to JSON data
                 let encoder = JSONEncoder()
                 encoder.outputFormatting = [] // No pretty printing for performance
                 let data = try encoder.encode(entries)
-                
-                // Use atomic write via temporary file to prevent corruption
-                // Write to temp file first, then atomically replace the original
-                let tempURL = fileURL.appendingPathExtension("tmp")
-                
-                // Write to temporary file (non-blocking, incremental if possible)
-                // For large files, use FileHandle for incremental writes
-                if data.count > 100_000 { // >100KB: use FileHandle for incremental write
-                    try self.writeLargeFileIncrementally(data: data, to: tempURL)
-                } else {
-                    // Small files: direct write is fast enough
-                    // Use atomic write for safety (file will be moved atomically anyway)
-                    try data.write(to: tempURL, options: .atomic)
-                }
-                
-                // Atomically replace the original file with the temp file
-                // This is a fast operation (just a file system move)
-                let fileManager = FileManager.default
-                if fileManager.fileExists(atPath: fileURL.path) {
-                    try fileManager.removeItem(at: fileURL)
-                }
-                try fileManager.moveItem(at: tempURL, to: fileURL)
-                
-                // Performance tracking: End file write (only if we started tracking)
-                if shouldTrack {
-                    let metadata = ["entries_count": "\(entries.count)", "file_size_bytes": "\(data.count)"]
-                    PerformanceMonitor.shared.endOperation("LogFileWrite", category: "FileIO", metadata: metadata)
-                }
-            } catch {
-                // Performance tracking: End file write (error)
-                if shouldTrack {
-                    PerformanceMonitor.shared.endOperation("LogFileWrite", category: "FileIO", metadata: ["error": error.localizedDescription], forceLog: true)
-                }
 
+                // Direct write - simpler and more reliable than temp file approach
+                // The .atomic option handles the temp file internally if needed
+                try data.write(to: fileURL, options: [.atomic])
+            } catch {
                 self.osLog.error("Failed to save logs: \(error.localizedDescription)")
             }
         }
     }
     
-    /// Write large files incrementally using FileHandle to avoid blocking
-    /// This prevents loading the entire file into memory before writing
-    private func writeLargeFileIncrementally(data: Data, to url: URL) throws {
-        // Create file if it doesn't exist
-        let fileManager = FileManager.default
-        if !fileManager.fileExists(atPath: url.path) {
-            fileManager.createFile(atPath: url.path, contents: nil, attributes: nil)
-        }
-        
-        // Use FileHandle for incremental writes
-        guard let fileHandle = FileHandle(forWritingAtPath: url.path) else {
-            throw NSError(domain: "SharedLogger", code: -1, userInfo: [NSLocalizedDescriptionKey: "Cannot create file handle"])
-        }
-        
-        defer {
-            fileHandle.closeFile()
-        }
-        
-        // Truncate file to start fresh
-        fileHandle.truncateFile(atOffset: 0)
-        
-        // Write data in chunks to avoid blocking
-        let chunkSize = 64 * 1024 // 64KB chunks
-        var offset = 0
-        
-        while offset < data.count {
-            let chunkEnd = min(offset + chunkSize, data.count)
-            let chunk = data.subdata(in: offset..<chunkEnd)
-            fileHandle.write(chunk)
-            offset = chunkEnd
-            
-            // Small yield to prevent blocking the queue
-            if offset % (chunkSize * 4) == 0 { // Every 256KB
-                Thread.sleep(forTimeInterval: 0.001) // 1ms yield
-            }
-        }
-        
-        // Ensure all data is written
-        fileHandle.synchronizeFile()
-    }
-
     // MARK: - Public Read Methods
 
     /// Load all log entries from shared file
     func loadLogs() -> [LogEntry] {
         var result: [LogEntry] = []
         queue.sync {
-            // Use cache if available and recent
-            if let cached = cachedEntries,
-               let lastUpdate = lastCacheUpdate,
-               Date().timeIntervalSince(lastUpdate) < cacheValidityInterval {
+            // Use cache if available
+            if cacheIsValid, let cached = cachedEntries {
                 result = cached
             } else {
                 result = loadEntriesFromFile() ?? []
-                // Update cache
                 cachedEntries = result
-                lastCacheUpdate = Date()
+                cacheIsValid = true
             }
         }
         return result.sorted { $0.timestamp > $1.timestamp }  // Newest first
@@ -427,7 +316,7 @@ final class SharedLogger {
             self.pendingEntries.removeAll()
             // Clear cache
             self.cachedEntries = []
-            self.lastCacheUpdate = Date()
+            self.cacheIsValid = true // Cache is valid (just empty)
             self.saveEntriesToFile([])
         }
         osLog.info("Logs cleared")
