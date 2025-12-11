@@ -220,9 +220,9 @@ struct CityCardCompactView: View {
 
             Spacer()
 
-            // Temperature
+            // Temperature (uses roundedInt for consistency with widget)
             if let temp = city.fahrenheit {
-                Text("\(Int(round(temp)))°")
+                Text("\(temp.roundedInt)°")
                     .font(.system(size: 28, weight: .light, design: .rounded))
                     .foregroundStyle(.primary)
             }

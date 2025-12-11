@@ -29,12 +29,12 @@ struct TemperatureDisplayView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(Int(round(fahrenheit)))°F")
+                    Text("\(fahrenheit.roundedInt)°F")
                         .font(.system(size: 72, weight: .thin, design: .rounded))
                         .foregroundStyle(.white)
                         .minimumScaleFactor(0.6)
                         .lineLimit(1)
-                    Text("\(Int(round(celsius)))°C")
+                    Text("\(celsius.roundedInt)°C")
                         .font(.system(size: 16, weight: .medium, design: .rounded))
                         .foregroundStyle(.white.opacity(0.9))
                 }
@@ -42,7 +42,7 @@ struct TemperatureDisplayView: View {
             .padding(20)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Temperature: \(Int(round(fahrenheit))) degrees Fahrenheit, \(Int(round(celsius))) degrees Celsius in \(cityName)")
+        .accessibilityLabel("Temperature: \(fahrenheit.roundedInt) degrees Fahrenheit, \(celsius.roundedInt) degrees Celsius in \(cityName)")
         .accessibilityHint("Current temperature card")
     }
 }

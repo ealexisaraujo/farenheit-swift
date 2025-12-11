@@ -1,5 +1,20 @@
 import SwiftUI
 
+// MARK: - Temperature Rounding
+
+/// Extension for consistent temperature rounding across app and widgets
+/// Uses standard rounding (0.5 rounds up) to avoid truncation issues
+extension Double {
+    /// Rounds to nearest integer using standard rounding rules
+    /// Example: 57.85 → 58, 57.49 → 57
+    /// This ensures app and widget display the same temperature value
+    var roundedInt: Int {
+        Int(self.rounded())
+    }
+}
+
+// MARK: - Color Extensions
+
 // Hex initializer for consistent palette
 extension Color {
     init(hex: String) {

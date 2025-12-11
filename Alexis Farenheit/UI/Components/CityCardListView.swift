@@ -306,7 +306,7 @@ struct CityCardListView: View {
 
                 HStack(spacing: 8) {
                     if let temp = city.fahrenheit {
-                        Text("\(Int(temp))°F")
+                        Text("\(temp.roundedInt)°F")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(.orange)
                     }

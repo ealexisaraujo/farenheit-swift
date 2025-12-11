@@ -13,6 +13,18 @@ import SwiftUI
 import WeatherKit
 import CoreLocation
 
+// MARK: - Temperature Rounding
+
+/// Extension for consistent temperature rounding across app and widgets
+/// Uses standard rounding (0.5 rounds up) to match app behavior
+extension Double {
+    /// Rounds to nearest integer using standard rounding rules
+    /// Example: 57.85 → 58, 57.49 → 57
+    var roundedInt: Int {
+        Int(self.rounded())
+    }
+}
+
 // MARK: - Timeline Entry
 
 /// Data model for widget timeline entry
@@ -53,9 +65,9 @@ struct TemperatureEntry: TimelineEntry {
         )
     }
 
-    /// Formatted fahrenheit string
+    /// Formatted fahrenheit string (uses consistent rounding)
     var fahrenheitText: String {
-        "\(Int(fahrenheit))°F"
+        "\(fahrenheit.roundedInt)°F"
     }
 
     /// Formatted celsius string
@@ -575,7 +587,7 @@ struct MediumWidgetView: View {
 
             // Large temperature
             HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text("\(Int(entry.fahrenheit))")
+                Text("\(entry.fahrenheit.roundedInt)")
                     .font(.system(size: 52, weight: .thin, design: .rounded))
                     .foregroundStyle(.white)
 
@@ -612,7 +624,7 @@ struct MediumWidgetView: View {
             // Temperature
             if let temp = city.fahrenheit {
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text("\(Int(temp))")
+                    Text("\(temp.roundedInt)")
                         .font(.system(size: 36, weight: .light, design: .rounded))
                         .foregroundStyle(.white)
 
@@ -747,7 +759,7 @@ struct LargeWidgetView: View {
             .foregroundStyle(Color.white)
 
             HStack(alignment: .firstTextBaseline, spacing: 0) {
-                Text("\(Int(entry.fahrenheit))")
+                Text("\(entry.fahrenheit.roundedInt)")
                     .font(.system(size: 64, weight: .ultraLight, design: .rounded))
                 Text("°F")
                     .font(.system(size: 24, weight: .light))
@@ -799,7 +811,7 @@ struct LargeWidgetView: View {
             // Temperature
             if let temp = city.fahrenheit {
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(Int(temp))°")
+                    Text("\(temp.roundedInt)°")
                         .font(.system(size: 28, weight: .light, design: .rounded))
                         .foregroundStyle(.white)
 
@@ -838,7 +850,7 @@ struct AccessoryCircularView: View {
             Text("°F")
                 .font(.system(size: 8))
         } currentValueLabel: {
-            Text("\(Int(entry.fahrenheit))°")
+            Text("\(entry.fahrenheit.roundedInt)°")
                 .font(.system(size: 22, weight: .semibold, design: .rounded))
         } minimumValueLabel: {
             Text("\(Int(entry.celsius))°")
@@ -867,7 +879,7 @@ struct AccessoryRectangularView: View {
         HStack(spacing: 12) {
             // Temperature hero - the star of the show
             HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text("\(Int(entry.fahrenheit))")
+                Text("\(entry.fahrenheit.roundedInt)")
                     .font(.system(size: 36, weight: .semibold, design: .rounded))
                 Text("°F")
                     .font(.system(size: 16, weight: .medium, design: .rounded))
