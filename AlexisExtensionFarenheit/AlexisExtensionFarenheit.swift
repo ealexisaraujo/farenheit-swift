@@ -77,83 +77,28 @@ struct TemperatureEntry: TimelineEntry {
 }
 
 // MARK: - City Widget Data
+// NOTE: CityWidgetData is now defined in WidgetRepository.swift
+// This provides a SINGLE SOURCE OF TRUTH for all data structures
+// The type alias below maintains backwards compatibility with existing views
 
-/// Simplified city data for widget display
-struct CityWidgetData: Identifiable, Codable {
-    let id: UUID
-    var name: String
-    var countryCode: String
-    var fahrenheit: Double?
-    var timeZoneIdentifier: String
-    var isCurrentLocation: Bool
-    var lastUpdated: Date?
-
-    var celsius: Double? {
-        guard let f = fahrenheit else { return nil }
-        return (f - 32) * 5 / 9
-    }
-
-    var timeZone: TimeZone {
-        TimeZone(identifier: timeZoneIdentifier) ?? .current
-    }
-
-    /// Get formatted local time string
-    func localTimeString() -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = timeZone
-        formatter.dateFormat = "h:mm a"
-        return formatter.string(from: Date())
-    }
-
-    /// Check if it's daytime (6AM - 6PM) in this city
-    var isDaytime: Bool {
-        var calendar = Calendar.current
-        calendar.timeZone = timeZone
-        let hour = calendar.component(.hour, from: Date())
-        return hour >= 6 && hour < 18
-    }
-
-    static let samples: [CityWidgetData] = [
-        CityWidgetData(
-            id: UUID(),
-            name: "Phoenix",
-            countryCode: "US",
-            fahrenheit: 95,
-            timeZoneIdentifier: "America/Phoenix",
-            isCurrentLocation: true
-        ),
-        CityWidgetData(
-            id: UUID(),
-            name: "Tokyo",
-            countryCode: "JP",
-            fahrenheit: 72,
-            timeZoneIdentifier: "Asia/Tokyo",
-            isCurrentLocation: false
-        ),
-        CityWidgetData(
-            id: UUID(),
-            name: "London",
-            countryCode: "GB",
-            fahrenheit: 55,
-            timeZoneIdentifier: "Europe/London",
-            isCurrentLocation: false
-        )
-    ]
-}
+/// Type alias for backwards compatibility - actual definition in WidgetRepository.swift
+typealias CityWidgetData = WidgetCityData
 
 // MARK: - Timeline Provider
-
-/// App Group ID - must match exactly with main app
-private let appGroupID = "group.alexisaraujo.alexisfarenheit"
 
 /// Widget kind - must match Widget definition
 private let widgetKind = "AlexisExtensionFarenheit"
 
 /// Provides timeline data for the widget.
+/// Uses WidgetRepository as SINGLE SOURCE OF TRUTH (Repository Pattern).
 /// Fetches fresh weather via WeatherKit when cache is stale (>30 min).
 /// Logs all operations for debugging via main app's Log Viewer.
 struct TemperatureProvider: TimelineProvider {
 
+    // MARK: - Dependencies (Repository Pattern)
+
+    /// Single source of truth for all widget data
+    private let repository = WidgetRepository.shared
     private let logger = WidgetLogger.shared
     private let weatherService = WeatherKit.WeatherService.shared
 
@@ -187,27 +132,17 @@ struct TemperatureProvider: TimelineProvider {
         let metadata = ["family": context.family.description, "is_preview": "\(context.isPreview)"]
         logger.startPerformanceOperation("WidgetTimeline", category: "Widget", metadata: metadata)
 
-        // IMPORTANT: Use saved_cities as the single source of truth
-        // This eliminates race conditions between widget_city and saved_cities
-        let cities = loadSavedCities()
-        let location = loadLastKnownLocation()
+        // REPOSITORY PATTERN: Single source of truth for all data
+        // All data access goes through repository - no scattered keys
+        let cities = repository.getCities()
+        let location = repository.getLocation()
+        let primaryCity = repository.getPrimaryCity()
+        let cacheAgeMinutes = repository.getPrimaryCacheAgeMinutes()
 
-        // Get primary city from saved_cities (first city is always primary/current location)
-        let primaryCity = cities.first
-
-        // Check cache freshness based on primary city's lastUpdated
-        let cacheAgeMinutes: Double
+        // Log current state
         if let primary = primaryCity, let temp = primary.fahrenheit {
-            // Calculate actual age from lastUpdated
-            if let lastUpdate = primary.lastUpdated {
-                cacheAgeMinutes = Date().timeIntervalSince(lastUpdate) / 60
-            } else {
-                // No lastUpdated means data is stale
-                cacheAgeMinutes = Double.infinity
-            }
             logger.timeline("Primary city: \(primary.name), \(Int(temp))°F, age: \(Int(cacheAgeMinutes))m")
         } else {
-            cacheAgeMinutes = Double.infinity
             logger.timeline("No primary city or temperature data")
         }
 
@@ -217,12 +152,12 @@ struct TemperatureProvider: TimelineProvider {
         logger.timeline("Cities loaded: \(cities.count)")
 
         // If we have location and need fresh data, fetch from WeatherKit
-        if needsFresh, let coords = location {
+        if needsFresh, let coords = location, coords.isValid {
             logger.timeline("Fetching fresh weather from WeatherKit...")
 
             Task {
                 let entry = await fetchFreshWeather(
-                    location: coords,
+                    location: coords.coordinate,
                     cachedCity: primaryCity?.name ?? "Unknown",
                     cachedCountry: primaryCity?.countryCode ?? "",
                     cities: cities
@@ -244,7 +179,7 @@ struct TemperatureProvider: TimelineProvider {
                 completion(timeline)
             }
         } else {
-            // Use data from saved_cities as the single source of truth
+            // Use data from repository (single source of truth)
             let entry: TemperatureEntry
             if let primary = primaryCity, let temp = primary.fahrenheit {
                 entry = TemperatureEntry.fromCache(
@@ -277,7 +212,7 @@ struct TemperatureProvider: TimelineProvider {
 
             // Performance tracking: End widget timeline (cached)
             var endMetadata = metadata
-            endMetadata["source"] = primaryCity != nil ? "saved_cities" : "placeholder"
+            endMetadata["source"] = primaryCity != nil ? "repository" : "placeholder"
             endMetadata["cities_count"] = "\(cities.count)"
             logger.endPerformanceOperation("WidgetTimeline", category: "Widget", metadata: endMetadata)
 
@@ -310,8 +245,10 @@ struct TemperatureProvider: TimelineProvider {
             successMetadata["temperature"] = String(format: "%.1f", tempF)
             logger.endPerformanceOperation("WidgetWeatherFetch", category: "Widget", metadata: successMetadata)
 
-            // Save fresh data to cache for main app
-            saveFreshTemperature(city: cachedCity, country: cachedCountry, fahrenheit: tempF)
+            // REPOSITORY PATTERN: Save via repository (single source of truth)
+            // This updates saved_cities array, eliminating race conditions
+            repository.updatePrimaryTemperature(fahrenheit: tempF)
+            logger.data("Saved fresh data via repository: \(cachedCity), \(Int(tempF))°F")
 
             return TemperatureEntry.fromCache(
                 city: cachedCity,
@@ -343,106 +280,14 @@ struct TemperatureProvider: TimelineProvider {
         }
     }
 
-    /// Save fresh temperature to App Group (so main app sees it too)
-    private func saveFreshTemperature(city: String, country: String, fahrenheit: Double) {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
+    // MARK: - Data Loading (via Repository)
 
-        defaults.set(city, forKey: "widget_city")
-        defaults.set(country, forKey: "widget_country")
-        defaults.set(fahrenheit, forKey: "widget_fahrenheit")
-        defaults.set(Date().timeIntervalSince1970, forKey: "widget_last_update")
-        defaults.synchronize()
-
-        logger.data("Saved fresh data: \(city), \(Int(fahrenheit))°F")
-    }
-
-    // MARK: - Data Loading
-
-    private func loadCachedData() -> (city: String, country: String, fahrenheit: Double, lastUpdate: Date)? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else {
-            logger.error("Cannot access App Group: \(appGroupID)")
-            return nil
-        }
-
-        defaults.synchronize()
-
-        let city = defaults.string(forKey: "widget_city")
-        let country = defaults.string(forKey: "widget_country") ?? ""
-        let fahrenheit = defaults.double(forKey: "widget_fahrenheit")
-        let lastUpdate = defaults.double(forKey: "widget_last_update")
-
-        guard let cityName = city, !cityName.isEmpty, lastUpdate > 0 else {
-            logger.data("No cached data found")
-            return nil
-        }
-
-        let updateDate = Date(timeIntervalSince1970: lastUpdate)
-        return (cityName, country, fahrenheit, updateDate)
-    }
-
-    private func loadLastKnownLocation() -> CLLocationCoordinate2D? {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
-
-        defaults.synchronize()
-
-        let lat = defaults.double(forKey: "last_latitude")
-        let lon = defaults.double(forKey: "last_longitude")
-
-        guard lat != 0 && lon != 0 else {
-            logger.data("No location saved")
-            return nil
-        }
-
-        logger.data("Location: \(lat), \(lon)")
-        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
-    }
-
-    /// Load saved cities from App Group
-    /// This is the SINGLE SOURCE OF TRUTH for widget data
-    private func loadSavedCities() -> [CityWidgetData] {
-        guard let defaults = UserDefaults(suiteName: appGroupID) else {
-            logger.error("Cannot access App Group: \(appGroupID)")
-            return []
-        }
-
-        // CRITICAL: Synchronize to get the latest data from the main app
-        // This ensures we read the most recent changes, especially after city changes
-        defaults.synchronize()
-
-        guard let data = defaults.data(forKey: "saved_cities") else {
-            logger.data("No saved_cities data found")
-            return []
-        }
-
-        do {
-            // Decode full CityModel array
-            let decoder = JSONDecoder()
-            let cityModels = try decoder.decode([SavedCityModel].self, from: data)
-
-            // Convert to widget data (take first 3)
-            let widgetCities = cityModels.prefix(3).map { model in
-                CityWidgetData(
-                    id: model.id,
-                    name: model.name,
-                    countryCode: model.countryCode,
-                    fahrenheit: model.fahrenheit,
-                    timeZoneIdentifier: model.timeZoneIdentifier,
-                    isCurrentLocation: model.isCurrentLocation,
-                    lastUpdated: model.lastUpdated
-                )
-            }
-
-            logger.data("Loaded \(widgetCities.count) cities for widget")
-            return Array(widgetCities)
-        } catch {
-            logger.error("Failed to decode cities: \(error.localizedDescription)")
-            return []
-        }
-    }
-
+    /// Load cached entry from repository
+    /// All data access goes through WidgetRepository - SINGLE SOURCE OF TRUTH
     private func loadCachedEntry() -> TemperatureEntry {
-        let cities = loadSavedCities()
-        // Use saved_cities as single source of truth
+        let cities = repository.getCities()
+
+        // Use repository as single source of truth
         if let primary = cities.first, let temp = primary.fahrenheit {
             return TemperatureEntry.fromCache(
                 city: primary.name,
@@ -454,6 +299,16 @@ struct TemperatureProvider: TimelineProvider {
         return .placeholder
     }
 
+    /// Fallback for error handling - uses repository
+    private func loadCachedData() -> (city: String, country: String, fahrenheit: Double, lastUpdate: Date)? {
+        guard let primary = repository.getPrimaryCity(),
+              let temp = primary.fahrenheit else {
+            return nil
+        }
+
+        return (primary.name, primary.countryCode, temp, primary.lastUpdated ?? Date())
+    }
+
     // MARK: - Helpers
 
     private static let timeFormatter: DateFormatter = {
@@ -463,21 +318,9 @@ struct TemperatureProvider: TimelineProvider {
     }()
 }
 
-// MARK: - Saved City Model (for decoding from main app)
-
-/// Mirrors CityModel from main app for decoding
-private struct SavedCityModel: Codable {
-    let id: UUID
-    var name: String
-    var countryCode: String
-    var latitude: Double
-    var longitude: Double
-    var timeZoneIdentifier: String
-    var fahrenheit: Double?
-    var lastUpdated: Date?
-    var isCurrentLocation: Bool
-    var sortOrder: Int
-}
+// NOTE: SavedCityModel has been REMOVED
+// All data structures are now in WidgetRepository.swift
+// This eliminates code duplication and ensures single source of truth
 
 // MARK: - Conversion Data
 

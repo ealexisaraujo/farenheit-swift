@@ -28,7 +28,7 @@ final class WidgetLogger {
     private let logFileName = "app_logs.json"
     private let maxLogEntries = 500
     private let source = "Widget"
-    
+
     // Performance tracking
     private var activeOperations: [String: Date] = [:]
     private let osLog = Logger(subsystem: "com.alexis.farenheit", category: "Performance")
@@ -63,6 +63,10 @@ final class WidgetLogger {
 
     func error(_ message: String) {
         log(message, category: "Error", level: "❌ ERROR")
+    }
+
+    func warning(_ message: String) {
+        log(message, category: "Warning", level: "⚠️ WARN")
     }
 
     // MARK: - File Operations
@@ -116,7 +120,7 @@ final class WidgetLogger {
     }
 
     // MARK: - Performance Tracking
-    
+
     /// Start tracking an operation for performance monitoring
     /// - Parameters:
     ///   - operation: Name of the operation (e.g., "WidgetTimeline", "WeatherFetch")
@@ -126,18 +130,18 @@ final class WidgetLogger {
         let key = "\(category).\(operation)"
         let startTime = Date()
         activeOperations[key] = startTime
-        
+
         // Log start with NSLog for console
         NSLog("⏱️ [PERF] START: \(category)/\(operation)")
-        
+
         // OSLog for Instruments
         osLog.debug("⏱️ START: \(category)/\(operation)")
-        
+
         // Signpost for Instruments timeline
         let signpostID = OSSignpostID(log: signpostLog)
         os_signpost(.begin, log: signpostLog, name: "Operation", signpostID: signpostID, "%{public}s.%{public}s", category, operation)
     }
-    
+
     /// End tracking an operation and log performance metrics
     /// - Parameters:
     ///   - operation: Name of the operation (must match startPerformanceOperation)
@@ -146,16 +150,16 @@ final class WidgetLogger {
     ///   - forceLog: Force logging even if duration is very short
     func endPerformanceOperation(_ operation: String, category: String, metadata: [String: String]? = nil, forceLog: Bool = false) {
         let key = "\(category).\(operation)"
-        
+
         guard let startTime = activeOperations[key] else {
             NSLog("⚠️ [PERF] END without START: \(category)/\(operation)")
             osLog.warning("END without START: \(category)/\(operation)")
             return
         }
-        
+
         let duration = Date().timeIntervalSince(startTime)
         activeOperations.removeValue(forKey: key)
-        
+
         // Format duration
         let formattedDuration: String
         if duration < 0.001 {
@@ -165,23 +169,23 @@ final class WidgetLogger {
         } else {
             formattedDuration = String(format: "%.2fs", duration)
         }
-        
+
         // Log performance metric
         let metadataStr = metadata.map { " | \($0.map { "\($0.key):\($0.value)" }.joined(separator: ", "))" } ?? ""
         NSLog("⏱️ [PERF] END: \(category)/\(operation) | Duration: \(formattedDuration)\(metadataStr)")
-        
+
         // OSLog for Instruments
         osLog.info("⏱️ \(category)/\(operation): \(formattedDuration)")
-        
+
         // Log to file with WidgetLogger
         let message = "\(operation): \(formattedDuration)\(metadataStr)"
         self.log(message, category: "Performance.\(category)")
-        
+
         // Log warning if operation is slow (>1 second)
         if duration > 1.0 {
             self.log("Slow operation: \(operation) took \(formattedDuration)", category: "Performance.\(category)", level: "⚠️ WARN")
         }
-        
+
         // Signpost end
         let signpostID = OSSignpostID(log: signpostLog)
         os_signpost(.end, log: signpostLog, name: "Operation", signpostID: signpostID, "%{public}s.%{public}s", category, operation)

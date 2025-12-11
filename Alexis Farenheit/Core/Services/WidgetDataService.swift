@@ -3,68 +3,59 @@ import WidgetKit
 import os.log
 
 /// Service for sharing weather data between main app and widget via App Group.
-/// Uses UserDefaults in shared container so widget can read current temperature.
-/// Logs all operations to SharedLogger for debugging.
+///
+/// ARCHITECTURE NOTE (Repository Pattern):
+/// This service is now a thin wrapper around WidgetRepository, which is the
+/// SINGLE SOURCE OF TRUTH for all widget data. This maintains backwards
+/// compatibility with existing code while using the new unified data layer.
+///
+/// Data Flow:
+/// ┌────────────────┐     ┌───────────────────┐     ┌────────────────┐
+/// │ HomeViewModel  │────▶│ WidgetDataService │────▶│ WidgetRepository│
+/// │                │     │   (wrapper)       │     │ (single source)│
+/// └────────────────┘     └───────────────────┘     └────────────────┘
+///
 final class WidgetDataService {
 
-    /// App Group identifier - must match in both app and widget entitlements
-    static let appGroupID = "group.alexisaraujo.alexisfarenheit"
+    /// App Group identifier - delegates to WidgetRepository
+    static var appGroupID: String {
+        WidgetRepository.appGroupID
+    }
 
     /// Widget kind identifier - must match Widget definition
     static let widgetKind = "AlexisExtensionFarenheit"
 
-    // MARK: - Keys
-    private enum Keys {
-        static let city = "widget_city"
-        static let country = "widget_country"
-        static let fahrenheit = "widget_fahrenheit"
-        static let lastUpdate = "widget_last_update"
-    }
-
     // MARK: - Singleton
     static let shared = WidgetDataService()
 
-    /// Shared UserDefaults for App Group
-    private var sharedDefaults: UserDefaults? {
-        UserDefaults(suiteName: Self.appGroupID)
-    }
+    /// Reference to the actual repository (single source of truth)
+    private let repository = WidgetRepository.shared
 
     private init() {
-        logInfo("WidgetDataService initialized", category: "Widget")
-
-        if sharedDefaults == nil {
-            logError("App Group not accessible: \(Self.appGroupID)", category: "Widget")
-        }
+        logInfo("WidgetDataService initialized (wrapper for WidgetRepository)", category: "Widget")
     }
 
     // MARK: - Public Methods
 
     /// Check if App Group is accessible
     func isAppGroupAvailable() -> Bool {
-        sharedDefaults != nil
+        repository.isAppGroupAvailable
     }
 
     /// Save temperature data for widget and trigger reload
+    /// NOTE: This method is kept for backwards compatibility.
+    /// New code should use CityStorageService.updateWeather() instead,
+    /// which updates saved_cities directly.
     func saveTemperature(city: String, country: String, fahrenheit: Double) {
         // Performance tracking: Start widget data save
         PerformanceMonitor.shared.startOperation("WidgetDataSave", category: "Widget", metadata: ["city": city])
-        
-        guard let defaults = sharedDefaults else {
-            PerformanceMonitor.shared.endOperation("WidgetDataSave", category: "Widget", metadata: ["error": "app_group_unavailable"], forceLog: true)
-            logError("Cannot save - App Group not available", category: "Widget")
-            return
-        }
 
-        defaults.set(city, forKey: Keys.city)
-        defaults.set(country, forKey: Keys.country)
-        defaults.set(fahrenheit, forKey: Keys.fahrenheit)
-        defaults.set(Date().timeIntervalSince1970, forKey: Keys.lastUpdate)
+        // REPOSITORY PATTERN: Update via repository
+        // This ensures all data stays in sync (saved_cities is updated)
+        repository.updatePrimaryTemperature(fahrenheit: fahrenheit)
 
-        // Force synchronize to ensure data is written before widget reads
-        defaults.synchronize()
+        logInfo("Saved to widget via repository: \(city), \(Int(fahrenheit))°F", category: "Widget")
 
-        logInfo("Saved to widget: \(city), \(Int(fahrenheit))°F", category: "Widget")
-        
         // Performance tracking: End widget data save
         PerformanceMonitor.shared.endOperation("WidgetDataSave", category: "Widget", metadata: ["city": city, "temperature": String(format: "%.1f", fahrenheit)])
 
@@ -78,31 +69,45 @@ final class WidgetDataService {
     func reloadWidget() {
         // Performance tracking: Start widget reload
         PerformanceMonitor.shared.startOperation("WidgetReload", category: "Widget")
-        
+
         logInfo("Requesting widget reload", category: "Widget")
 
-        // Use reloadAllTimelines - more reliable than reloadTimelines(ofKind:)
-        // According to Apple Developer Forums, ofKind sometimes doesn't trigger refresh
-        WidgetCenter.shared.reloadAllTimelines()
+        // Delegate to repository (which handles throttling)
+        repository.forceReloadWidgets()
 
-        logInfo("reloadAllTimelines() called", category: "Widget")
-        
-        // Performance tracking: End widget reload (operation is synchronous)
+        logInfo("Widget reload triggered via repository", category: "Widget")
+
+        // Performance tracking: End widget reload
         PerformanceMonitor.shared.endOperation("WidgetReload", category: "Widget")
     }
 
     /// Load cached temperature data
+    /// Returns data from repository (single source of truth)
     func loadTemperature() -> (city: String, country: String, fahrenheit: Double, lastUpdate: Date)? {
-        guard let defaults = sharedDefaults else { return nil }
+        guard let primary = repository.getPrimaryCity(),
+              let temp = primary.fahrenheit else {
+            return nil
+        }
 
-        let city = defaults.string(forKey: Keys.city) ?? ""
-        let country = defaults.string(forKey: Keys.country) ?? ""
-        let fahrenheit = defaults.double(forKey: Keys.fahrenheit)
-        let lastUpdate = defaults.double(forKey: Keys.lastUpdate)
+        return (primary.name, primary.countryCode, temp, primary.lastUpdated ?? Date())
+    }
 
-        guard !city.isEmpty, lastUpdate > 0 else { return nil }
+    // MARK: - New Repository-Based Methods
 
-        return (city, country, fahrenheit, Date(timeIntervalSince1970: lastUpdate))
+    /// Get all cities from repository
+    func getCities() -> [WidgetCityData] {
+        repository.getCities()
+    }
+
+    /// Save location to repository
+    func saveLocation(latitude: Double, longitude: Double) {
+        let location = SharedLocation(latitude: latitude, longitude: longitude)
+        repository.saveLocation(location)
+    }
+
+    /// Get diagnostic info
+    func getDiagnosticInfo() -> String {
+        repository.getDiagnosticInfo()
     }
 
     // MARK: - Private Logging (using SharedLogger)
