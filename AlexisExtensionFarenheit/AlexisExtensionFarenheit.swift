@@ -84,15 +84,42 @@ struct TemperatureEntry: TimelineEntry {
 /// Type alias for backwards compatibility - actual definition in WidgetRepository.swift
 typealias CityWidgetData = WidgetCityData
 
+// MARK: - Time Formatting Helper
+
+/// Helper for formatting time in different timezones
+/// Used by widget views to display local time for each city
+enum WidgetTimeFormatter {
+    /// Shared formatter configured for time display
+    private static let formatter: DateFormatter = {
+        let df = DateFormatter()
+        df.dateFormat = "h:mm a"
+        return df
+    }()
+
+    /// Format a date in a specific timezone
+    /// - Parameters:
+    ///   - date: The date to format (typically entry.date)
+    ///   - timeZone: The timezone to display the time in
+    /// - Returns: Formatted time string (e.g., "2:30 PM")
+    static func formatTime(_ date: Date, in timeZone: TimeZone) -> String {
+        formatter.timeZone = timeZone
+        return formatter.string(from: date)
+    }
+}
+
 // MARK: - Timeline Provider
 
 /// Widget kind - must match Widget definition
 private let widgetKind = "AlexisExtensionFarenheit"
 
+/// Number of timeline entries to create (one per minute)
+/// 15 minutes provides good balance between accuracy and memory usage
+private let timelineEntriesCount = 15
+
 /// Provides timeline data for the widget.
 /// Uses WidgetRepository as SINGLE SOURCE OF TRUTH (Repository Pattern).
+/// Creates minute-by-minute entries for accurate timezone display.
 /// Fetches fresh weather via WeatherKit when cache is stale (>30 min).
-/// Logs all operations for debugging via main app's Log Viewer.
 struct TemperatureProvider: TimelineProvider {
 
     // MARK: - Dependencies (Repository Pattern)
@@ -156,43 +183,109 @@ struct TemperatureProvider: TimelineProvider {
             logger.timeline("Fetching fresh weather from WeatherKit...")
 
             Task {
-                let entry = await fetchFreshWeather(
+                let freshTemp = await fetchFreshTemperature(
                     location: coords.coordinate,
-                    cachedCity: primaryCity?.name ?? "Unknown",
-                    cachedCountry: primaryCity?.countryCode ?? "",
+                    cachedCity: primaryCity?.name ?? "Unknown"
+                )
+
+                // Create updated primary city with fresh temperature
+                var updatedPrimaryCity = primaryCity
+                if let temp = freshTemp {
+                    updatedPrimaryCity?.fahrenheit = temp
+                    updatedPrimaryCity?.lastUpdated = Date()
+                }
+
+                // Create minute-by-minute entries with fresh data
+                let entries = createMinuteEntries(
+                    primaryCity: updatedPrimaryCity,
                     cities: cities
                 )
 
-                // Schedule next refresh in 30 minutes
-                let nextRefresh = Calendar.current.date(byAdding: .minute, value: 30, to: Date()) ?? Date()
-                let timeline = Timeline(entries: [entry], policy: .after(nextRefresh))
+                // Schedule next refresh after the last entry
+                let lastEntryDate = entries.last?.date ?? Date()
+                let timeline = Timeline(entries: entries, policy: .after(lastEntryDate))
 
-                logger.timeline("Timeline created, next refresh: \(Self.timeFormatter.string(from: nextRefresh))")
+                logger.timeline("Timeline created with \(entries.count) entries (fresh), next refresh: \(Self.timeFormatter.string(from: lastEntryDate))")
                 logger.timeline("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
                 // Performance tracking: End widget timeline (fresh fetch)
                 var endMetadata = metadata
                 endMetadata["source"] = "fresh_fetch"
                 endMetadata["cities_count"] = "\(cities.count)"
+                endMetadata["entries_count"] = "\(entries.count)"
                 logger.endPerformanceOperation("WidgetTimeline", category: "Widget", metadata: endMetadata)
 
                 completion(timeline)
             }
         } else {
             // Use data from repository (single source of truth)
+            // Create minute-by-minute entries for accurate timezone display
+            let entries = createMinuteEntries(
+                primaryCity: primaryCity,
+                cities: cities
+            )
+
+            if let primary = primaryCity, let temp = primary.fahrenheit {
+                logger.timeline("Using saved city: \(primary.name), \(Int(temp))°F")
+            } else {
+                logger.timeline("No city data - showing placeholder")
+            }
+
+            // Schedule next refresh after the last entry
+            let lastEntryDate = entries.last?.date ?? Date()
+            let timeline = Timeline(entries: entries, policy: .after(lastEntryDate))
+
+            logger.timeline("Timeline created with \(entries.count) entries, next refresh: \(Self.timeFormatter.string(from: lastEntryDate))")
+            logger.timeline("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+            // Performance tracking: End widget timeline (cached)
+            var endMetadata = metadata
+            endMetadata["source"] = primaryCity != nil ? "repository" : "placeholder"
+            endMetadata["cities_count"] = "\(cities.count)"
+            endMetadata["entries_count"] = "\(entries.count)"
+            logger.endPerformanceOperation("WidgetTimeline", category: "Widget", metadata: endMetadata)
+
+            completion(timeline)
+        }
+    }
+
+    // MARK: - Timeline Entry Creation
+
+    /// Create minute-by-minute entries for accurate timezone display
+    /// Each entry represents one minute, allowing iOS to show the correct time
+    /// - Parameters:
+    ///   - primaryCity: The primary city data (current location)
+    ///   - cities: All cities to display
+    /// - Returns: Array of timeline entries, one per minute
+    private func createMinuteEntries(
+        primaryCity: WidgetCityData?,
+        cities: [WidgetCityData]
+    ) -> [TemperatureEntry] {
+        var entries: [TemperatureEntry] = []
+        let currentDate = Date()
+
+        // Round to the start of the current minute for cleaner times
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: currentDate)
+        let startOfMinute = calendar.date(from: components) ?? currentDate
+
+        for minuteOffset in 0..<timelineEntriesCount {
+            guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: startOfMinute) else {
+                continue
+            }
+
             let entry: TemperatureEntry
             if let primary = primaryCity, let temp = primary.fahrenheit {
                 entry = TemperatureEntry.fromCache(
                     city: primary.name,
                     country: primary.countryCode,
                     fahrenheit: temp,
-                    date: Date(),
+                    date: entryDate,
                     cities: cities
                 )
-                logger.timeline("Using saved city: \(primary.name), \(Int(temp))°F")
             } else {
                 entry = TemperatureEntry(
-                    date: Date(),
+                    date: entryDate,
                     cityName: "Open App",
                     countryCode: "",
                     fahrenheit: 72,
@@ -200,30 +293,19 @@ struct TemperatureProvider: TimelineProvider {
                     isPlaceholder: true,
                     cities: cities
                 )
-                logger.timeline("No city data - showing placeholder")
             }
 
-            // Schedule next refresh in 15 minutes
-            let nextRefresh = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date()
-            let timeline = Timeline(entries: [entry], policy: .after(nextRefresh))
-
-            logger.timeline("Timeline created, next refresh: \(Self.timeFormatter.string(from: nextRefresh))")
-            logger.timeline("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
-            // Performance tracking: End widget timeline (cached)
-            var endMetadata = metadata
-            endMetadata["source"] = primaryCity != nil ? "repository" : "placeholder"
-            endMetadata["cities_count"] = "\(cities.count)"
-            logger.endPerformanceOperation("WidgetTimeline", category: "Widget", metadata: endMetadata)
-
-            completion(timeline)
+            entries.append(entry)
         }
+
+        return entries
     }
 
     // MARK: - WeatherKit Fetch
 
-    /// Fetch fresh weather from WeatherKit
-    private func fetchFreshWeather(location: CLLocationCoordinate2D, cachedCity: String, cachedCountry: String, cities: [CityWidgetData]) async -> TemperatureEntry {
+    /// Fetch fresh temperature from WeatherKit
+    /// Returns nil if fetch fails, allowing caller to use cached data
+    private func fetchFreshTemperature(location: CLLocationCoordinate2D, cachedCity: String) async -> Double? {
         // Performance tracking: Start widget weather fetch
         let metadata = [
             "latitude": String(format: "%.4f", location.latitude),
@@ -250,13 +332,7 @@ struct TemperatureProvider: TimelineProvider {
             repository.updatePrimaryTemperature(fahrenheit: tempF)
             logger.data("Saved fresh data via repository: \(cachedCity), \(Int(tempF))°F")
 
-            return TemperatureEntry.fromCache(
-                city: cachedCity,
-                country: cachedCountry,
-                fahrenheit: tempF,
-                date: Date(),
-                cities: cities
-            )
+            return tempF
         } catch {
             logger.error("WeatherKit error: \(error.localizedDescription)")
 
@@ -265,24 +341,13 @@ struct TemperatureProvider: TimelineProvider {
             errorMetadata["error"] = error.localizedDescription
             logger.endPerformanceOperation("WidgetWeatherFetch", category: "Widget", metadata: errorMetadata, forceLog: true)
 
-            // Fall back to cached data on error
-            if let cached = loadCachedData() {
-                return TemperatureEntry.fromCache(
-                    city: cached.city,
-                    country: cached.country,
-                    fahrenheit: cached.fahrenheit,
-                    date: Date(),
-                    cities: cities
-                )
-            }
-
-            return .placeholder
+            return nil
         }
     }
 
     // MARK: - Data Loading (via Repository)
 
-    /// Load cached entry from repository
+    /// Load cached entry from repository (used by getSnapshot)
     /// All data access goes through WidgetRepository - SINGLE SOURCE OF TRUTH
     private func loadCachedEntry() -> TemperatureEntry {
         let cities = repository.getCities()
@@ -297,16 +362,6 @@ struct TemperatureProvider: TimelineProvider {
             )
         }
         return .placeholder
-    }
-
-    /// Fallback for error handling - uses repository
-    private func loadCachedData() -> (city: String, country: String, fahrenheit: Double, lastUpdate: Date)? {
-        guard let primary = repository.getPrimaryCity(),
-              let temp = primary.fahrenheit else {
-            return nil
-        }
-
-        return (primary.name, primary.countryCode, temp, primary.lastUpdated ?? Date())
     }
 
     // MARK: - Helpers
@@ -487,9 +542,8 @@ struct MediumWidgetView: View {
                     .foregroundStyle(.white.opacity(0.5))
             }
 
-            // Local time - uses Text date style for automatic updates by iOS
-            Text(Date.now, style: .time)
-                .environment(\.timeZone, city.timeZone)
+            // Local time - uses entry.date for minute-by-minute accuracy
+            Text(WidgetTimeFormatter.formatTime(entry.date, in: city.timeZone))
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.white.opacity(0.5))
         }
@@ -645,9 +699,8 @@ struct LargeWidgetView: View {
                     }
                 }
 
-                // Uses Text date style for automatic updates by iOS
-                Text(Date.now, style: .time)
-                    .environment(\.timeZone, city.timeZone)
+                // Uses entry.date for minute-by-minute accuracy
+                Text(WidgetTimeFormatter.formatTime(entry.date, in: city.timeZone))
                     .font(.system(size: 13, design: .rounded))
                     .foregroundStyle(.white.opacity(0.7))
             }
