@@ -166,9 +166,14 @@ final class HomeViewModel: ObservableObject {
     func onBecameActive() {
         logger.debug("🏠 App became active")
 
-        // Only auto-refresh if enough time has passed
+        // ALWAYS request fresh location when app becomes active
+        // This ensures we detect if user moved to a different city
+        logger.debug("🏠 Requesting fresh location...")
+        locationService.requestLocation()
+
+        // Only auto-refresh weather if enough time has passed
         guard canAutoRefresh else {
-            logger.debug("🏠 Skipping auto-refresh - last update too recent")
+            logger.debug("🏠 Skipping weather auto-refresh - last update too recent")
             return
         }
 
@@ -391,7 +396,7 @@ final class HomeViewModel: ObservableObject {
 
         loadingCityIds.insert(city.id)
         lastFetchTime[city.id] = Date()
-        
+
         // Performance tracking: Start city weather fetch
         let metadata = [
             "city_id": city.id.uuidString,
@@ -405,16 +410,16 @@ final class HomeViewModel: ObservableObject {
             defer {
                 loadingCityIds.remove(city.id)
             }
-            
+
             // Check if task was cancelled before starting
             guard !Task.isCancelled else {
                 PerformanceMonitor.shared.endOperation("CityWeatherFetch", category: "Network", metadata: metadata, forceLog: true)
                 return
             }
-            
+
             let tempService = WeatherService()
             await tempService.fetchWeather(for: city.location)
-            
+
             // Check again if task was cancelled after fetch
             guard !Task.isCancelled else {
                 PerformanceMonitor.shared.endOperation("CityWeatherFetch", category: "Network", metadata: metadata, forceLog: true)
@@ -429,14 +434,14 @@ final class HomeViewModel: ObservableObject {
                     // Note: Widget now uses saved_cities as single source of truth
                     // CityStorageService.updateCity() handles widget reload with throttling
 
-                    // Save coordinates for background refresh (still needed for WeatherKit fetch)
+                    // REPOSITORY PATTERN: Save coordinates via WidgetRepository
                     if cities[index].isCurrentLocation {
                         let updatedCity = cities[index]
-                        if let defaults = UserDefaults(suiteName: "group.alexisaraujo.alexisfarenheit") {
-                            defaults.set(updatedCity.latitude, forKey: "last_latitude")
-                            defaults.set(updatedCity.longitude, forKey: "last_longitude")
-                            defaults.synchronize()
-                        }
+                        let sharedLocation = SharedLocation(
+                            latitude: updatedCity.latitude,
+                            longitude: updatedCity.longitude
+                        )
+                        WidgetRepository.shared.saveLocation(sharedLocation)
                         logger.debug("🏠 Updated current location weather: \(updatedCity.name), \(temp)°F")
                     }
                 }
@@ -497,16 +502,20 @@ final class HomeViewModel: ObservableObject {
 
     // MARK: - Widget Data
 
-    /// Save location coordinates to App Group for background task access
+    /// Save location coordinates to App Group for widget and background task access
+    /// Uses WidgetRepository as SINGLE SOURCE OF TRUTH
     private func saveLocationForBackgroundRefresh() {
         guard let location = locationService.lastLocation else { return }
-        guard let defaults = UserDefaults(suiteName: "group.alexisaraujo.alexisfarenheit") else { return }
 
-        defaults.set(location.coordinate.latitude, forKey: "last_latitude")
-        defaults.set(location.coordinate.longitude, forKey: "last_longitude")
-        defaults.synchronize()
+        // REPOSITORY PATTERN: Use WidgetRepository instead of direct UserDefaults access
+        // This ensures widget can read the location we save
+        let sharedLocation = SharedLocation(
+            latitude: location.coordinate.latitude,
+            longitude: location.coordinate.longitude
+        )
+        WidgetRepository.shared.saveLocation(sharedLocation)
 
-        logger.debug("🏠 Saved location for background: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+        logger.debug("🏠 Saved location via WidgetRepository: \(location.coordinate.latitude), \(location.coordinate.longitude)")
     }
 
     // MARK: - Private Bindings
@@ -578,13 +587,13 @@ final class HomeViewModel: ObservableObject {
 
     /// Update or create the current location city
     private func updateCurrentLocationCity(with location: CLLocation) {
-        // Save coordinates for widget immediately (before geocoding)
-        if let defaults = UserDefaults(suiteName: "group.alexisaraujo.alexisfarenheit") {
-            defaults.set(location.coordinate.latitude, forKey: "last_latitude")
-            defaults.set(location.coordinate.longitude, forKey: "last_longitude")
-            defaults.synchronize()
-            logger.debug("🏠 Saved location for widget: \(location.coordinate.latitude), \(location.coordinate.longitude)")
-        }
+        // REPOSITORY PATTERN: Save coordinates via WidgetRepository immediately
+        let sharedLocation = SharedLocation(
+            latitude: location.coordinate.latitude,
+            longitude: location.coordinate.longitude
+        )
+        WidgetRepository.shared.saveLocation(sharedLocation)
+        logger.debug("🏠 Saved location via WidgetRepository: \(location.coordinate.latitude), \(location.coordinate.longitude)")
 
         // Reverse geocode to get timezone
         let geocoder = CLGeocoder()
@@ -620,6 +629,8 @@ final class HomeViewModel: ObservableObject {
                     if cityNameChanged {
                         self.logger.debug("🏠 City name changed: \(oldCityName) → \(cityName)")
                         self.cityStorage.updateCurrentLocation(updatedCity)
+                        // Fetch fresh weather for new city location
+                        self.fetchWeather(for: updatedCity)
                     } else {
                         self.cityStorage.updateCity(updatedCity)
                     }
@@ -646,6 +657,9 @@ final class HomeViewModel: ObservableObject {
                     }
 
                     self.cityStorage.updateCurrentLocation(newCity)
+
+                    // Fetch weather for new current location
+                    self.fetchWeather(for: newCity)
                 }
             }
         }

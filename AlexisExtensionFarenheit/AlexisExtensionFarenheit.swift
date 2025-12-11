@@ -487,8 +487,9 @@ struct MediumWidgetView: View {
                     .foregroundStyle(.white.opacity(0.5))
             }
 
-            // Local time
-            Text(city.localTimeString())
+            // Local time - uses Text date style for automatic updates by iOS
+            Text(Date.now, style: .time)
+                .environment(\.timeZone, city.timeZone)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.white.opacity(0.5))
         }
@@ -644,7 +645,9 @@ struct LargeWidgetView: View {
                     }
                 }
 
-                Text(city.localTimeString())
+                // Uses Text date style for automatic updates by iOS
+                Text(Date.now, style: .time)
+                    .environment(\.timeZone, city.timeZone)
                     .font(.system(size: 13, design: .rounded))
                     .foregroundStyle(.white.opacity(0.7))
             }

@@ -82,16 +82,17 @@ final class BackgroundTaskService {
     }
 
     /// Save location coordinates to App Group for widget access
+    /// Uses WidgetRepository as SINGLE SOURCE OF TRUTH
     private func saveLocationToAppGroup(_ location: CLLocation) {
-        guard let defaults = UserDefaults(suiteName: "group.alexisaraujo.alexisfarenheit") else {
-            return
-        }
+        // REPOSITORY PATTERN: Use WidgetRepository instead of direct UserDefaults access
+        // This ensures widget reads from the same key we write to
+        let sharedLocation = SharedLocation(
+            latitude: location.coordinate.latitude,
+            longitude: location.coordinate.longitude
+        )
+        WidgetRepository.shared.saveLocation(sharedLocation)
 
-        defaults.set(location.coordinate.latitude, forKey: "last_latitude")
-        defaults.set(location.coordinate.longitude, forKey: "last_longitude")
-        defaults.synchronize()
-
-        logger.debug("🔄 Saved new location to App Group: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+        logger.debug("🔄 Saved location via WidgetRepository: \(location.coordinate.latitude), \(location.coordinate.longitude)")
     }
 
     /// Fetch weather for location and update widget
@@ -261,19 +262,18 @@ final class BackgroundTaskService {
 
     // MARK: - Location Helpers
 
-    /// Load last known location from UserDefaults (App Group)
+    /// Load last known location from WidgetRepository (App Group)
+    /// Uses WidgetRepository as SINGLE SOURCE OF TRUTH
     private func loadLastKnownLocation() -> CLLocationCoordinate2D? {
-        guard let defaults = UserDefaults(suiteName: "group.alexisaraujo.alexisfarenheit") else {
+        // REPOSITORY PATTERN: Read from WidgetRepository instead of direct UserDefaults
+        guard let location = WidgetRepository.shared.getLocation() else {
             return nil
         }
 
-        let lat = defaults.double(forKey: "last_latitude")
-        let lon = defaults.double(forKey: "last_longitude")
+        // Validate coordinates
+        guard location.isValid else { return nil }
 
-        // Check if we have valid coordinates
-        guard lat != 0 && lon != 0 else { return nil }
-
-        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        return location.coordinate
     }
 }
 
