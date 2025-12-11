@@ -612,3 +612,233 @@ private func handleSignificantLocationChange(_ location: CLLocation) {
 - perf: simplify SharedLogger, fix cache, remove FileIO tracking
 - fix: widget location sync with current location city
 - feat: add significant location changes for background updates
+- refactor: use saved_cities as single source of truth for widget data
+- fix: use lastUpdated timestamp to determine cache freshness
+- fix: consistent temperature rounding across app and widgets
+
+---
+
+## Widget Data Unification (Sesión 4 - Diciembre 2024)
+
+### Problema: Race Condition entre App y Widget
+
+**Síntomas en logs:**
+- Widget mostraba "Tempe, 74°F" mientras la app ya tenía "Chandler, 74°F"
+- `reloadAllTimelines()` se llamaba pero widgets usaban datos viejos
+- Dos fuentes de datos separadas: `widget_city` y `saved_cities`
+
+**Causa Raíz:**
+El widget leía de dos lugares diferentes:
+1. `loadCachedData()` → `widget_city` (legacy, via WidgetDataService)
+2. `loadSavedCities()` → `saved_cities` (via CityStorageService)
+
+Cuando cambiabas de ciudad, había una race condition donde el widget podía leer `widget_city` antes de que se actualizara.
+
+### Solución: Single Source of Truth
+
+**Decisión:** El widget ahora usa **solo `saved_cities`** como fuente de verdad.
+
+#### Cambios en AlexisExtensionFarenheit.swift
+
+```swift
+// ANTES: Usaba loadCachedData() que leía widget_city
+let cachedData = loadCachedData()
+if let data = cachedData {
+    cacheAgeMinutes = Date().timeIntervalSince(data.lastUpdate) / 60
+}
+
+// DESPUÉS: Usa loadSavedCities() que lee saved_cities
+let cities = loadSavedCities()
+let primaryCity = cities.first  // Primera ciudad = current location
+
+if let primary = primaryCity, let temp = primary.fahrenheit {
+    if let lastUpdate = primary.lastUpdated {
+        cacheAgeMinutes = Date().timeIntervalSince(lastUpdate) / 60
+    }
+}
+```
+
+#### Cambios en CityStorageService.swift
+
+```swift
+// Nuevo parámetro forceReload para bypasear throttling
+private func saveCities(reloadWidgets: Bool = true, forceReload: Bool = false)
+
+// updateCurrentLocation ahora fuerza reload
+func updateCurrentLocation(_ city: CityModel) {
+    // ... update logic ...
+    saveCities(forceReload: true)  // Crítico: ciudad cambió
+}
+```
+
+#### Cambios en HomeViewModel.swift
+
+```swift
+// Detecta cuando el nombre de ciudad cambia
+if let existingIndex = self.cities.firstIndex(where: { $0.isCurrentLocation }) {
+    let oldCityName = self.cities[existingIndex].name
+    let cityNameChanged = oldCityName != cityName
+
+    if cityNameChanged {
+        self.cityStorage.updateCurrentLocation(updatedCity)  // Force reload
+    } else {
+        self.cityStorage.updateCity(updatedCity)  // Throttled
+    }
+}
+```
+
+#### Cambios en BackgroundTaskService.swift
+
+```swift
+// Cambiado de WidgetDataService a CityStorageService
+private let cityStorage = CityStorageService.shared
+
+// fetchWeatherAndUpdateWidget ahora actualiza saved_cities
+let currentLocationCity = CityModel(
+    name: cityName,
+    fahrenheit: temp,
+    lastUpdated: Date(),
+    isCurrentLocation: true,
+    // ...
+)
+cityStorage.updateCurrentLocation(currentLocationCity)
+```
+
+### Beneficios
+
+1. **Eliminada race condition** - Una sola fuente de verdad
+2. **Actualizaciones más confiables** - Widget siempre lee datos correctos
+3. **Reload forzado cuando importa** - Sin throttling cuando cambia la ciudad
+4. **Código más simple** - Menos duplicación de lógica
+
+---
+
+## Widget Cache Freshness (Sesión 4 - Diciembre 2024)
+
+### Problema: Widget no actualizaba temperatura por horas
+
+**Síntomas en logs:**
+- Widget mostraba 61°F por ~2 horas (19:25 - 20:26)
+- Cambió a 59°F solo cuando se abrió la app
+- No había logs de `[App/Background]` - Background Task nunca se ejecutó
+
+**Causa Raíz:**
+- iOS decide cuándo ejecutar background tasks basado en batería, uso, etc.
+- El widget siempre asumía `cacheAgeMinutes = 0` cuando había datos
+- Nunca verificaba qué tan viejos eran realmente
+
+### Solución: Verificar edad real de los datos
+
+#### Agregado lastUpdated a CityWidgetData
+
+```swift
+struct CityWidgetData: Identifiable, Codable {
+    let id: UUID
+    var name: String
+    var fahrenheit: Double?
+    var lastUpdated: Date?  // NUEVO
+    // ...
+}
+```
+
+#### Cálculo de edad real en getTimeline()
+
+```swift
+// ANTES: Siempre asumía datos frescos
+if let primary = primaryCity, let temp = primary.fahrenheit {
+    cacheAgeMinutes = 0  // ❌ Siempre 0
+}
+
+// DESPUÉS: Calcula edad real
+if let primary = primaryCity, let temp = primary.fahrenheit {
+    if let lastUpdate = primary.lastUpdated {
+        cacheAgeMinutes = Date().timeIntervalSince(lastUpdate) / 60
+    } else {
+        cacheAgeMinutes = Double.infinity  // Sin fecha = stale
+    }
+}
+```
+
+#### Propagación de lastUpdated
+
+```swift
+// loadSavedCities() ahora incluye lastUpdated
+let widgetCities = cityModels.prefix(3).map { model in
+    CityWidgetData(
+        // ...
+        lastUpdated: model.lastUpdated  // NUEVO
+    )
+}
+```
+
+### Comportamiento esperado
+
+Si los datos tienen **más de 30 minutos** (`maxCacheAgeMinutes`):
+1. Widget detecta `needsFresh = true`
+2. Hace fetch directo de WeatherKit usando coordenadas guardadas
+3. Muestra temperatura actualizada
+
+Los logs ahora muestran la edad real:
+```
+Primary city: Chandler, 59°F, age: 45m  // En lugar de siempre age: 0m
+```
+
+---
+
+## Redondeo Consistente de Temperatura (Sesión 4 - Diciembre 2024)
+
+### Problema: App y widget mostraban temperaturas diferentes
+
+**Ejemplo:**
+- Temperatura real: `57.851702°F`
+- App mostraba: **58°F** (usando `Int(round(fahrenheit))`)
+- Widget mostraba: **57°F** (usando `Int(fahrenheit)`) - truncamiento
+
+### Solución: Extensión `roundedInt` reutilizable
+
+#### Definición (en ambos targets)
+
+```swift
+// Color+Temperature.swift (App) y AlexisExtensionFarenheit.swift (Widget)
+extension Double {
+    /// Rounds to nearest integer using standard rounding rules
+    /// Example: 57.85 → 58, 57.49 → 57
+    var roundedInt: Int {
+        Int(self.rounded())
+    }
+}
+```
+
+#### Uso en toda la UI
+
+```swift
+// ANTES (inconsistente)
+Text("\(Int(round(fahrenheit)))°F")  // App - redondea
+Text("\(Int(entry.fahrenheit))")     // Widget - trunca
+
+// DESPUÉS (consistente)
+Text("\(fahrenheit.roundedInt)°F")   // App
+Text("\(entry.fahrenheit.roundedInt)")  // Widget
+```
+
+#### Archivos actualizados
+
+| Archivo | Cambios |
+|---------|---------|
+| `Color+Temperature.swift` | + extensión `Double.roundedInt` |
+| `AlexisExtensionFarenheit.swift` | + extensión + 8 usos de `roundedInt` |
+| `TemperatureDisplayView.swift` | Migrado a `roundedInt` |
+| `CityCardView.swift` | Migrado a `roundedInt` |
+| `CityCardListView.swift` | Migrado a `roundedInt` |
+
+### Resultado
+
+App y widget ahora muestran exactamente la misma temperatura para el mismo valor.
+
+---
+
+## Commits Relacionados (Sesión 4)
+
+- `b87e32c` - refactor: use saved_cities as single source of truth for widget data
+- `c58c8b6` - fix: use lastUpdated timestamp to determine cache freshness
+- (pendiente) - fix: consistent temperature rounding across app and widgets
