@@ -74,6 +74,7 @@ struct CityWidgetData: Identifiable, Codable {
     var fahrenheit: Double?
     var timeZoneIdentifier: String
     var isCurrentLocation: Bool
+    var lastUpdated: Date?
 
     var celsius: Double? {
         guard let f = fahrenheit else { return nil }
@@ -185,9 +186,14 @@ struct TemperatureProvider: TimelineProvider {
         // Check cache freshness based on primary city's lastUpdated
         let cacheAgeMinutes: Double
         if let primary = primaryCity, let temp = primary.fahrenheit {
-            // Use saved_cities as cache - check if we have valid temperature data
-            cacheAgeMinutes = 0 // Data is fresh if we have it
-            logger.timeline("Primary city: \(primary.name), \(Int(temp))°F")
+            // Calculate actual age from lastUpdated
+            if let lastUpdate = primary.lastUpdated {
+                cacheAgeMinutes = Date().timeIntervalSince(lastUpdate) / 60
+            } else {
+                // No lastUpdated means data is stale
+                cacheAgeMinutes = Double.infinity
+            }
+            logger.timeline("Primary city: \(primary.name), \(Int(temp))°F, age: \(Int(cacheAgeMinutes))m")
         } else {
             cacheAgeMinutes = Double.infinity
             logger.timeline("No primary city or temperature data")
@@ -409,7 +415,8 @@ struct TemperatureProvider: TimelineProvider {
                     countryCode: model.countryCode,
                     fahrenheit: model.fahrenheit,
                     timeZoneIdentifier: model.timeZoneIdentifier,
-                    isCurrentLocation: model.isCurrentLocation
+                    isCurrentLocation: model.isCurrentLocation,
+                    lastUpdated: model.lastUpdated
                 )
             }
 
