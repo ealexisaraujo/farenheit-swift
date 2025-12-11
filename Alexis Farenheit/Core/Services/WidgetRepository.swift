@@ -15,7 +15,7 @@
 //                          ┌─────────────────────────┐
 //                          │   App Group (UserDef)   │
 //                          │   - saved_cities (JSON) │
-//                          │   - last_location       │
+//                          │   - widget_location     │
 //                          └─────────────────────────┘
 //
 //  USAGE:
@@ -155,19 +155,10 @@ public final class WidgetRepository: WidgetRepositoryProtocol {
     /// App Group ID - MUST match in both targets' entitlements
     public static let appGroupID = "group.alexisaraujo.alexisfarenheit"
 
-    /// UserDefaults keys - Single source of truth (no more scattered keys)
+    /// UserDefaults keys - Single source of truth
     private enum Keys {
         static let cities = "saved_cities"        // [WidgetCityData] - PRIMARY DATA
         static let location = "widget_location"   // SharedLocation - Last known location
-
-        // Legacy keys (for backwards compatibility during migration)
-        // TODO: Remove after confirming all users have migrated
-        static let legacyCity = "widget_city"
-        static let legacyCountry = "widget_country"
-        static let legacyFahrenheit = "widget_fahrenheit"
-        static let legacyLastUpdate = "widget_last_update"
-        static let legacyLatitude = "last_latitude"
-        static let legacyLongitude = "last_longitude"
     }
 
     // MARK: - Singleton
@@ -192,9 +183,6 @@ public final class WidgetRepository: WidgetRepositoryProtocol {
             logger.error("❌ WidgetRepository: Cannot access App Group '\(Self.appGroupID)'")
         } else {
             logger.debug("✅ WidgetRepository initialized")
-
-            // Migrate legacy data on first access
-            migrateLegacyDataIfNeeded()
         }
     }
 
@@ -244,22 +232,16 @@ public final class WidgetRepository: WidgetRepositoryProtocol {
 
         defaults.synchronize()
 
-        // Try new format first
-        if let data = defaults.data(forKey: Keys.location) {
-            do {
-                return try JSONDecoder().decode(SharedLocation.self, from: data)
-            } catch {
-                logger.warning("getLocation: Decode error - \(error.localizedDescription)")
-            }
+        guard let data = defaults.data(forKey: Keys.location) else {
+            return nil
         }
 
-        // Fallback to legacy format
-        let lat = defaults.double(forKey: Keys.legacyLatitude)
-        let lon = defaults.double(forKey: Keys.legacyLongitude)
-
-        guard lat != 0 && lon != 0 else { return nil }
-
-        return SharedLocation(latitude: lat, longitude: lon)
+        do {
+            return try JSONDecoder().decode(SharedLocation.self, from: data)
+        } catch {
+            logger.warning("getLocation: Decode error - \(error.localizedDescription)")
+            return nil
+        }
     }
 
     // MARK: - Write Operations
@@ -278,11 +260,6 @@ public final class WidgetRepository: WidgetRepositoryProtocol {
             defaults.synchronize()
 
             logger.debug("saveCities: Saved \(cities.count) cities")
-
-            // Update legacy keys for backwards compatibility
-            if let primary = cities.first {
-                updateLegacyKeys(from: primary)
-            }
 
             reloadWidgets()
         } catch {
@@ -334,11 +311,6 @@ public final class WidgetRepository: WidgetRepositoryProtocol {
         do {
             let data = try JSONEncoder().encode(location)
             defaults.set(data, forKey: Keys.location)
-
-            // Also update legacy keys for backwards compatibility
-            defaults.set(location.latitude, forKey: Keys.legacyLatitude)
-            defaults.set(location.longitude, forKey: Keys.legacyLongitude)
-
             defaults.synchronize()
 
             logger.debug("saveLocation: \(location.latitude), \(location.longitude)")
@@ -383,74 +355,9 @@ public final class WidgetRepository: WidgetRepositoryProtocol {
             let data = try JSONEncoder().encode(cities)
             defaults.set(data, forKey: Keys.cities)
             defaults.synchronize()
-
-            // Update legacy keys
-            if let primary = cities.first {
-                updateLegacyKeys(from: primary)
-            }
         } catch {
             logger.error("saveWithoutReload: Error - \(error.localizedDescription)")
         }
-    }
-
-    /// Update legacy keys for backwards compatibility
-    /// TODO: Remove after confirming migration complete
-    private func updateLegacyKeys(from city: WidgetCityData) {
-        guard let defaults = defaults else { return }
-
-        defaults.set(city.name, forKey: Keys.legacyCity)
-        defaults.set(city.countryCode, forKey: Keys.legacyCountry)
-
-        if let temp = city.fahrenheit {
-            defaults.set(temp, forKey: Keys.legacyFahrenheit)
-        }
-
-        if let lastUpdate = city.lastUpdated {
-            defaults.set(lastUpdate.timeIntervalSince1970, forKey: Keys.legacyLastUpdate)
-        }
-    }
-
-    /// Migrate from legacy scattered keys to unified format
-    private func migrateLegacyDataIfNeeded() {
-        guard let defaults = defaults else { return }
-
-        // Skip if already have cities data
-        if defaults.data(forKey: Keys.cities) != nil {
-            return
-        }
-
-        // Check for legacy data
-        guard let city = defaults.string(forKey: Keys.legacyCity),
-              !city.isEmpty else {
-            return
-        }
-
-        logger.info("🔄 Migrating legacy widget data...")
-
-        let country = defaults.string(forKey: Keys.legacyCountry) ?? ""
-        let fahrenheit = defaults.double(forKey: Keys.legacyFahrenheit)
-        let lastUpdate = defaults.double(forKey: Keys.legacyLastUpdate)
-        let lat = defaults.double(forKey: Keys.legacyLatitude)
-        let lon = defaults.double(forKey: Keys.legacyLongitude)
-
-        // Create city from legacy data
-        let legacyCity = WidgetCityData(
-            id: UUID(),
-            name: city,
-            countryCode: country,
-            latitude: lat,
-            longitude: lon,
-            timeZoneIdentifier: TimeZone.current.identifier,
-            fahrenheit: fahrenheit != 0 ? fahrenheit : nil,
-            lastUpdated: lastUpdate != 0 ? Date(timeIntervalSince1970: lastUpdate) : nil,
-            isCurrentLocation: true,
-            sortOrder: 0
-        )
-
-        // Save in new format
-        saveCities([legacyCity])
-
-        logger.info("✅ Migration complete: \(city)")
     }
 
     // MARK: - Diagnostic
@@ -481,7 +388,6 @@ public final class WidgetRepository: WidgetRepositoryProtocol {
 extension WidgetCityData {
     /// Create WidgetCityData from CityModel
     /// Used when app needs to save to widget
-    /// NOTE: Internal because CityModel is internal to the main app
     init(from cityModel: CityModel) {
         self.init(
             id: cityModel.id,
@@ -497,27 +403,3 @@ extension WidgetCityData {
         )
     }
 }
-
-// MARK: - Import for CityModel (only available in main app)
-
-#if !WIDGET_EXTENSION
-extension CityModel {
-    /// Create CityModel from WidgetCityData
-    /// Used when widget updates need to flow back to app
-    init(from widgetData: WidgetCityData) {
-        self.init(
-            id: widgetData.id,
-            name: widgetData.name,
-            countryCode: widgetData.countryCode,
-            latitude: widgetData.latitude,
-            longitude: widgetData.longitude,
-            timeZoneIdentifier: widgetData.timeZoneIdentifier,
-            fahrenheit: widgetData.fahrenheit,
-            lastUpdated: widgetData.lastUpdated,
-            isCurrentLocation: widgetData.isCurrentLocation,
-            sortOrder: widgetData.sortOrder
-        )
-    }
-}
-#endif
-

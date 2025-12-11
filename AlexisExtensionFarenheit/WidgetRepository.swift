@@ -11,9 +11,6 @@
 //  - App Group (UserDefaults) is the bridge between processes
 //  - Both use identical keys and data structures for compatibility
 //
-//  TODO: Consider creating a shared framework (e.g., AlexisShared.framework)
-//  to eliminate this duplication and ensure both targets use the same code.
-//
 //  SYNC MECHANISM:
 //  ┌──────────────┐                    ┌──────────────────────┐
 //  │   Main App   │──── UserDefaults ──│   Widget Extension   │
@@ -28,7 +25,6 @@ import WidgetKit
 // MARK: - Shared Data Models (Must match main app exactly)
 
 /// Unified location data for widget sharing
-/// NOTE: No 'public' modifiers needed - this is an app extension, not a framework
 struct SharedLocation: Codable, Equatable {
     let latitude: Double
     let longitude: Double
@@ -169,10 +165,6 @@ final class WidgetRepository {
     private enum Keys {
         static let cities = "saved_cities"
         static let location = "widget_location"
-
-        // Legacy keys for backwards compatibility
-        static let legacyLatitude = "last_latitude"
-        static let legacyLongitude = "last_longitude"
     }
 
     // MARK: - Singleton
@@ -233,22 +225,16 @@ final class WidgetRepository {
 
         defaults.synchronize()
 
-        // Try new format first
-        if let data = defaults.data(forKey: Keys.location) {
-            do {
-                return try JSONDecoder().decode(SharedLocation.self, from: data)
-            } catch {
-                // Fall through to legacy format
-            }
+        guard let data = defaults.data(forKey: Keys.location) else {
+            return nil
         }
 
-        // Fallback to legacy format
-        let lat = defaults.double(forKey: Keys.legacyLatitude)
-        let lon = defaults.double(forKey: Keys.legacyLongitude)
-
-        guard lat != 0 && lon != 0 else { return nil }
-
-        return SharedLocation(latitude: lat, longitude: lon)
+        do {
+            return try JSONDecoder().decode(SharedLocation.self, from: data)
+        } catch {
+            logger.error("getLocation: Decode error - \(error.localizedDescription)")
+            return nil
+        }
     }
 
     /// Get age of primary city's data in minutes
