@@ -3,7 +3,7 @@ import CoreLocation
 
 /// Represents a saved city with weather and timezone data
 /// Used for the multi-city card list feature
-struct CityModel: Identifiable, Codable, Equatable {
+struct CityModel: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var name: String
     var countryCode: String

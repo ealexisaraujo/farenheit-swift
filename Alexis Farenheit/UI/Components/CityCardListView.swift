@@ -1,70 +1,38 @@
 import SwiftUI
-import UIKit
+import UniformTypeIdentifiers
 
 /// List of city cards with reorder and delete capabilities
-/// Premium design with smooth animations and haptic feedback
-/// Uses Apple-style drag-and-drop with real-time card movement
+/// Uses LazyVStack for ScrollView compatibility with custom drag-and-drop
 struct CityCardListView: View {
     @Binding var cities: [CityModel]
     @ObservedObject var timeService: TimeZoneService
 
-    /// Callback when a city should be deleted
     var onDeleteCity: ((CityModel) -> Void)?
-
-    /// Callback when cities are reordered
     var onReorder: ((IndexSet, Int) -> Void)?
-
-    /// Callback when add city is tapped
     var onAddCity: (() -> Void)?
+    var onTapCity: ((CityModel) -> Void)?
 
-    /// Whether we're in edit/reorder mode
-    @State private var isReorderMode = false
-
-    /// City being deleted (for animation)
+    @State private var isEditMode = false
     @State private var deletingCity: UUID?
+    @State private var draggingCityID: UUID?
 
-    /// Drag state tracking
-    @State private var draggingItem: CityModel?
-    @State private var dragOffset: CGFloat = 0
-    @State private var currentDragIndex: Int?
+    @State private var sensoryFeedbackTrigger = 0
+    @State private var pendingSensoryFeedback: SensoryFeedback = .impact(weight: .light)
 
-    // Card dimensions for offset calculations
-    private let cardHeight: CGFloat = 72
     private let cardSpacing: CGFloat = 12
-
-    // Maximum cities allowed
     private let maxCities = CityModel.maxCities
-
-    /// Check if there are editable cities (non-primary)
-    private var hasEditableCities: Bool {
-        cities.filter { !$0.isCurrentLocation && $0.sortOrder != 0 }.count > 0
-    }
-
-    /// Number of editable cities
-    private var editableCitiesCount: Int {
-        cities.filter { !$0.isCurrentLocation && $0.sortOrder != 0 }.count
-    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header with reorder button
             listHeader
+            cityList
+        }
+        .sensoryFeedback(pendingSensoryFeedback, trigger: sensoryFeedbackTrigger)
+    }
 
-            // City cards
-            if isReorderMode {
-                reorderableList
-            } else {
-                normalList
-            }
-        }
-        // Auto-exit edit mode when no editable cities remain
-        .onChange(of: editableCitiesCount) { _, newCount in
-            if newCount == 0 && isReorderMode {
-                withAnimation(.spring(response: 0.3)) {
-                    isReorderMode = false
-                }
-            }
-        }
+    private func emitFeedback(_ feedback: SensoryFeedback) {
+        pendingSensoryFeedback = feedback
+        sensoryFeedbackTrigger += 1
     }
 
     // MARK: - Header
@@ -83,27 +51,22 @@ struct CityCardListView: View {
 
             Spacer()
 
-            // Reorder button - only show if there are editable cities
-            if hasEditableCities {
+            if cities.count > 1 {
                 Button {
                     withAnimation(.spring(response: 0.3)) {
-                        isReorderMode.toggle()
+                        isEditMode.toggle()
                     }
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    emitFeedback(.impact(weight: .light))
                 } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: isReorderMode ? "checkmark" : "arrow.up.arrow.down")
-                            .font(.system(size: 12, weight: .semibold))
-                        Text(isReorderMode ? "Listo" : "Ordenar")
-                            .font(.subheadline.weight(.medium))
-                    }
-                    .foregroundStyle(isReorderMode ? .green : .blue)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(isReorderMode ? Color.green.opacity(0.15) : Color.blue.opacity(0.15))
-                    )
+                    Text(isEditMode ? "Listo" : "Editar")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(isEditMode ? .green : .blue)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(isEditMode ? Color.green.opacity(0.15) : Color.blue.opacity(0.15))
+                        )
                 }
             }
         }
@@ -111,187 +74,75 @@ struct CityCardListView: View {
         .padding(.bottom, 16)
     }
 
-    // MARK: - Normal List
+    // MARK: - City List
 
-    private var normalList: some View {
-        LazyVStack(spacing: 12) {
-            ForEach(cities) { city in
-                cityCard(for: city)
+    private var cityList: some View {
+        LazyVStack(spacing: cardSpacing) {
+            ForEach(Array(cities.enumerated()), id: \.element.id) { index, city in
+                let isPrimary = city.isCurrentLocation || index == 0
+
+                cityRow(for: city, at: index, isPrimary: isPrimary)
                     .transition(.asymmetric(
-                        insertion: .scale(scale: 0.8).combined(with: .opacity),
-                        removal: .scale(scale: 0.8).combined(with: .opacity)
+                        insertion: .scale(scale: 0.9).combined(with: .opacity),
+                        removal: .scale(scale: 0.9).combined(with: .opacity)
                     ))
             }
 
-            // Add city button
             if cities.count < maxCities {
                 addCityButton
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: cities.count)
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: deletingCity)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: cities.map(\.id))
     }
 
-    // MARK: - Reorderable List with Drag & Drop (Apple Style)
+    // MARK: - City Row
 
-    private var reorderableList: some View {
-        VStack(spacing: cardSpacing) {
-            ForEach(Array(cities.enumerated()), id: \.element.id) { index, city in
-                let isPrimary = city.isCurrentLocation || index == 0
-                let isDragging = draggingItem?.id == city.id
-                let neighborOffset = calculateNeighborOffset(for: city, at: index)
-
-                reorderableCard(for: city, at: index, isPrimary: isPrimary)
-                    .zIndex(isDragging ? 100 : Double(cities.count - index))
-                    .offset(y: isDragging ? dragOffset : neighborOffset)
-                    .scaleEffect(isDragging ? 1.05 : 1.0)
-                    .opacity(isDragging ? 0.9 : 1.0)
-                    .shadow(
-                        color: isDragging ? .black.opacity(0.3) : .clear,
-                        radius: isDragging ? 12 : 0,
-                        y: isDragging ? 8 : 0
-                    )
-                    .animation(
-                        isDragging ? nil : .spring(response: 0.3, dampingFraction: 0.7),
-                        value: neighborOffset
-                    )
-                    .gesture(
-                        isPrimary ? nil : makeDragGesture(for: city, at: index)
-                    )
-            }
-        }
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: cities.map(\.id))
-    }
-
-    /// Calculate offset for neighboring cards during drag (not the dragged item)
-    private func calculateNeighborOffset(for city: CityModel, at index: Int) -> CGFloat {
-        // Don't offset the dragged item - it uses dragOffset directly
-        guard draggingItem?.id != city.id else { return 0 }
-
-        // If nothing is being dragged, no offset
-        guard let draggingCity = draggingItem,
-              let originalDragIndex = cities.firstIndex(where: { $0.id == draggingCity.id }) else {
-            return 0
-        }
-
-        // Calculate the total distance per card slot
-        let slotHeight = cardHeight + cardSpacing
-
-        // Calculate how many slots the dragged item has moved based on dragOffset
-        let slotsMoved = Int((dragOffset / slotHeight).rounded())
-
-        // Calculate target index (where dragged item would go)
-        let targetIndex = max(1, min(cities.count - 1, originalDragIndex + slotsMoved))
-
-        // Determine if this card needs to move
-        if originalDragIndex < targetIndex {
-            // Dragging down: cards between original position and target move UP
-            if index > originalDragIndex && index <= targetIndex {
-                return -slotHeight
-            }
-        } else if originalDragIndex > targetIndex {
-            // Dragging up: cards between target and original position move DOWN
-            if index >= targetIndex && index < originalDragIndex {
-                return slotHeight
-            }
-        }
-
-        return 0
-    }
-
-    /// Create drag gesture for reordering
-    private func makeDragGesture(for city: CityModel, at index: Int) -> some Gesture {
-        LongPressGesture(minimumDuration: 0.15)
-            .onEnded { _ in
-                // Start drag
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    draggingItem = city
-                    currentDragIndex = index
-                }
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            }
-            .sequenced(before: DragGesture())
-            .onChanged { value in
-                switch value {
-                case .second(true, let drag):
-                    if let drag = drag {
-                        dragOffset = drag.translation.height
-
-                        // Haptic feedback when crossing slot boundaries
-                        let slotHeight = cardHeight + cardSpacing
-                        let slotsMoved = Int((dragOffset / slotHeight).rounded())
-                        let potentialIndex = max(1, min(cities.count - 1, index + slotsMoved))
-
-                        if potentialIndex != currentDragIndex {
-                            UISelectionFeedbackGenerator().selectionChanged()
-                            currentDragIndex = potentialIndex
-                        }
-                    }
-                default:
-                    break
-                }
-            }
-            .onEnded { value in
-                guard case .second(true, _) = value else {
-                    resetDragState()
-                    return
-                }
-
-                // Calculate final position
-                let slotHeight = cardHeight + cardSpacing
-                let slotsMoved = Int((dragOffset / slotHeight).rounded())
-                let targetIndex = max(1, min(cities.count - 1, index + slotsMoved))
-
-                // Perform the move if position changed
-                if targetIndex != index {
-                    let source = IndexSet(integer: index)
-                    let destination = targetIndex > index ? targetIndex + 1 : targetIndex
-                    onReorder?(source, destination)
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                }
-
-                resetDragState()
-            }
-    }
-
-    /// Reset all drag state
-    private func resetDragState() {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            draggingItem = nil
-            dragOffset = 0
-            currentDragIndex = nil
+    @ViewBuilder
+    private func cityRow(for city: CityModel, at index: Int, isPrimary: Bool) -> some View {
+        if isEditMode {
+            // Edit mode: show drag handles
+            editModeRow(for: city, at: index, isPrimary: isPrimary)
+        } else {
+            // Normal mode: swipe to delete, tap to edit
+            normalModeRow(for: city, isPrimary: isPrimary)
         }
     }
 
-    private func reorderableCard(for city: CityModel, at index: Int, isPrimary: Bool) -> some View {
+    // MARK: - Normal Mode Row
+
+    @ViewBuilder
+    private func normalModeRow(for city: CityModel, isPrimary: Bool) -> some View {
+        CityCardView(city: city, timeService: timeService, isPrimary: isPrimary, onDelete: nil)
+            .onTapGesture { onTapCity?(city) }
+            .opacity(deletingCity == city.id ? 0.5 : 1.0)
+    }
+
+    // MARK: - Edit Mode Row (Drag & Drop)
+
+    @ViewBuilder
+    private func editModeRow(for city: CityModel, at index: Int, isPrimary: Bool) -> some View {
         HStack(spacing: 12) {
-            // Drag handle (disabled for primary)
-            if !isPrimary {
+            // Drag handle or lock icon
+            if isPrimary {
+                Image(systemName: "lock.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 30)
+            } else {
                 Image(systemName: "line.3.horizontal")
                     .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(.secondary)
                     .frame(width: 30, height: 44)
                     .contentShape(Rectangle())
-            } else {
-                Image(systemName: "lock.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 30)
+                    .onDrag {
+                        draggingCityID = city.id
+                        emitFeedback(.impact(weight: .medium))
+                        return NSItemProvider(object: city.id.uuidString as NSString)
+                    }
             }
 
-            // Position indicator
-            ZStack {
-                Circle()
-                    .fill(isPrimary ? Color.blue : Color.secondary.opacity(0.3))
-                    .frame(width: 28, height: 28)
-
-                Text("\(index + 1)")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(isPrimary ? .white : .primary)
-            }
-
-            // City info
+            // City info compact
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     if isPrimary {
@@ -318,87 +169,39 @@ struct CityCardListView: View {
 
             Spacer()
 
-            // Move buttons (for non-primary cities)
-            if !isPrimary {
-                VStack(spacing: 4) {
-                    // Move up
-                    Button {
-                        moveCity(at: index, direction: -1)
-                    } label: {
-                        Image(systemName: "chevron.up")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(canMoveUp(at: index) ? .blue : .secondary.opacity(0.3))
-                            .frame(width: 32, height: 24)
-                    }
-                    .disabled(!canMoveUp(at: index))
-
-                    // Move down
-                    Button {
-                        moveCity(at: index, direction: 1)
-                    } label: {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(canMoveDown(at: index) ? .blue : .secondary.opacity(0.3))
-                            .frame(width: 32, height: 24)
-                    }
-                    .disabled(!canMoveDown(at: index))
-                }
-            }
-
-            // Delete button (for non-primary cities)
+            // Delete button (not for primary)
             if !isPrimary {
                 Button {
                     deleteCity(city)
                 } label: {
-                    Image(systemName: "trash.fill")
-                        .font(.system(size: 14))
+                    Image(systemName: "minus.circle.fill")
+                        .font(.title2)
                         .foregroundStyle(.red)
-                        .frame(width: 32, height: 32)
                 }
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(draggingItem?.id == city.id ? .regularMaterial : .ultraThinMaterial)
-                .shadow(
-                    color: draggingItem?.id == city.id ? .black.opacity(0.2) : .clear,
-                    radius: 8,
-                    y: 4
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(
-                            isPrimary ? Color.blue.opacity(0.3) : Color.clear,
-                            lineWidth: 1
-                        )
-                )
-        )
-    }
-
-    // MARK: - City Card
-
-    @ViewBuilder
-    private func cityCard(for city: CityModel) -> some View {
-        let isPrimary = city.isCurrentLocation || city.sortOrder == 0
-
-        CityCardView(
-            city: city,
-            timeService: timeService,
-            isPrimary: isPrimary,
-            onDelete: isPrimary ? nil : { deleteCity(city) }
-        )
-        .opacity(deletingCity == city.id ? 0.5 : 1)
-        .swipeActions(edge: .trailing, allowsFullSwipe: !isPrimary) {
-            if !isPrimary {
-                Button(role: .destructive) {
-                    deleteCity(city)
-                } label: {
-                    Label("Eliminar", systemImage: "trash")
-                }
+        .background {
+            if isPrimary {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.blue.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(Color.blue.opacity(0.3), lineWidth: 1)
+                    )
+            } else {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.ultraThinMaterial)
             }
         }
+        .onDrop(of: [UTType.text], delegate: ReorderDropDelegate(
+            targetCity: city,
+            cities: $cities,
+            draggingCityID: $draggingCityID,
+            onReorder: onReorder,
+            emitFeedback: emitFeedback
+        ))
     }
 
     // MARK: - Add Button
@@ -406,14 +209,13 @@ struct CityCardListView: View {
     private var addCityButton: some View {
         Button {
             onAddCity?()
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            emitFeedback(.impact(weight: .medium))
         } label: {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
                         .fill(.blue.opacity(0.15))
                         .frame(width: 40, height: 40)
-
                     Image(systemName: "plus")
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(.blue)
@@ -423,7 +225,6 @@ struct CityCardListView: View {
                     Text("Agregar ciudad")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(.primary)
-
                     Text("\(maxCities - cities.count) lugares disponibles")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -463,45 +264,60 @@ struct CityCardListView: View {
         withAnimation(.spring(response: 0.3)) {
             deletingCity = city.id
         }
+        emitFeedback(.warning)
 
-        UINotificationFeedbackGenerator().notificationOccurred(.warning)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 onDeleteCity?(city)
                 deletingCity = nil
             }
         }
     }
+}
 
-    private func canMoveUp(at index: Int) -> Bool {
-        // Can't move if at position 1 (position 0 is always current location)
-        let minPosition = cities.first?.isCurrentLocation == true ? 1 : 0
-        return index > minPosition
+// MARK: - Reorder Drop Delegate
+
+struct ReorderDropDelegate: DropDelegate {
+    let targetCity: CityModel
+    @Binding var cities: [CityModel]
+    @Binding var draggingCityID: UUID?
+    let onReorder: ((IndexSet, Int) -> Void)?
+    let emitFeedback: (SensoryFeedback) -> Void
+
+    func validateDrop(info: DropInfo) -> Bool {
+        info.hasItemsConforming(to: [UTType.text])
     }
 
-    private func canMoveDown(at index: Int) -> Bool {
-        return index < cities.count - 1
-    }
+    func dropEntered(info: DropInfo) {
+        guard let draggingID = draggingCityID, draggingID != targetCity.id else { return }
 
-    private func moveCity(at index: Int, direction: Int) {
-        let newIndex = index + direction
+        guard let fromIndex = cities.firstIndex(where: { $0.id == draggingID }),
+              let toIndex = cities.firstIndex(where: { $0.id == targetCity.id }) else { return }
 
-        // Validate move
         let minIndex = cities.first?.isCurrentLocation == true ? 1 : 0
-        guard newIndex >= minIndex && newIndex < cities.count else { return }
+        guard fromIndex >= minIndex, toIndex >= minIndex, fromIndex != toIndex else { return }
+
+        let source = IndexSet(integer: fromIndex)
+        let destination = toIndex > fromIndex ? toIndex + 1 : toIndex
 
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            let source = IndexSet(integer: index)
-            let destination = direction > 0 ? newIndex + 1 : newIndex
             onReorder?(source, destination)
         }
+        emitFeedback(.selection)
+    }
 
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggingCityID = nil
+        emitFeedback(.impact(weight: .light))
+        return true
     }
 }
 
-// MARK: - Scale Button Style
+// MARK: - Button Styles
 
 struct ScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -566,27 +382,17 @@ struct CityListEmptyView: View {
 #Preview("City List") {
     ZStack {
         Color.black.ignoresSafeArea()
-
         ScrollView {
             CityCardListView(
                 cities: .constant(CityModel.samples),
                 timeService: TimeZoneService.shared,
                 onDeleteCity: { _ in },
                 onReorder: { _, _ in },
-                onAddCity: { }
+                onAddCity: { },
+                onTapCity: { _ in }
             )
             .padding()
         }
-    }
-    .preferredColorScheme(.dark)
-}
-
-#Preview("Empty State") {
-    ZStack {
-        Color.black.ignoresSafeArea()
-
-        CityListEmptyView(onAddCity: { })
-            .padding()
     }
     .preferredColorScheme(.dark)
 }
