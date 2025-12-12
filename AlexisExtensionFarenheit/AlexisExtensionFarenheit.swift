@@ -89,20 +89,22 @@ typealias CityWidgetData = WidgetCityData
 /// Helper for formatting time in different timezones
 /// Used by widget views to display local time for each city
 enum WidgetTimeFormatter {
-    /// Shared formatter configured for time display
-    private static let formatter: DateFormatter = {
-        let df = DateFormatter()
-        df.dateFormat = "h:mm a"
-        return df
-    }()
-
-    /// Format a date in a specific timezone
+    /// Format a date in a specific timezone.
+    ///
+    /// NOTE:
+    /// - We avoid a shared `DateFormatter` because it is not thread-safe and requires mutating `timeZone`.
+    /// - We intentionally create a formatter per call: only a few cities are rendered, once per minute.
+    ///   This keeps the code correct and avoids cross-thread/shared-mutable-state issues inside WidgetKit.
+    ///
     /// - Parameters:
-    ///   - date: The date to format (typically entry.date)
+    ///   - date: The date to format (typically "now" from TimelineView)
     ///   - timeZone: The timezone to display the time in
     /// - Returns: Formatted time string (e.g., "2:30 PM")
     static func formatTime(_ date: Date, in timeZone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = .current
         formatter.timeZone = timeZone
+        formatter.dateFormat = "h:mm a"
         return formatter.string(from: date)
     }
 }
@@ -154,6 +156,10 @@ struct TemperatureProvider: TimelineProvider {
         logger.timeline("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         logger.timeline("getTimeline() CALLED")
         logger.timeline("Family: \(context.family.description)")
+        // Debug note:
+        // The widget UI uses `TimelineView(.periodic...)` for a live clock (time-of-day),
+        // because iOS may delay timeline reloads after the last entry expires.
+        logger.timeline("Clock UI: TimelineView periodic (1m) to avoid stale time after last entry")
 
         // Performance tracking: Start widget timeline generation
         let metadata = ["family": context.family.description, "is_preview": "\(context.isPreview)"]
@@ -445,25 +451,35 @@ struct MediumWidgetView: View {
     let entry: TemperatureEntry
 
     var body: some View {
-        HStack(spacing: 16) {
-            // Primary city (left side - larger)
-            primaryCityView
+        // IMPORTANT (WidgetKit limitation):
+        // Widget timelines are best-effort. When the last timeline entry expires, iOS may delay calling `getTimeline()`.
+        // If we render time based on `entry.date`, the UI can get "stuck" (e.g., device 4:30, widget 4:19).
+        //
+        // `TimelineView(.periodic...)` lets the widget re-render periodically WITHOUT network and WITHOUT needing a new timeline,
+        // so the displayed "clock" stays aligned with the OS time.
+        TimelineView(.periodic(from: Date(), by: 60)) { context in
+            let now = context.date
 
-            // Divider
-            Rectangle()
-                .fill(.white.opacity(0.2))
-                .frame(width: 1)
-                .padding(.vertical, 8)
+            HStack(spacing: 16) {
+                // Primary city (left side - larger)
+                primaryCityView
 
-            // Secondary city or conversion table (right side)
-            if let secondCity = entry.cities.dropFirst().first {
-                secondaryCityView(secondCity)
-            } else {
-                conversionView
+                // Divider
+                Rectangle()
+                    .fill(.white.opacity(0.2))
+                    .frame(width: 1)
+                    .padding(.vertical, 8)
+
+                // Secondary city or conversion table (right side)
+                if let secondCity = entry.cities.dropFirst().first {
+                    secondaryCityView(secondCity, now: now)
+                } else {
+                    conversionView
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(16)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(16)
     }
 
     // MARK: - Primary City View
@@ -503,13 +519,13 @@ struct MediumWidgetView: View {
     }
 
     // MARK: - Secondary City View
-    private func secondaryCityView(_ city: CityWidgetData) -> some View {
+    private func secondaryCityView(_ city: CityWidgetData, now: Date) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             // City name
             HStack(spacing: 4) {
-                Image(systemName: city.isDaytime ? "sun.max.fill" : "moon.fill")
+                Image(systemName: city.isDaytime(at: now) ? "sun.max.fill" : "moon.fill")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(city.isDaytime ? .yellow : .white.opacity(0.7))
+                    .foregroundStyle(city.isDaytime(at: now) ? .yellow : .white.opacity(0.7))
 
                 Text(city.name)
                     .font(.system(size: 13, weight: .medium))
@@ -542,8 +558,8 @@ struct MediumWidgetView: View {
                     .foregroundStyle(.white.opacity(0.5))
             }
 
-            // Local time - uses entry.date for minute-by-minute accuracy
-            Text(WidgetTimeFormatter.formatTime(entry.date, in: city.timeZone))
+            // Local time - uses "now" from TimelineView for live clock behavior.
+            Text(WidgetTimeFormatter.formatTime(now, in: city.timeZone))
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.white.opacity(0.5))
         }
@@ -598,46 +614,51 @@ struct LargeWidgetView: View {
     let entry: TemperatureEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Header
-            HStack {
-                Text("Tiempo Mundial")
-                    .font(.headline)
-                    .foregroundStyle(Color.white)
-                Spacer()
-                Image(systemName: "globe.americas.fill")
-                    .font(.title2)
-                    .foregroundStyle(Color.cyan)
-            }
+        // Same reasoning as MediumWidgetView: keep the clock live even if iOS delays timeline reloads.
+        TimelineView(.periodic(from: Date(), by: 60)) { context in
+            let now = context.date
 
-            // City cards (up to 3)
-            if entry.cities.isEmpty {
-                // Fallback to single city display
-                singleCityView
-            } else {
-                // Multi-city display
-                VStack(spacing: 8) {
-                    ForEach(entry.cities.prefix(3)) { city in
-                        cityRow(city)
+            VStack(alignment: .leading, spacing: 12) {
+                // Header
+                HStack {
+                    Text("Tiempo Mundial")
+                        .font(.headline)
+                        .foregroundStyle(Color.white)
+                    Spacer()
+                    Image(systemName: "globe.americas.fill")
+                        .font(.title2)
+                        .foregroundStyle(Color.cyan)
+                }
+
+                // City cards (up to 3)
+                if entry.cities.isEmpty {
+                    // Fallback to single city display
+                    singleCityView
+                } else {
+                    // Multi-city display
+                    VStack(spacing: 8) {
+                        ForEach(entry.cities.prefix(3)) { city in
+                            cityRow(city, now: now)
+                        }
                     }
                 }
-            }
 
-            Spacer()
-
-            // Footer with conversion hint
-            HStack {
-                Text("Desliza en la app para cambiar hora")
-                    .font(.caption2)
-                    .foregroundStyle(Color.white.opacity(0.5))
                 Spacer()
-                Text(entry.date, style: .time)
-                    .font(.caption2)
-                    .foregroundStyle(Color.white.opacity(0.5))
+
+                // Footer with conversion hint
+                HStack {
+                    Text("Desliza en la app para cambiar hora")
+                        .font(.caption2)
+                        .foregroundStyle(Color.white.opacity(0.5))
+                    Spacer()
+                    Text(now, style: .time)
+                        .font(.caption2)
+                        .foregroundStyle(Color.white.opacity(0.5))
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
     }
 
     // Single city fallback
@@ -671,12 +692,12 @@ struct LargeWidgetView: View {
     }
 
     // City row for multi-city display
-    private func cityRow(_ city: CityWidgetData) -> some View {
+    private func cityRow(_ city: CityWidgetData, now: Date) -> some View {
         HStack(spacing: 12) {
             // Day/night indicator
-            Image(systemName: city.isDaytime ? "sun.max.fill" : "moon.fill")
+            Image(systemName: city.isDaytime(at: now) ? "sun.max.fill" : "moon.fill")
                 .font(.system(size: 16))
-                .foregroundStyle(city.isDaytime ? .yellow : .white.opacity(0.7))
+                .foregroundStyle(city.isDaytime(at: now) ? .yellow : .white.opacity(0.7))
                 .frame(width: 24)
 
             // City info
@@ -699,8 +720,8 @@ struct LargeWidgetView: View {
                     }
                 }
 
-                // Uses entry.date for minute-by-minute accuracy
-                Text(WidgetTimeFormatter.formatTime(entry.date, in: city.timeZone))
+                // Uses "now" from TimelineView for live clock behavior
+                Text(WidgetTimeFormatter.formatTime(now, in: city.timeZone))
                     .font(.system(size: 13, design: .rounded))
                     .foregroundStyle(.white.opacity(0.7))
             }
@@ -734,6 +755,20 @@ struct LargeWidgetView: View {
                     ? Color.white.opacity(0.15)
                     : Color.white.opacity(0.08))
         )
+    }
+}
+
+// MARK: - WidgetCityData Helpers (Widget Extension)
+
+extension WidgetCityData {
+    /// Determine day/night state at a specific moment for this city's timezone.
+    ///
+    /// We pass `now` from `TimelineView` so the icon can update even if iOS delays the next widget timeline.
+    func isDaytime(at date: Date) -> Bool {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let hour = calendar.component(.hour, from: date)
+        return hour >= 6 && hour < 18
     }
 }
 
