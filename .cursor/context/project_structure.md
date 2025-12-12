@@ -77,6 +77,7 @@ AlexisExtensionFarenheit/               # Widget Extension
 - **SmallWidgetView**: Compact temperature display
 - **MediumWidgetView**: Primary city + second city or conversion table
 - **LargeWidgetView**: Up to 3 cities with day/night indicators
+- **Clock behavior**: The provider generates **minute-by-minute timeline entries** (1–2 hours depending on widget family) so local times advance with `entry.date` even if iOS delays the next `getTimeline()` call after the last entry expires
 
 ### Widget (Lock Screen - iOS 16+)
 - **AccessoryCircularView**: Gauge with °F center, °C in corner
