@@ -131,8 +131,17 @@ struct TemperatureProvider: TimelineProvider {
     private let logger = WidgetLogger.shared
     private let weatherService = WeatherKit.WeatherService.shared
 
-    /// Cache is considered stale after 30 minutes
-    private let maxCacheAgeMinutes: Double = 30
+    /// Cache is considered stale after 15 minutes.
+    ///
+    /// Rationale:
+    /// - 30m is too permissive and frequently lags behind the native Weather widget.
+    /// - Third-party widgets are best-effort; we want to refresh as soon as we *get execution time*.
+    /// - 15m aligns with the app's stale threshold used for lazy refresh.
+    private let maxCacheAgeMinutes: Double = 15
+
+    /// Desired cadence for requesting a new timeline from WidgetKit.
+    /// NOTE: iOS may delay this; it's a request, not a guarantee.
+    private let requestedRefreshMinutes: Int = 15
 
     // MARK: - TimelineProvider Protocol
 
@@ -174,7 +183,8 @@ struct TemperatureProvider: TimelineProvider {
 
         // Log current state
         if let primary = primaryCity, let temp = primary.fahrenheit {
-            logger.timeline("Primary city: \(primary.name), \(Int(temp))°F, age: \(Int(cacheAgeMinutes))m")
+            let lastUpdatedText = primary.lastUpdated.map { Self.timeFormatter.string(from: $0) } ?? "nil"
+            logger.timeline("Primary city: \(primary.name), \(Int(temp))°F, age: \(Int(cacheAgeMinutes))m, lastUpdated: \(lastUpdatedText)")
         } else {
             logger.timeline("No primary city or temperature data")
         }
@@ -207,11 +217,13 @@ struct TemperatureProvider: TimelineProvider {
                     cities: cities
                 )
 
-                // Schedule next refresh after the last entry
-                let lastEntryDate = entries.last?.date ?? Date()
-                let timeline = Timeline(entries: entries, policy: .after(lastEntryDate))
+                // Schedule next refresh (best-effort).
+                // We request refresh every ~15 minutes regardless of how many entries we generate,
+                // because iOS may delay execution and we want the next opportunity to fetch fresh data ASAP.
+                let nextRefreshDate = nextRefreshAligned(toMinutes: requestedRefreshMinutes)
+                let timeline = Timeline(entries: entries, policy: .after(nextRefreshDate))
 
-                logger.timeline("Timeline created with \(entries.count) entries (fresh), next refresh: \(Self.timeFormatter.string(from: lastEntryDate))")
+                logger.timeline("Timeline created with \(entries.count) entries (fresh), requested refresh: \(Self.timeFormatter.string(from: nextRefreshDate))")
                 logger.timeline("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
                 // Performance tracking: End widget timeline (fresh fetch)
@@ -237,11 +249,11 @@ struct TemperatureProvider: TimelineProvider {
                 logger.timeline("No city data - showing placeholder")
             }
 
-            // Schedule next refresh after the last entry
-            let lastEntryDate = entries.last?.date ?? Date()
-            let timeline = Timeline(entries: entries, policy: .after(lastEntryDate))
+            // Schedule next refresh (best-effort) - see fresh path notes.
+            let nextRefreshDate = nextRefreshAligned(toMinutes: requestedRefreshMinutes)
+            let timeline = Timeline(entries: entries, policy: .after(nextRefreshDate))
 
-            logger.timeline("Timeline created with \(entries.count) entries, next refresh: \(Self.timeFormatter.string(from: lastEntryDate))")
+            logger.timeline("Timeline created with \(entries.count) entries, requested refresh: \(Self.timeFormatter.string(from: nextRefreshDate))")
             logger.timeline("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
             // Performance tracking: End widget timeline (cached)
@@ -371,6 +383,23 @@ struct TemperatureProvider: TimelineProvider {
     }
 
     // MARK: - Helpers
+
+    /// Compute the next refresh aligned to a minute boundary.
+    /// Example: if now is 16:07 and interval is 15m, returns ~16:15:00.
+    private func nextRefreshAligned(toMinutes intervalMinutes: Int) -> Date {
+        let now = Date()
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: now)
+        guard let startOfMinute = calendar.date(from: components) else {
+            return now.addingTimeInterval(TimeInterval(intervalMinutes * 60))
+        }
+
+        let minute = calendar.component(.minute, from: startOfMinute)
+        let nextMultiple = ((minute / intervalMinutes) + 1) * intervalMinutes
+        let delta = nextMultiple - minute
+        return calendar.date(byAdding: .minute, value: delta, to: startOfMinute)
+            ?? now.addingTimeInterval(TimeInterval(intervalMinutes * 60))
+    }
 
     private static let timeFormatter: DateFormatter = {
         let df = DateFormatter()
