@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		BC54E2F52EE35246004F6AAE /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC54E2F42EE35246004F6AAE /* WidgetKit.framework */; };
 		BC54E2F72EE35246004F6AAE /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC54E2F62EE35246004F6AAE /* SwiftUI.framework */; };
+		BC54E3BB2F1B0000004F6B0A /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC54E3BA2F1B0000004F6B09 /* XCTest.framework */; };
 		BC54E3082EE35248004F6AAE /* AlexisExtensionFarenheitExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BC54E2F22EE35246004F6AAE /* AlexisExtensionFarenheitExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -19,6 +20,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = BC54E2F12EE35246004F6AAE;
 			remoteInfo = AlexisExtensionFarenheitExtension;
+		};
+		BC54E3BD2F1B0000004F6B0C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BC54E2632EE346A5004F6AAE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BC54E26A2EE346A5004F6AAE;
+			remoteInfo = "Alexis Farenheit";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -39,8 +47,10 @@
 /* Begin PBXFileReference section */
 		BC54E26B2EE346A5004F6AAE /* Alexis Farenheit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Alexis Farenheit.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BC54E2F22EE35246004F6AAE /* AlexisExtensionFarenheitExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AlexisExtensionFarenheitExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BC54E3B12F1B0000004F6B00 /* AlexisFarenheitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AlexisFarenheitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BC54E2F42EE35246004F6AAE /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		BC54E2F62EE35246004F6AAE /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		BC54E3BA2F1B0000004F6B09 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
 		BC9C2DA12EE72CA400747975 /* AlexisExtensionFarenheitExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AlexisExtensionFarenheitExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -68,6 +78,11 @@
 			path = AlexisExtensionFarenheit;
 			sourceTree = "<group>";
 		};
+		BC54E3B92F1B0000004F6B08 /* AlexisFarenheitTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AlexisFarenheitTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,6 +102,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BC54E3B72F1B0000004F6B06 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BC54E3BB2F1B0000004F6B0A /* XCTest.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -95,6 +118,7 @@
 			children = (
 				BC9C2DA12EE72CA400747975 /* AlexisExtensionFarenheitExtension.entitlements */,
 				BC54E26D2EE346A5004F6AAE /* Alexis Farenheit */,
+				BC54E3B92F1B0000004F6B08 /* AlexisFarenheitTests */,
 				BC54E2F82EE35246004F6AAE /* AlexisExtensionFarenheit */,
 				BC54E2F32EE35246004F6AAE /* Frameworks */,
 				BC54E26C2EE346A5004F6AAE /* Products */,
@@ -106,6 +130,7 @@
 			children = (
 				BC54E26B2EE346A5004F6AAE /* Alexis Farenheit.app */,
 				BC54E2F22EE35246004F6AAE /* AlexisExtensionFarenheitExtension.appex */,
+				BC54E3B12F1B0000004F6B00 /* AlexisFarenheitTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -115,6 +140,7 @@
 			children = (
 				BC54E2F42EE35246004F6AAE /* WidgetKit.framework */,
 				BC54E2F62EE35246004F6AAE /* SwiftUI.framework */,
+				BC54E3BA2F1B0000004F6B09 /* XCTest.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -168,6 +194,29 @@
 			productReference = BC54E2F22EE35246004F6AAE /* AlexisExtensionFarenheitExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		BC54E3B22F1B0000004F6B01 /* AlexisFarenheitTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BC54E3B32F1B0000004F6B02 /* Build configuration list for PBXNativeTarget "AlexisFarenheitTests" */;
+			buildPhases = (
+				BC54E3B62F1B0000004F6B05 /* Sources */,
+				BC54E3B72F1B0000004F6B06 /* Frameworks */,
+				BC54E3B82F1B0000004F6B07 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BC54E3BC2F1B0000004F6B0B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BC54E3B92F1B0000004F6B08 /* AlexisFarenheitTests */,
+			);
+			name = AlexisFarenheitTests;
+			packageProductDependencies = (
+			);
+			productName = AlexisFarenheitTests;
+			productReference = BC54E3B12F1B0000004F6B00 /* AlexisFarenheitTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -182,6 +231,9 @@
 						CreatedOnToolsVersion = 26.1.1;
 					};
 					BC54E2F12EE35246004F6AAE = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
+					BC54E3B22F1B0000004F6B01 = {
 						CreatedOnToolsVersion = 26.1.1;
 					};
 				};
@@ -202,6 +254,7 @@
 			targets = (
 				BC54E26A2EE346A5004F6AAE /* Alexis Farenheit */,
 				BC54E2F12EE35246004F6AAE /* AlexisExtensionFarenheitExtension */,
+				BC54E3B22F1B0000004F6B01 /* AlexisFarenheitTests */,
 			);
 		};
 /* End PBXProject section */
@@ -215,6 +268,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		BC54E2F02EE35246004F6AAE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BC54E3B82F1B0000004F6B07 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -238,6 +298,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BC54E3B62F1B0000004F6B05 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -245,6 +312,11 @@
 			isa = PBXTargetDependency;
 			target = BC54E2F12EE35246004F6AAE /* AlexisExtensionFarenheitExtension */;
 			targetProxy = BC54E3062EE35248004F6AAE /* PBXContainerItemProxy */;
+		};
+		BC54E3BC2F1B0000004F6B0B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BC54E26A2EE346A5004F6AAE /* Alexis Farenheit */;
+			targetProxy = BC54E3BD2F1B0000004F6B0C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -504,6 +576,52 @@
 			};
 			name = Release;
 		};
+		BC54E3B42F1B0000004F6B03 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PN2FR53G7Y;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "alexisaraujo.Alexis-FarenheitTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Alexis Farenheit.app/Alexis Farenheit";
+			};
+			name = Debug;
+		};
+		BC54E3B52F1B0000004F6B04 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PN2FR53G7Y;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "alexisaraujo.Alexis-FarenheitTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Alexis Farenheit.app/Alexis Farenheit";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -530,6 +648,15 @@
 			buildConfigurations = (
 				BC54E30A2EE35248004F6AAE /* Debug */,
 				BC54E30B2EE35248004F6AAE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BC54E3B32F1B0000004F6B02 /* Build configuration list for PBXNativeTarget "AlexisFarenheitTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BC54E3B42F1B0000004F6B03 /* Debug */,
+				BC54E3B52F1B0000004F6B04 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

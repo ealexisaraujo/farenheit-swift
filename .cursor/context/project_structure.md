@@ -25,6 +25,7 @@ Alexis Farenheit/
 │   │   ├── WeatherService.swift        # WeatherKit wrapper
 │   │   ├── WidgetDataService.swift     # App-Widget data sharing
 │   │   ├── BackgroundTaskService.swift # BGTaskScheduler + Significant Location
+│   │   ├── SignificantLocationUpdateHandler.swift # Testable significant-location pipeline (geocode + WeatherKit + App Group)
 │   │   ├── CityStorageService.swift    # City persistence + Widget reload
 │   │   ├── TimeZoneService.swift       # Time slider logic
 │   │   ├── SharedLogger.swift          # File-based logging (JSON)
@@ -48,6 +49,9 @@ Alexis Farenheit/
 │
 └── Resources/
 
+AlexisFarenheitTests/                  # Unit tests (XCTest)
+└── SignificantLocationUpdateHandlerTests.swift # TDD coverage for widget travel refresh pipeline
+
 AlexisExtensionFarenheit/               # Widget Extension
 ├── AlexisExtensionFarenheitBundle.swift  # Widget bundle entry
 ├── AlexisExtensionFarenheit.swift        # Widget + views + provider (6 sizes)
@@ -64,6 +68,7 @@ AlexisExtensionFarenheit/               # Widget Extension
 - **WeatherService**: WeatherKit API for current temperature
 - **WidgetDataService**: Saves data to App Group for widget access
 - **BackgroundTaskService**: BGTaskScheduler + handles significant location changes
+- **SignificantLocationUpdateHandler**: Testable handler used by BackgroundTaskService to update city identity + temperature (best-effort) on travel
 - **CityStorageService**: Multi-city persistence with widget reload throttling
 - **TimeZoneService**: Time slider with 0-1439 minute range
 - **SharedLogger**: JSON file logging shared between app and widget
@@ -89,7 +94,7 @@ AlexisExtensionFarenheit/               # Widget Extension
 ### Main App Target
 1. **WeatherKit** - For weather data
 2. **App Groups** - `group.alexisaraujo.alexisfarenheit`
-3. **Background Modes** - Background fetch, Background processing
+3. **Background Modes** - Background fetch, Background processing, Location updates
 
 ### Widget Extension Target
 1. **App Groups** - `group.alexisaraujo.alexisfarenheit` (same as app)
@@ -111,9 +116,18 @@ AlexisExtensionFarenheit/               # Widget Extension
 ### Background Location Update (Significant Location Changes)
 1. User moves ~500m+ → iOS detects significant location change
 2. iOS wakes app in background → LocationService receives location
-3. BackgroundTaskService.handleSignificantLocationChange() triggers
-4. Reverse geocode + WeatherKit fetch → Save to App Group
-5. Widget reloads with new city and temperature
+3. BackgroundTaskService delegates to SignificantLocationUpdateHandler
+4. Handler saves coords (`widget_location`) + resolves city identity + tries WeatherKit (best-effort)
+5. Even if WeatherKit fails, handler updates city identity and marks it stale so widget fetches ASAP
+6. Widget reloads with new city and (eventually) temperature
+
+#### Important iOS Limitation (Force-Quit)
+- If the user **force-quits** the app (swipe up), iOS generally **stops background execution** for that app.
+  That means Significant Location Changes and BGTasks won’t run, so the widget cannot auto-refresh while traveling.
+
+#### Background Refresh Fallback
+- The BGAppRefresh handler now attempts a **best-effort current location request** (with timeout).
+  If it succeeds, it updates `widget_location` and the primary city via `SignificantLocationUpdateHandler`, improving travel updates even when Significant Location events aren’t delivered.
 
 ## Build & Run
 1. Open `Alexis Farenheit.xcodeproj` in Xcode

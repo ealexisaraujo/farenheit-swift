@@ -28,6 +28,10 @@ final class BackgroundTaskService {
     private let cityStorage = CityStorageService.shared
     private let logger = Logger(subsystem: "alexisaraujo.AlexisFarenheit", category: "BackgroundTask")
 
+    /// Testable handler for Significant Location Changes.
+    /// This isolates geocode + WeatherKit + persistence so we can TDD it without fighting BGTask/CLLocationManager.
+    private let significantLocationHandler = SignificantLocationUpdateHandler()
+
     /// Location service for significant location changes (must keep strong reference)
     private var locationService: LocationService?
 
@@ -57,6 +61,12 @@ final class BackgroundTaskService {
 
     /// Start monitoring significant location changes (call when app goes to background)
     func startSignificantLocationMonitoring() {
+        // Debug note:
+        // If the user force-quits the app (swipe up), iOS will not run background location updates.
+        SharedLogger.shared.info(
+            "Starting significant location monitoring (note: force-quit disables background updates)",
+            category: "Background"
+        )
         locationService?.startMonitoringSignificantLocationChanges()
         logger.debug("🔄 Started significant location monitoring")
     }
@@ -71,69 +81,10 @@ final class BackgroundTaskService {
     private func handleSignificantLocationChange(_ location: CLLocation) {
         logger.info("🔄 Handling significant location change...")
         SharedLogger.shared.info("Significant location change - updating widget", category: "Background")
-
-        // Save new coordinates to App Group immediately
-        saveLocationToAppGroup(location)
-
-        // Fetch weather for new location and update widget
+        // Delegate to testable handler (TDD coverage lives in AlexisFarenheitTests).
+        // This updates App Group coords + saved_cities identity even if WeatherKit fails.
         Task {
-            await fetchWeatherAndUpdateWidget(for: location)
-        }
-    }
-
-    /// Save location coordinates to App Group for widget access
-    /// Uses WidgetRepository as SINGLE SOURCE OF TRUTH
-    private func saveLocationToAppGroup(_ location: CLLocation) {
-        // REPOSITORY PATTERN: Use WidgetRepository instead of direct UserDefaults access
-        // This ensures widget reads from the same key we write to
-        let sharedLocation = SharedLocation(
-            latitude: location.coordinate.latitude,
-            longitude: location.coordinate.longitude
-        )
-        WidgetRepository.shared.saveLocation(sharedLocation)
-
-        logger.debug("🔄 Saved location via WidgetRepository: \(location.coordinate.latitude), \(location.coordinate.longitude)")
-    }
-
-    /// Fetch weather for location and update widget
-    /// Updates saved_cities which is the single source of truth for widgets
-    private func fetchWeatherAndUpdateWidget(for location: CLLocation) async {
-        // Reverse geocode to get city name and timezone
-        let geocoder = CLGeocoder()
-        do {
-            let placemarks = try await geocoder.reverseGeocodeLocation(location)
-            let cityName = placemarks.first?.locality
-                ?? placemarks.first?.administrativeArea
-                ?? "Unknown"
-            let countryCode = placemarks.first?.isoCountryCode ?? ""
-            let timeZoneId = placemarks.first?.timeZone?.identifier ?? TimeZone.current.identifier
-
-            // Fetch weather
-            await weatherService.fetchWeather(for: location)
-
-            if let temp = await MainActor.run(body: { weatherService.currentTemperatureF }) {
-                // Update saved_cities (single source of truth for widget)
-                await MainActor.run {
-                    // Create/update current location city
-                    let currentLocationCity = CityModel(
-                        name: cityName,
-                        countryCode: countryCode,
-                        latitude: location.coordinate.latitude,
-                        longitude: location.coordinate.longitude,
-                        timeZoneIdentifier: timeZoneId,
-                        fahrenheit: temp,
-                        lastUpdated: Date(),
-                        isCurrentLocation: true,
-                        sortOrder: 0
-                    )
-                    cityStorage.updateCurrentLocation(currentLocationCity)
-                }
-
-                logger.info("🔄 Widget updated from significant location: \(cityName), \(Int(temp))°F")
-                SharedLogger.shared.info("Widget updated: \(cityName), \(Int(temp))°F", category: "Background")
-            }
-        } catch {
-            logger.error("🔄 Failed to geocode location: \(error.localizedDescription)")
+            await significantLocationHandler.handleSignificantLocationChange(location)
         }
     }
 
@@ -212,15 +163,43 @@ final class BackgroundTaskService {
         // Schedule the next refresh before we do anything
         scheduleAppRefresh()
 
+        // We'll run our async work in a Task so we can cancel on expiration.
+        var refreshTask: Task<Void, Never>?
+
         // Set up expiration handler
         task.expirationHandler = { [weak self] in
             print("🔄 Background task expired")
             SharedLogger.shared.warning("Background task expired", category: "Background")
+            refreshTask?.cancel()
             self?.weatherService.cancelFetch()
         }
 
-        // Fetch weather data for last known location
-        Task {
+        // Fetch weather data for *current* location (best-effort) so the widget can follow travel.
+        // Fallback: if we cannot get current location quickly, use last known App Group location.
+        refreshTask = Task { [weak self] in
+            guard let self else { return }
+
+            // 1) Try current location (best-effort)
+            if let currentLocation = await self.fetchCurrentLocationForBackgroundRefresh(timeoutSeconds: 10) {
+                SharedLogger.shared.info(
+                    "Background refresh: got current location (\(String(format: "%.4f", currentLocation.coordinate.latitude)), \(String(format: "%.4f", currentLocation.coordinate.longitude)))",
+                    category: "Background"
+                )
+
+                // Reuse the same handler used for Significant Location Changes.
+                // This updates widget_location + current city identity, then fetches WeatherKit (best-effort).
+                await self.significantLocationHandler.handleSignificantLocationChange(currentLocation)
+
+                SharedLogger.shared.widget("Background refresh: updated via current location ✅", category: "Background")
+                task.setTaskCompleted(success: true)
+                return
+            } else {
+                SharedLogger.shared.warning(
+                    "Background refresh: could not get current location quickly; falling back to last known App Group location",
+                    category: "Background"
+                )
+            }
+
             // Get last known location from UserDefaults
             guard let location = loadLastKnownLocation() else {
                 print("🔄 No last known location, completing task")
@@ -234,20 +213,20 @@ final class BackgroundTaskService {
             SharedLogger.shared.info("Background: Fetching weather", category: "Background")
 
             let clLocation = CLLocation(latitude: location.latitude, longitude: location.longitude)
-            await weatherService.fetchWeather(for: clLocation)
+            await self.weatherService.fetchWeather(for: clLocation)
 
             // Check if we got temperature (access @MainActor property safely)
-            if let temp = await MainActor.run(body: { weatherService.currentTemperatureF }) {
+            if let temp = await MainActor.run(body: { self.weatherService.currentTemperatureF }) {
                 // Update saved_cities - single source of truth for widget
                 await MainActor.run {
                     // Update current location city with new temperature
-                    if let currentCity = cityStorage.currentLocationCity {
+                    if let currentCity = self.cityStorage.currentLocationCity {
                         let updatedCity = currentCity.withWeather(fahrenheit: temp)
-                        cityStorage.updateCity(updatedCity)
+                        self.cityStorage.updateCity(updatedCity)
                     }
                 }
 
-                let cityName = await MainActor.run { cityStorage.currentLocationCity?.name ?? "Unknown" }
+                let cityName = await MainActor.run { self.cityStorage.currentLocationCity?.name ?? "Unknown" }
                 print("🔄 Background refresh complete: \(cityName), \(Int(temp))°F ✅")
                 SharedLogger.shared.widget("Background refresh: \(cityName), \(Int(temp))°F ✅", category: "Background")
 
@@ -262,6 +241,32 @@ final class BackgroundTaskService {
 
     // MARK: - Location Helpers
 
+    /// Best-effort current location for BGAppRefresh.
+    /// - Important: iOS may delay or deny location delivery in background depending on system state.
+    /// - This is a fallback to improve travel updates when Significant Location Changes aren't delivered.
+    private func fetchCurrentLocationForBackgroundRefresh(timeoutSeconds: TimeInterval) async -> CLLocation? {
+        // Only attempt if we have Always authorization; otherwise it won't work reliably in background.
+        let status = CLLocationManager().authorizationStatus
+        guard status == .authorizedAlways else {
+            SharedLogger.shared.warning(
+                "Background refresh: skipping current-location request (auth: \(status.rawValue))",
+                category: "Background"
+            )
+            return nil
+        }
+
+        do {
+            let location = try await BackgroundOneShotLocationProvider().requestLocation(timeoutSeconds: timeoutSeconds)
+            return location
+        } catch {
+            SharedLogger.shared.warning(
+                "Background refresh: current-location request failed: \(error.localizedDescription)",
+                category: "Background"
+            )
+            return nil
+        }
+    }
+
     /// Load last known location from WidgetRepository (App Group)
     /// Uses WidgetRepository as SINGLE SOURCE OF TRUTH
     private func loadLastKnownLocation() -> CLLocationCoordinate2D? {
@@ -274,6 +279,80 @@ final class BackgroundTaskService {
         guard location.isValid else { return nil }
 
         return location.coordinate
+    }
+}
+
+// MARK: - One-shot Location Provider (Background Refresh)
+
+/// Small async wrapper around CLLocationManager.requestLocation() for BG refresh.
+/// Keeps logic local to BackgroundTaskService and avoids coupling with the UI LocationService.
+@MainActor
+private final class BackgroundOneShotLocationProvider: NSObject, CLLocationManagerDelegate {
+
+    enum LocationError: LocalizedError {
+        case timeout
+        case noLocation
+
+        var errorDescription: String? {
+            switch self {
+            case .timeout: return "Location request timed out"
+            case .noLocation: return "No location returned"
+            }
+        }
+    }
+
+    private let manager = CLLocationManager()
+    private var continuation: CheckedContinuation<CLLocation, Error>?
+    private var isResolved = false
+
+    func requestLocation(timeoutSeconds: TimeInterval) async throws -> CLLocation {
+        // NOTE: iOS requires location services enabled.
+        guard CLLocationManager.locationServicesEnabled() else {
+            throw CLError(.denied)
+        }
+
+        // Configure for fast coarse fixes (good enough for city-level widgets).
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyKilometer
+
+        return try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+
+            // Fire request
+            manager.requestLocation()
+
+            // Timeout guard (best-effort)
+            DispatchQueue.main.asyncAfter(deadline: .now() + timeoutSeconds) { [weak self] in
+                self?.resolve(.failure(LocationError.timeout))
+            }
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let last = locations.last else {
+            resolve(.failure(LocationError.noLocation))
+            return
+        }
+        resolve(.success(last))
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        resolve(.failure(error))
+    }
+
+    private func resolve(_ result: Result<CLLocation, Error>) {
+        guard !isResolved else { return }
+        isResolved = true
+
+        manager.delegate = nil
+
+        switch result {
+        case .success(let location):
+            continuation?.resume(returning: location)
+        case .failure(let error):
+            continuation?.resume(throwing: error)
+        }
+        continuation = nil
     }
 }
 

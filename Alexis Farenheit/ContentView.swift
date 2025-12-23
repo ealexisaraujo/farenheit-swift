@@ -10,6 +10,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showingLogViewer = false
     @State private var showingCitySearch = false
+    @AppStorage("hasDismissedForceQuitWidgetHint") private var hasDismissedForceQuitWidgetHint = false
 
     var body: some View {
         ZStack {
@@ -20,6 +21,10 @@ struct ContentView: View {
                 VStack(spacing: 24) {
                     // Header with settings
                     header
+
+                    // iOS limitation hint (important for widget travel refresh debugging):
+                    // Force-quitting the app disables background execution, so Significant Location Changes / BGTasks won't run.
+                    forceQuitWidgetHint
 
                     // Time Zone Slider
                     TimeZoneSliderView(
@@ -261,6 +266,58 @@ struct ContentView: View {
                 }
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    // MARK: - iOS Force-Quit Hint (Widget Background Updates)
+
+    private var forceQuitWidgetHint: some View {
+        Group {
+            if !hasDismissedForceQuitWidgetHint {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(.blue)
+                        .padding(.top, 1)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Widgets al viajar")
+                            .font(.subheadline.weight(.semibold))
+
+                        Text("Para que el widget se actualice al cambiar de ciudad, no cierres la app forzadamente (swipe up). iOS desactiva las actualizaciones en segundo plano cuando fuerzas el cierre.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+
+                        Button {
+                            // Quick path to inspect timeline/logs when debugging widget refresh.
+                            showingLogViewer = true
+                        } label: {
+                            Label("Ver logs", systemImage: "doc.text.magnifyingglass")
+                                .font(.footnote.weight(.medium))
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.blue)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Button {
+                        hasDismissedForceQuitWidgetHint = true
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.secondary)
+                            .padding(6)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Cerrar aviso")
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity)
+                .background(Color.blue.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
         }
     }
