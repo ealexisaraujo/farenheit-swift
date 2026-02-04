@@ -1,0 +1,1480 @@
+{
+  "generatedAt": "2026-02-04T02:22:55.825327+00:00",
+  "sourceLanguage": "en",
+  "targetLanguage": "fr",
+  "includeTargets": [
+    "app",
+    "widget"
+  ],
+  "totalCandidates": 80,
+  "candidates": [
+    {
+      "source": "-40°F",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/ConversionSliderView.swift",
+          "line": 69,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "12 AM",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/TimeZoneSliderView.swift",
+          "line": 214,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/TimeZoneSliderView.swift",
+          "line": 238,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "12 PM",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/TimeZoneSliderView.swift",
+          "line": 226,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "140°F",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/ConversionSliderView.swift",
+          "line": 73,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "6 AM",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/TimeZoneSliderView.swift",
+          "line": 220,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "6 PM",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/TimeZoneSliderView.swift",
+          "line": 232,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Add a city",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CityCardListView.swift",
+          "line": 232,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CityCardListView.swift",
+          "line": 367,
+          "kind": "Label",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Add cities to see time and temperature around the world",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CityCardListView.swift",
+          "line": 358,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Add cities to see time and temperature in different places",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 418,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Add City",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 356,
+          "kind": "navigationTitle",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Add city manually",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 188,
+          "kind": "Label",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "All",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/LogViewerView.swift",
+          "line": 120,
+          "kind": "Button",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/LogViewerView.swift",
+          "line": 139,
+          "kind": "Button",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "C",
+      "contexts": [
+        {
+          "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
+          "line": 829,
+          "kind": "Text",
+          "target": "widget"
+        },
+        {
+          "file": "AlexisExtensionFarenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "widget"
+        }
+      ]
+    },
+    {
+      "source": "Cancel",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 360,
+          "kind": "Button",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CitySearchView.swift",
+          "line": 237,
+          "kind": "Button",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/LogViewerView.swift",
+          "line": 83,
+          "kind": "Button",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Celsius",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/ConversionSliderView.swift",
+          "line": 46,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Cities",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CityCardListView.swift",
+          "line": 44,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "City search",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CitySearchView.swift",
+          "line": 377,
+          "kind": "accessibilityLabel",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "City, state, or country",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 368,
+          "kind": "searchPrompt",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CitySearchView.swift",
+          "line": 245,
+          "kind": "searchPrompt",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Clear",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/LogViewerView.swift",
+          "line": 84,
+          "kind": "Button",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Clear all logs?",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/LogViewerView.swift",
+          "line": 82,
+          "kind": "alert",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Clear Logs",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/LogViewerView.swift",
+          "line": 61,
+          "kind": "Label",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Close",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/LogViewerView.swift",
+          "line": 35,
+          "kind": "Button",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Converter",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/ConversionSliderView.swift",
+          "line": 18,
+          "kind": "Label",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Could not add city",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
+          "line": 322,
+          "kind": "errorMessageAssign",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Could not find location",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
+          "line": 728,
+          "kind": "errorMessageAssign",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Current temperature card",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/TemperatureDisplayView.swift",
+          "line": 57,
+          "kind": "accessibilityHint",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Current time",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/TimeZoneSliderView.swift",
+          "line": 86,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Dismiss notice",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 317,
+          "kind": "accessibilityLabel",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Done",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Edit",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Enable location access in Settings to see weather for your current location",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 171,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Export JSON",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/LogViewerView.swift",
+          "line": 53,
+          "kind": "Label",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Export TXT",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/LogViewerView.swift",
+          "line": 47,
+          "kind": "Label",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Fahrenheit",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/ConversionSliderView.swift",
+          "line": 31,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Find a city",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 415,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "F° → C°",
+      "contexts": [
+        {
+          "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
+          "line": 613,
+          "kind": "Text",
+          "target": "widget"
+        },
+        {
+          "file": "AlexisExtensionFarenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "widget"
+        }
+      ]
+    },
+    {
+      "source": "Getting location...",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 179,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Level",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Location permission denied. Enable it in Settings.",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Core/Services/LocationService.swift",
+          "line": 63,
+          "kind": "errorMessageAssign",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Core/Services/LocationService.swift",
+          "line": 85,
+          "kind": "errorMessageAssign",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Core/Services/LocationService.swift",
+          "line": 157,
+          "kind": "errorMessageAssign",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Location unavailable",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 169,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Location: %@",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
+          "line": 581,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Logs",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/LogViewerView.swift",
+          "line": 31,
+          "kind": "navigationTitle",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Logs will appear here when the app or widget generates events.",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/LogViewerView.swift",
+          "line": 198,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Maximum of %d cities reached",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
+          "line": 244,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "No logs",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/LogViewerView.swift",
+          "line": 195,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "No results",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 441,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CitySearchView.swift",
+          "line": 293,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "No saved cities",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CityCardListView.swift",
+          "line": 354,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Now",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Core/Services/TimeZoneService.swift",
+          "line": 217,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/TimeZoneSliderView.swift",
+          "line": 79,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Open Settings",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 253,
+          "kind": "accessibilityLabel",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Refresh",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 232,
+          "kind": "Label",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Requesting location permission...",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 161,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Search another city...",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CitySearchView.swift",
+          "line": 181,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Search by city, state, or country name",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CitySearchView.swift",
+          "line": 285,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Search City",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CitySearchView.swift",
+          "line": 233,
+          "kind": "navigationTitle",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Search for a city...",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CitySearchView.swift",
+          "line": 385,
+          "kind": "TextField",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Searching...",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 408,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CitySearchView.swift",
+          "line": 275,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CitySearchView.swift",
+          "line": 365,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Shows temperature and quick conversion.",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/TempConverterWidget/TempConverterWidget.swift",
+          "line": 13,
+          "kind": "widgetConfigDescription",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Shows temperature in °F and °C. Large widget shows 3 cities.",
+      "contexts": [
+        {
+          "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
+          "line": 910,
+          "kind": "widgetConfigDescription",
+          "target": "widget"
+        },
+        {
+          "file": "AlexisExtensionFarenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "widget"
+        }
+      ]
+    },
+    {
+      "source": "Source",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Swipe in the app to change time",
+      "contexts": [
+        {
+          "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
+          "line": 687,
+          "kind": "Text",
+          "target": "widget"
+        },
+        {
+          "file": "AlexisExtensionFarenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "widget"
+        }
+      ]
+    },
+    {
+      "source": "Temp Converter",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/TempConverterWidget/TempConverterWidget.swift",
+          "line": 12,
+          "kind": "widgetConfigName",
+          "target": "app"
+        },
+        {
+          "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
+          "line": 909,
+          "kind": "widgetConfigName",
+          "target": "widget"
+        },
+        {
+          "file": "AlexisExtensionFarenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "widget"
+        }
+      ]
+    },
+    {
+      "source": "Temperature converter",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/ConversionSliderView.swift",
+          "line": 82,
+          "kind": "accessibilityLabel",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Temperature: %d degrees Fahrenheit, %d degrees Celsius in %@",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "This action cannot be undone.",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/LogViewerView.swift",
+          "line": 88,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "This city is already in your list",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
+          "line": 301,
+          "kind": "errorMessageAssign",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
+          "line": 332,
+          "kind": "errorMessageAssign",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Time Zone",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/TimeZoneSliderView.swift",
+          "line": 47,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "To keep the widget updated when you switch cities, do not force close the app (swipe up). iOS disables background updates when you force quit.",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 289,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Try another name",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 444,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CitySearchView.swift",
+          "line": 296,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Type to search",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CitySearchView.swift",
+          "line": 282,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Updated:",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 266,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "View logs",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 297,
+          "kind": "Label",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "We need your location to show local weather, including during background updates.",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit.xcodeproj/project.pbxproj",
+          "line": 459,
+          "kind": "InfoPlistUsageDescription",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit.xcodeproj/project.pbxproj",
+          "line": 495,
+          "kind": "InfoPlistUsageDescription",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "We need your location to show local weather.",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit.xcodeproj/project.pbxproj",
+          "line": 460,
+          "kind": "InfoPlistUsageDescription",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit.xcodeproj/project.pbxproj",
+          "line": 496,
+          "kind": "InfoPlistUsageDescription",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Weather",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 97,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Weather: %@",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
+          "line": 709,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "WeatherKit auth error. Verifica Developer Portal.",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Core/Services/WeatherService.swift",
+          "line": 64,
+          "kind": "errorMessageAssign",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Widgets While Traveling",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 286,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "World Time",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 99,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
+          "line": 661,
+          "kind": "Text",
+          "target": "widget"
+        },
+        {
+          "file": "AlexisExtensionFarenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "widget"
+        }
+      ]
+    },
+    {
+      "source": "You have reached the limit of %d cities",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "°F",
+      "contexts": [
+        {
+          "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
+          "line": 549,
+          "kind": "Text",
+          "target": "widget"
+        },
+        {
+          "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
+          "line": 586,
+          "kind": "Text",
+          "target": "widget"
+        },
+        {
+          "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
+          "line": 719,
+          "kind": "Text",
+          "target": "widget"
+        },
+        {
+          "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
+          "line": 820,
+          "kind": "Text",
+          "target": "widget"
+        },
+        {
+          "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
+          "line": 854,
+          "kind": "Text",
+          "target": "widget"
+        },
+        {
+          "file": "AlexisExtensionFarenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "widget"
+        }
+      ]
+    }
+  ]
+}

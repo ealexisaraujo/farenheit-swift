@@ -15,3 +15,10 @@ Generated artifacts:
 
 Manual QA checklist:
 - `localization/QA_CHECKLIST.md`
+
+## New Language Automation
+
+- One-command language onboarding script:
+  - `python3 scripts/i18n_workflow.py --language pt-BR`
+- Documentation:
+  - `localization/I18N_WORKFLOW_SCRIPT.md`

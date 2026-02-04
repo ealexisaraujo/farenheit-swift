@@ -9,8 +9,8 @@
 /* Begin PBXBuildFile section */
 		BC54E2F52EE35246004F6AAE /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC54E2F42EE35246004F6AAE /* WidgetKit.framework */; };
 		BC54E2F72EE35246004F6AAE /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC54E2F62EE35246004F6AAE /* SwiftUI.framework */; };
-		BC54E3BB2F1B0000004F6B0A /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC54E3BA2F1B0000004F6B09 /* XCTest.framework */; };
 		BC54E3082EE35248004F6AAE /* AlexisExtensionFarenheitExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BC54E2F22EE35246004F6AAE /* AlexisExtensionFarenheitExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BC54E3BB2F1B0000004F6B0A /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC54E3BA2F1B0000004F6B09 /* XCTest.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,9 +47,9 @@
 /* Begin PBXFileReference section */
 		BC54E26B2EE346A5004F6AAE /* Alexis Farenheit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Alexis Farenheit.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BC54E2F22EE35246004F6AAE /* AlexisExtensionFarenheitExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AlexisExtensionFarenheitExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		BC54E3B12F1B0000004F6B00 /* AlexisFarenheitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AlexisFarenheitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BC54E2F42EE35246004F6AAE /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		BC54E2F62EE35246004F6AAE /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		BC54E3B12F1B0000004F6B00 /* AlexisFarenheitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AlexisFarenheitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BC54E3BA2F1B0000004F6B09 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
 		BC9C2DA12EE72CA400747975 /* AlexisExtensionFarenheitExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AlexisExtensionFarenheitExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -244,6 +244,8 @@
 			knownRegions = (
 				en,
 				es,
+				"pt-BR",
+				fr,
 				Base,
 			);
 			mainGroup = BC54E2622EE346A5004F6AAE;
