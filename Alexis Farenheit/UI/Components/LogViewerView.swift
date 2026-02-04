@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 
 /// Log viewer screen to display and export app/widget logs
 /// Useful for debugging widget updates and data sharing issues
@@ -31,7 +32,7 @@ struct LogViewerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cerrar") {
+                    Button("Close") {
                         // Debug: Close button tapped
                         print("[LogViewer] Close button tapped")
                         dismiss()
@@ -43,13 +44,13 @@ struct LogViewerView: View {
                         Button {
                             exportLogs(format: .text)
                         } label: {
-                            Label("Exportar TXT", systemImage: "doc.text")
+                            Label("Export TXT", systemImage: "doc.text")
                         }
 
                         Button {
                             exportLogs(format: .json)
                         } label: {
-                            Label("Exportar JSON", systemImage: "doc.badge.gearshape")
+                            Label("Export JSON", systemImage: "doc.badge.gearshape")
                         }
 
                         Divider()
@@ -57,7 +58,7 @@ struct LogViewerView: View {
                         Button(role: .destructive) {
                             showingClearConfirmation = true
                         } label: {
-                            Label("Limpiar Logs", systemImage: "trash")
+                            Label("Clear Logs", systemImage: "trash")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
@@ -78,13 +79,13 @@ struct LogViewerView: View {
                     ShareSheet(items: [url])
                 }
             }
-            .alert("¿Limpiar todos los logs?", isPresented: $showingClearConfirmation) {
-                Button("Cancelar", role: .cancel) { }
-                Button("Limpiar", role: .destructive) {
+            .alert("Clear all logs?", isPresented: $showingClearConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Clear", role: .destructive) {
                     clearLogs()
                 }
             } message: {
-                Text("Esta acción no se puede deshacer.")
+                Text("This action cannot be undone.")
             }
         }
     }
@@ -116,7 +117,7 @@ struct LogViewerView: View {
             HStack(spacing: 8) {
                 // Source filter
                 Menu {
-                    Button("Todos") {
+                    Button("All") {
                         selectedSource = nil
                     }
                     Divider()
@@ -127,7 +128,7 @@ struct LogViewerView: View {
                     }
                 } label: {
                     filterChip(
-                        title: selectedSource ?? "Source",
+                        title: selectedSource ?? String(localized: "Source"),
                         isActive: selectedSource != nil,
                         icon: "antenna.radiowaves.left.and.right"
                     )
@@ -135,7 +136,7 @@ struct LogViewerView: View {
 
                 // Level filter
                 Menu {
-                    Button("Todos") {
+                    Button("All") {
                         selectedLevel = nil
                     }
                     Divider()
@@ -146,7 +147,7 @@ struct LogViewerView: View {
                     }
                 } label: {
                     filterChip(
-                        title: selectedLevel?.rawValue ?? "Level",
+                        title: selectedLevel?.rawValue ?? String(localized: "Level"),
                         isActive: selectedLevel != nil,
                         icon: "line.3.horizontal.decrease.circle"
                     )
@@ -155,7 +156,12 @@ struct LogViewerView: View {
                 Spacer()
 
                 // Count
-                Text("\(filteredLogs.count) logs")
+                Text(
+                    String(
+                        format: NSLocalizedString("%d logs", comment: "Log count"),
+                        filteredLogs.count
+                    )
+                )
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -186,10 +192,10 @@ struct LogViewerView: View {
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 48))
                 .foregroundStyle(.tertiary)
-            Text("No hay logs")
+            Text("No logs")
                 .font(.headline)
                 .foregroundStyle(.secondary)
-            Text("Los logs aparecerán aquí cuando la app o widget generen eventos.")
+            Text("Logs will appear here when the app or widget generates events.")
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -313,4 +319,3 @@ struct ShareSheet: UIViewControllerRepresentable {
 
     return LogViewerView()
 }
-

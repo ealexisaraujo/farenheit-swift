@@ -178,7 +178,7 @@ struct CitySearchButton: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
 
-                Text("Buscar otra ciudad...")
+                Text("Search another city...")
                     .foregroundStyle(.secondary)
 
                 Spacer()
@@ -230,11 +230,11 @@ struct CitySearchSheet: View {
                     resultsList
                 }
             }
-            .navigationTitle("Buscar Ciudad")
+            .navigationTitle("Search City")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancelar") {
+                    Button("Cancel") {
                         dismiss()
                     }
                 }
@@ -242,7 +242,7 @@ struct CitySearchSheet: View {
             .searchable(
                 text: $searchText,
                 placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "Ciudad, estado o país"
+                prompt: "City, state, or country"
             )
             .onChange(of: searchText) { _, newValue in
                 completer.update(query: newValue)
@@ -272,17 +272,17 @@ struct CitySearchSheet: View {
             if completer.isSearching {
                 ProgressView()
                     .scaleEffect(1.2)
-                Text("Buscando...")
+                Text("Searching...")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else if searchText.isEmpty {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 48))
                     .foregroundStyle(.tertiary)
-                Text("Escribe para buscar")
+                Text("Type to search")
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                Text("Busca por nombre de ciudad, estado o país")
+                Text("Search by city, state, or country name")
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
@@ -290,10 +290,10 @@ struct CitySearchSheet: View {
                 Image(systemName: "mappin.slash")
                     .font(.system(size: 48))
                     .foregroundStyle(.tertiary)
-                Text("Sin resultados")
+                Text("No results")
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                Text("Intenta con otro nombre")
+                Text("Try another name")
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
             }
@@ -362,7 +362,7 @@ struct CitySearchView: View {
                     ProgressView()
                         .progressViewStyle(.circular)
                         .scaleEffect(0.8)
-                    Text("Buscando...")
+                    Text("Searching...")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -374,7 +374,7 @@ struct CitySearchView: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Búsqueda de ciudad")
+        .accessibilityLabel("City search")
     }
 
     private var searchField: some View {
@@ -382,7 +382,7 @@ struct CitySearchView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
 
-            TextField("Buscar ciudad...", text: $searchText)
+            TextField("Search for a city...", text: $searchText)
                 .textInputAutocapitalization(.words)
                 .focused($isTextFieldFocused)
                 .onChange(of: searchText) { _, newValue in

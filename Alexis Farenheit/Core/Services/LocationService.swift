@@ -60,7 +60,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
             // Best case - full permission, background refresh works
             requestLocation()
         case .denied, .restricted:
-            errorMessage = "Permiso de ubicación denegado. Habilítalo en Ajustes."
+            errorMessage = "Location permission denied. Enable it in Settings."
         @unknown default:
             locationManager.requestWhenInUseAuthorization()
         }
@@ -82,7 +82,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
             requestPermission()
         case .denied, .restricted:
             PerformanceMonitor.shared.endOperation("LocationRequest", category: "Location", metadata: ["status": "denied"], forceLog: true)
-            errorMessage = "Permiso de ubicación denegado. Habilítalo en Ajustes."
+            errorMessage = "Location permission denied. Enable it in Settings."
         @unknown default:
             PerformanceMonitor.shared.endOperation("LocationRequest", category: "Location", metadata: ["status": "unknown"], forceLog: true)
             requestPermission()
@@ -154,7 +154,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
 
         case .denied, .restricted:
             isRequesting = false
-            errorMessage = "Permiso de ubicación denegado. Habilítalo en Ajustes."
+            errorMessage = "Location permission denied. Enable it in Settings."
 
         case .notDetermined:
             // "Allow Once" expired or first launch - don't show error

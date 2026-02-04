@@ -1,0 +1,2 @@
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "Necesitamos tu ubicación para mostrar el clima local, incluso durante actualizaciones en segundo plano.";
+"NSLocationWhenInUseUsageDescription" = "Necesitamos tu ubicación para mostrar el clima local.";

@@ -10,7 +10,7 @@ struct TempConverterWidget: Widget {
             SmallWidgetView(entry: entry)
         }
         .configurationDisplayName("Temp Converter")
-        .description("Muestra temperatura y conversión rápida.")
+        .description("Shows temperature and quick conversion.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }

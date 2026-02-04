@@ -44,7 +44,7 @@ struct TimeZoneSliderView: View {
                         .foregroundStyle(.blue)
                         .font(.title3)
 
-                    Text("Zona Horaria")
+                    Text("Time Zone")
                         .font(.headline)
                         .foregroundStyle(.primary)
                 }
@@ -76,14 +76,14 @@ struct TimeZoneSliderView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.counterclockwise")
                                 .font(.caption2)
-                            Text("Ahora")
+                            Text("Now")
                                 .font(.caption)
                         }
                         .foregroundStyle(.blue)
                     }
                     .buttonStyle(.plain)
                 } else {
-                    Text("Hora actual")
+                    Text("Current time")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

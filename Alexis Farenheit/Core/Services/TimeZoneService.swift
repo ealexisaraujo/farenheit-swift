@@ -208,13 +208,15 @@ final class TimeZoneService: ObservableObject {
 
 extension TimeZoneService {
     /// Get array of common time presets
-    static let timePresets: [(label: String, hour: Int)] = [
-        ("12 AM", 0),
-        ("6 AM", 6),
-        ("12 PM", 12),
-        ("6 PM", 18),
-        ("Now", -1) // -1 indicates current time
-    ]
+    static var timePresets: [(label: String, hour: Int)] {
+        [
+            ("12 AM", 0),
+            ("6 AM", 6),
+            ("12 PM", 12),
+            ("6 PM", 18),
+            (NSLocalizedString("Now", comment: "Preset button to jump slider to current time"), -1)
+        ]
+    }
 
     /// Format minutes to HH:MM string
     static func formatMinutes(_ totalMinutes: Int) -> String {

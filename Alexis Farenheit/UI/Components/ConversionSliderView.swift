@@ -15,7 +15,7 @@ struct ConversionSliderView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
-                Label("Conversor", systemImage: "arrow.left.arrow.right")
+                Label("Converter", systemImage: "arrow.left.arrow.right")
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Spacer()
@@ -79,8 +79,8 @@ struct ConversionSliderView: View {
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Conversor de temperatura")
-        .accessibilityValue("\(Int(fahrenheit)) grados Fahrenheit es \(String(format: "%.1f", celsius)) grados Celsius")
+        .accessibilityLabel("Temperature converter")
+        .accessibilityValue("\(Int(fahrenheit)) degrees Fahrenheit equals \(String(format: "%.1f", celsius)) degrees Celsius")
     }
 }
 

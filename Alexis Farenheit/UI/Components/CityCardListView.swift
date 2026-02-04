@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import Foundation
 
 /// List of city cards with reorder and delete capabilities
 /// Uses LazyVStack for ScrollView compatibility with custom drag-and-drop
@@ -40,11 +41,17 @@ struct CityCardListView: View {
     private var listHeader: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Ciudades")
+                Text("Cities")
                     .font(.title2.bold())
                     .foregroundStyle(.primary)
 
-                Text("\(cities.count) de \(maxCities)")
+                Text(
+                    String(
+                        format: NSLocalizedString("%d of %d", comment: "City count out of maximum"),
+                        cities.count,
+                        maxCities
+                    )
+                )
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -58,7 +65,7 @@ struct CityCardListView: View {
                     }
                     emitFeedback(.impact(weight: .light))
                 } label: {
-                    Text(isEditMode ? "Listo" : "Editar")
+                    Text(isEditMode ? "Done" : "Edit")
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(isEditMode ? .green : .blue)
                         .padding(.horizontal, 12)
@@ -222,10 +229,15 @@ struct CityCardListView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Agregar ciudad")
+                    Text("Add a city")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(.primary)
-                    Text("\(maxCities - cities.count) lugares disponibles")
+                    Text(
+                        String(
+                            format: NSLocalizedString("%d slots available", comment: "Remaining city slots"),
+                            maxCities - cities.count
+                        )
+                    )
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -339,11 +351,11 @@ struct CityListEmptyView: View {
                 .foregroundStyle(.secondary)
 
             VStack(spacing: 8) {
-                Text("Sin ciudades guardadas")
+                Text("No saved cities")
                     .font(.title3.bold())
                     .foregroundStyle(.primary)
 
-                Text("Agrega ciudades para ver la hora y temperatura en diferentes lugares del mundo")
+                Text("Add cities to see time and temperature around the world")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -352,7 +364,7 @@ struct CityListEmptyView: View {
             Button {
                 onAddCity()
             } label: {
-                Label("Agregar ciudad", systemImage: "plus.circle.fill")
+                Label("Add a city", systemImage: "plus.circle.fill")
                     .font(.headline)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 24)

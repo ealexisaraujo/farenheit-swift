@@ -658,7 +658,7 @@ struct LargeWidgetView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
-                Text("Tiempo Mundial")
+                Text("World Time")
                     .font(.headline)
                     .foregroundStyle(Color.white)
                 Spacer()
@@ -684,7 +684,7 @@ struct LargeWidgetView: View {
 
             // Footer with conversion hint
             HStack {
-                Text("Desliza en la app para cambiar hora")
+                Text("Swipe in the app to change time")
                     .font(.caption2)
                     .foregroundStyle(Color.white.opacity(0.5))
                 Spacer()
@@ -907,7 +907,7 @@ struct AlexisExtensionFarenheit: Widget {
                 }
         }
         .configurationDisplayName("Temp Converter")
-        .description("Muestra temperatura en °F y °C. Widget grande muestra 3 ciudades.")
+        .description("Shows temperature in °F and °C. Large widget shows 3 cities.")
         .supportedFamilies([
             .systemSmall,
             .systemMedium,

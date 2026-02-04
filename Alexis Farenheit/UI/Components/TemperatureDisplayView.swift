@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 
 struct TemperatureDisplayView: View {
     let cityName: String
@@ -42,7 +43,17 @@ struct TemperatureDisplayView: View {
             .padding(20)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Temperature: \(fahrenheit.roundedInt) degrees Fahrenheit, \(celsius.roundedInt) degrees Celsius in \(cityName)")
+        .accessibilityLabel(
+            String(
+                format: NSLocalizedString(
+                    "Temperature: %d degrees Fahrenheit, %d degrees Celsius in %@",
+                    comment: "Accessibility description for a temperature card"
+                ),
+                fahrenheit.roundedInt,
+                celsius.roundedInt,
+                cityName
+            )
+        )
         .accessibilityHint("Current temperature card")
     }
 }

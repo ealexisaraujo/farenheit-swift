@@ -1,6 +1,7 @@
 import SwiftUI
 import MapKit
 import UIKit
+import Foundation
 
 /// Main content view for the Temperature Converter app.
 /// Features multi-city support with time zone slider and premium card design.
@@ -95,7 +96,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Weather")
                     .font(.largeTitle.bold())
-                Text("Tiempo Mundial")
+                Text("World Time")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -157,7 +158,7 @@ struct ContentView: View {
                 // Waiting for permission
                 ProgressView()
                     .scaleEffect(1.2)
-                Text("Solicitando permiso de ubicación...")
+                Text("Requesting location permission...")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else if viewModel.authorizationStatus == .denied || viewModel.authorizationStatus == .restricted {
@@ -165,9 +166,9 @@ struct ContentView: View {
                 Image(systemName: "location.slash.fill")
                     .font(.system(size: 48))
                     .foregroundStyle(.orange)
-                Text("Ubicación no disponible")
+                Text("Location unavailable")
                     .font(.headline)
-                Text("Habilita el acceso a ubicación en Ajustes para ver el clima de tu ubicación actual")
+                Text("Enable location access in Settings to see weather for your current location")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -175,7 +176,7 @@ struct ContentView: View {
                 // Loading location
                 ProgressView()
                     .scaleEffect(1.2)
-                Text("Obteniendo ubicación...")
+                Text("Getting location...")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -184,7 +185,7 @@ struct ContentView: View {
             Button {
                 showingCitySearch = true
             } label: {
-                Label("Agregar ciudad manualmente", systemImage: "magnifyingglass")
+                Label("Add city manually", systemImage: "magnifyingglass")
                     .font(.subheadline.weight(.medium))
             }
             .buttonStyle(.bordered)
@@ -228,7 +229,7 @@ struct ContentView: View {
             Button {
                 viewModel.forceRefresh()
             } label: {
-                Label("Actualizar", systemImage: "arrow.triangle.2.circlepath")
+                Label("Refresh", systemImage: "arrow.triangle.2.circlepath")
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
             }
@@ -249,7 +250,7 @@ struct ContentView: View {
                 }
                 .buttonStyle(.bordered)
                 .tint(.orange)
-                .accessibilityLabel("Abrir Ajustes")
+                .accessibilityLabel("Open Settings")
             }
         }
     }
@@ -262,7 +263,8 @@ struct ContentView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "clock")
                         .font(.caption2)
-                    Text("Actualizado: \(lastUpdate, style: .relative)")
+                    Text("Updated:")
+                    Text(lastUpdate, style: .relative)
                 }
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
@@ -281,10 +283,10 @@ struct ContentView: View {
                         .padding(.top, 1)
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Widgets al viajar")
+                        Text("Widgets While Traveling")
                             .font(.subheadline.weight(.semibold))
 
-                        Text("Para que el widget se actualice al cambiar de ciudad, no cierres la app forzadamente (swipe up). iOS desactiva las actualizaciones en segundo plano cuando fuerzas el cierre.")
+                        Text("To keep the widget updated when you switch cities, do not force close the app (swipe up). iOS disables background updates when you force quit.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
 
@@ -292,7 +294,7 @@ struct ContentView: View {
                             // Quick path to inspect timeline/logs when debugging widget refresh.
                             showingLogViewer = true
                         } label: {
-                            Label("Ver logs", systemImage: "doc.text.magnifyingglass")
+                            Label("View logs", systemImage: "doc.text.magnifyingglass")
                                 .font(.footnote.weight(.medium))
                         }
                         .buttonStyle(.bordered)
@@ -312,7 +314,7 @@ struct ContentView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Cerrar aviso")
+                    .accessibilityLabel("Dismiss notice")
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity)
@@ -351,11 +353,11 @@ struct AddCitySearchSheet: View {
                     resultsList
                 }
             }
-            .navigationTitle("Agregar Ciudad")
+            .navigationTitle("Add City")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancelar") {
+                    Button("Cancel") {
                         dismiss()
                     }
                 }
@@ -363,7 +365,7 @@ struct AddCitySearchSheet: View {
             .searchable(
                 text: $searchText,
                 placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "Ciudad, estado o país"
+                prompt: "City, state, or country"
             )
             .onChange(of: searchText) { _, newValue in
                 completer.update(query: newValue)
@@ -380,7 +382,15 @@ struct AddCitySearchSheet: View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.circle.fill")
                 .foregroundStyle(.orange)
-            Text("Has alcanzado el límite de \(CityModel.maxCities) ciudades")
+            Text(
+                String(
+                    format: NSLocalizedString(
+                        "You have reached the limit of %d cities",
+                        comment: "City limit reached message"
+                    ),
+                    CityModel.maxCities
+                )
+            )
                 .font(.subheadline)
         }
         .padding()
@@ -395,23 +405,31 @@ struct AddCitySearchSheet: View {
             if completer.isSearching {
                 ProgressView()
                     .scaleEffect(1.2)
-                Text("Buscando...")
+                Text("Searching...")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else if searchText.isEmpty {
                 Image(systemName: "globe.americas.fill")
                     .font(.system(size: 48))
                     .foregroundStyle(.tertiary)
-                Text("Busca una ciudad")
+                Text("Find a city")
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                Text("Agrega ciudades para ver la hora y temperatura en diferentes lugares")
+                Text("Add cities to see time and temperature in different places")
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
 
                 if remainingSlots > 0 {
-                    Text("\(remainingSlots) lugares disponibles")
+                    Text(
+                        String(
+                            format: NSLocalizedString(
+                                "%d slots available",
+                                comment: "Remaining city slots"
+                            ),
+                            remainingSlots
+                        )
+                    )
                         .font(.caption)
                         .foregroundStyle(.blue)
                         .padding(.top, 8)
@@ -420,10 +438,10 @@ struct AddCitySearchSheet: View {
                 Image(systemName: "mappin.slash")
                     .font(.system(size: 48))
                     .foregroundStyle(.tertiary)
-                Text("Sin resultados")
+                Text("No results")
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                Text("Intenta con otro nombre")
+                Text("Try another name")
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
             }

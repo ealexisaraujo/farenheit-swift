@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-02-04T00:42:26.360271+00:00",
+  "sourceLanguage": "es",
+  "targetLanguage": "en",
+  "includeTargets": [
+    "app",
+    "widget"
+  ],
+  "totalCandidates": 0,
+  "candidates": []
+}

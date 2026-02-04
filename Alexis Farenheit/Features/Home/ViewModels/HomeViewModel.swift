@@ -240,7 +240,10 @@ final class HomeViewModel: ObservableObject {
     /// Add a new city from search result (using MKLocalSearch)
     func addCity(from result: CitySearchResult) {
         guard canAddCity else {
-            errorMessage = "Máximo de \(CityModel.maxCities) ciudades alcanzado"
+            errorMessage = String(
+                format: NSLocalizedString("Maximum of %d cities reached", comment: "City limit reached"),
+                CityModel.maxCities
+            )
             return
         }
 
@@ -295,7 +298,7 @@ final class HomeViewModel: ObservableObject {
         }
 
         if isDuplicate {
-            errorMessage = "Esta ciudad ya está en tu lista"
+            errorMessage = "This city is already in your list"
             return
         }
 
@@ -316,7 +319,7 @@ final class HomeViewModel: ObservableObject {
             isCurrentLocation: false,
             sortOrder: cities.count
         ) else {
-            errorMessage = "No se pudo agregar la ciudad"
+            errorMessage = "Could not add city"
             return
         }
 
@@ -326,7 +329,7 @@ final class HomeViewModel: ObservableObject {
         }
 
         if isDuplicate {
-            errorMessage = "Esta ciudad ya está en tu lista"
+            errorMessage = "This city is already in your list"
             return
         }
 
@@ -574,7 +577,10 @@ final class HomeViewModel: ObservableObject {
             .receive(on: RunLoop.main)
             .compactMap { $0 }
             .sink { [weak self] error in
-                self?.errorMessage = "Location: \(error)"
+                self?.errorMessage = String(
+                    format: NSLocalizedString("Location: %@", comment: "Location error prefix"),
+                    error
+                )
             }
             .store(in: &cancellables)
 
@@ -699,7 +705,10 @@ final class HomeViewModel: ObservableObject {
             .receive(on: RunLoop.main)
             .compactMap { $0 }
             .sink { [weak self] error in
-                self?.errorMessage = "Weather: \(error)"
+                self?.errorMessage = String(
+                    format: NSLocalizedString("Weather: %@", comment: "Weather error prefix"),
+                    error
+                )
             }
             .store(in: &cancellables)
     }
@@ -716,7 +725,7 @@ final class HomeViewModel: ObservableObject {
                 self.logger.error("🏠 Geocode error: \(error.localizedDescription)")
                 Task { @MainActor in
                     self.isLoadingWeather = false
-                    self.errorMessage = "No se pudo encontrar la ubicación"
+                    self.errorMessage = "Could not find location"
                 }
                 return
             }
