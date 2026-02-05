@@ -9,7 +9,6 @@ import os.log
 @MainActor
 final class WeatherService: ObservableObject {
     private let logger = Logger(subsystem: "com.alexis.farenheit", category: "Weather")
-    private let weatherKit = WeatherKit.WeatherService.shared
 
     @Published var currentTemperatureF: Double?
     @Published var isLoading: Bool = false
@@ -17,6 +16,13 @@ final class WeatherService: ObservableObject {
 
     init() {
         logger.debug("🌤️ WeatherService initialized")
+    }
+
+    /// Shared async fetch helper usable from any actor/context.
+    nonisolated static func fetchCurrentTemperatureF(for location: CLLocation) async throws -> Double {
+        let weatherKit = WeatherKit.WeatherService.shared
+        let weather = try await weatherKit.weather(for: location, including: .current)
+        return weather.temperature.converted(to: .fahrenheit).value
     }
 
     /// Fetch current weather for a location
@@ -34,11 +40,7 @@ final class WeatherService: ObservableObject {
         errorMessage = nil
 
         do {
-            // Request current weather only
-            let weather = try await weatherKit.weather(for: location, including: .current)
-
-            // Extract temperature in Fahrenheit
-            let tempF = weather.temperature.converted(to: .fahrenheit).value
+            let tempF = try await Self.fetchCurrentTemperatureF(for: location)
             logger.debug("🌤️ Temperature: \(tempF)°F")
 
             // Performance tracking: Log successful fetch

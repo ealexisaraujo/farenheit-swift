@@ -8,10 +8,12 @@ struct CityCardListView: View {
     @Binding var cities: [CityModel]
     @ObservedObject var timeService: TimeZoneService
 
+    var hidesPrimaryCity: Bool = false
     var onDeleteCity: ((CityModel) -> Void)?
     var onReorder: ((IndexSet, Int) -> Void)?
     var onAddCity: (() -> Void)?
     var onTapCity: ((CityModel) -> Void)?
+    var freshnessForCity: (CityModel) -> CityWeatherFreshness = { _ in .unavailable }
 
     @State private var isEditMode = false
     @State private var deletingCity: UUID?
@@ -36,20 +38,36 @@ struct CityCardListView: View {
         sensoryFeedbackTrigger += 1
     }
 
+    private var displayedCities: [(index: Int, city: CityModel)] {
+        let all = Array(cities.enumerated())
+        if hidesPrimaryCity, !all.isEmpty {
+            return Array(all.dropFirst()).map { (index: $0.offset, city: $0.element) }
+        }
+        return all.map { (index: $0.offset, city: $0.element) }
+    }
+
+    private var visibleCityCount: Int {
+        displayedCities.count
+    }
+
+    private var visibleMaxCities: Int {
+        hidesPrimaryCity ? max(0, maxCities - 1) : maxCities
+    }
+
     // MARK: - Header
 
     private var listHeader: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Cities")
+                Text("My Cities")
                     .font(.title2.bold())
                     .foregroundStyle(.primary)
 
                 Text(
                     String(
                         format: NSLocalizedString("%d of %d", comment: "City count out of maximum"),
-                        cities.count,
-                        maxCities
+                        visibleCityCount,
+                        visibleMaxCities
                     )
                 )
                     .font(.caption)
@@ -58,7 +76,7 @@ struct CityCardListView: View {
 
             Spacer()
 
-            if cities.count > 1 {
+            if isEditMode || displayedCities.count > 1 {
                 Button {
                     withAnimation(.spring(response: 0.3)) {
                         isEditMode.toggle()
@@ -85,10 +103,11 @@ struct CityCardListView: View {
 
     private var cityList: some View {
         LazyVStack(spacing: cardSpacing) {
-            ForEach(Array(cities.enumerated()), id: \.element.id) { index, city in
-                let isPrimary = city.isCurrentLocation || index == 0
+            ForEach(displayedCities, id: \.city.id) { item in
+                let city = item.city
+                let isPrimary = city.isCurrentLocation || (!hidesPrimaryCity && item.index == 0)
 
-                cityRow(for: city, at: index, isPrimary: isPrimary)
+                cityRow(for: city, at: item.index, isPrimary: isPrimary)
                     .transition(.asymmetric(
                         insertion: .scale(scale: 0.9).combined(with: .opacity),
                         removal: .scale(scale: 0.9).combined(with: .opacity)
@@ -120,7 +139,13 @@ struct CityCardListView: View {
 
     @ViewBuilder
     private func normalModeRow(for city: CityModel, isPrimary: Bool) -> some View {
-        CityCardView(city: city, timeService: timeService, isPrimary: isPrimary, onDelete: nil)
+        CityCardView(
+            city: city,
+            timeService: timeService,
+            isPrimary: isPrimary,
+            freshness: freshnessForCity(city),
+            onDelete: nil
+        )
             .onTapGesture { onTapCity?(city) }
             .opacity(deletingCity == city.id ? 0.5 : 1.0)
     }

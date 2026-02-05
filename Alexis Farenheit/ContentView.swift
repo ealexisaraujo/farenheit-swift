@@ -7,74 +7,138 @@ import Foundation
 /// Features multi-city support with time zone slider and premium card design.
 /// Automatically refreshes weather when app returns to foreground.
 struct ContentView: View {
+    private enum ActiveSheet: String, Identifiable {
+        case logs
+        case addCity
+
+        var id: String { rawValue }
+    }
+
     @StateObject private var viewModel = HomeViewModel()
     @Environment(\.scenePhase) private var scenePhase
-    @State private var showingLogViewer = false
-    @State private var showingCitySearch = false
+    @State private var activeSheet: ActiveSheet?
+    @State private var areToolsExpanded = false
+    @State private var showingOnboardingIntro = false
+    @State private var showingWalkthrough = false
+    @State private var walkthroughStepIndex = 0
+    @State private var walkthroughFrames: [HomeWalkthroughTarget: CGRect] = [:]
+    @State private var hasCheckedOnboarding = false
     @AppStorage("hasDismissedForceQuitWidgetHint") private var hasDismissedForceQuitWidgetHint = false
+    @AppStorage("homeOnboardingCompletedV1") private var homeOnboardingCompletedV1 = false
 
     var body: some View {
         ZStack {
             // Background gradient
             backgroundGradient
 
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Header with settings
-                    header
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Header with settings
+                        header
 
-                    // iOS limitation hint (important for widget travel refresh debugging):
-                    // Force-quitting the app disables background execution, so Significant Location Changes / BGTasks won't run.
-                    forceQuitWidgetHint
+                        // Today Snapshot (primary value area)
+                        todaySnapshotSection
 
-                    // Time Zone Slider
-                    TimeZoneSliderView(
-                        timeService: viewModel.timeService,
-                        referenceCity: viewModel.primaryCity
-                    )
+                        // Error message
+                        if let error = viewModel.errorMessage {
+                            errorBanner(error)
+                        }
 
-                    // City Cards Section
-                    cityCardsSection
+                        // My Cities
+                        cityCardsSection
 
-                    // Temperature Converter (existing feature)
-                    ConversionSliderView(fahrenheit: $viewModel.manualFahrenheit)
+                        // Tools (collapsible to keep city info above the fold)
+                        toolsSection
 
-                    // Error message
-                    if let error = viewModel.errorMessage {
-                        errorBanner(error)
+                        // iOS limitation hint (important for widget travel refresh debugging):
+                        // Force-quitting the app disables background execution, so Significant Location Changes / BGTasks won't run.
+                        forceQuitWidgetHint
+
                     }
-
-                    // Action buttons
-                    actionButtons
-
-                    // Last update time
-                    lastUpdateSection
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 24)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 24)
+                .onChange(of: showingWalkthrough) { _, isShowing in
+                    guard isShowing else { return }
+                    scrollWalkthroughTarget(using: proxy, animated: false)
+                }
+                .onChange(of: walkthroughStepIndex) { _, _ in
+                    guard showingWalkthrough else { return }
+                    DispatchQueue.main.async {
+                        scrollWalkthroughTarget(using: proxy)
+                    }
+                }
+                .onChange(of: areToolsExpanded) { _, _ in
+                    guard showingWalkthrough, currentWalkthroughTarget == .tools else { return }
+                    scrollWalkthroughTarget(using: proxy)
+                }
             }
         }
+        .overlay {
+            if showingWalkthrough {
+                HomeWalkthroughOverlay(
+                    steps: walkthroughSteps,
+                    targetFrames: walkthroughFrames,
+                    currentStepIndex: $walkthroughStepIndex,
+                    isPresented: $showingWalkthrough,
+                    onStepAction: handleWalkthroughAction,
+                    onFinished: {
+                        homeOnboardingCompletedV1 = true
+                    }
+                )
+            }
+        }
+        .coordinateSpace(name: HomeWalkthroughCoordinateSpace.name)
         .preferredColorScheme(.dark)
         .task { viewModel.onAppear() }
+        .onAppear {
+            guard !hasCheckedOnboarding else { return }
+            hasCheckedOnboarding = true
+
+            if !homeOnboardingCompletedV1 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    showingOnboardingIntro = true
+                }
+            }
+        }
         // Auto-refresh when app comes back to foreground
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 viewModel.onBecameActive()
             }
         }
-        .sheet(isPresented: $showingLogViewer) {
-            LogViewerView()
+        .onPreferenceChange(HomeWalkthroughFramePreferenceKey.self) { frames in
+            walkthroughFrames = frames
         }
-        .sheet(isPresented: $showingCitySearch) {
-            AddCitySearchSheet(
-                canAddCity: viewModel.canAddCity,
-                remainingSlots: viewModel.remainingCitySlots
-            ) { completion in
-                viewModel.addCity(from: completion)
-                showingCitySearch = false
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .logs:
+                LogViewerView()
+            case .addCity:
+                AddCitySearchSheet(
+                    canAddCity: viewModel.canAddCity,
+                    remainingSlots: viewModel.remainingCitySlots
+                ) { completion in
+                    viewModel.addCity(from: completion)
+                    activeSheet = nil
+                }
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
             }
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
+        }
+        .fullScreenCover(isPresented: $showingOnboardingIntro) {
+            HomeOnboardingIntroView(
+                onSkip: {
+                    homeOnboardingCompletedV1 = true
+                    showingOnboardingIntro = false
+                },
+                onStartWalkthrough: {
+                    homeOnboardingCompletedV1 = true
+                    showingOnboardingIntro = false
+                    startWalkthrough()
+                }
+            )
         }
     }
 
@@ -103,9 +167,19 @@ struct ContentView: View {
 
             Spacer()
 
+            Button {
+                startWalkthrough()
+            } label: {
+                Image(systemName: "sparkles")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.trailing, 8)
+            .accessibilityLabel(NSLocalizedString("Replay walkthrough", comment: "Accessibility label for replay walkthrough button"))
+
             // Log viewer button (debug)
             Button {
-                showingLogViewer = true
+                activeSheet = .logs
             } label: {
                 Image(systemName: "doc.text.magnifyingglass")
                     .font(.title3)
@@ -126,18 +200,162 @@ struct ContentView: View {
         .padding(.top, 8)
     }
 
+    // MARK: - Today Snapshot
+
+    private var todaySnapshotSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Today Snapshot")
+                    .font(.title3.bold())
+                Spacer()
+                confidenceBadge
+            }
+
+            if let primaryCity = viewModel.primaryCity {
+                CityCardView(
+                    city: primaryCity,
+                    timeService: viewModel.timeService,
+                    isPrimary: true,
+                    freshness: viewModel.primaryCityFreshness
+                )
+
+                quickActionsRow
+
+                HStack(spacing: 6) {
+                    if let lastUpdate = viewModel.lastUpdateTime {
+                        Image(systemName: "clock")
+                            .font(.caption2)
+                        Text("Updated")
+                        Text(lastUpdate, style: .relative)
+                    } else {
+                        Image(systemName: "clock.badge.questionmark")
+                            .font(.caption2)
+                        Text("Waiting for first weather update")
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+            } else {
+                emptyLocationState
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
+        .id(HomeWalkthroughTarget.todaySnapshot)
+        .homeWalkthroughTarget(.todaySnapshot)
+    }
+
+    private var confidenceBadge: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(freshnessColor(viewModel.primaryCityFreshness))
+                .frame(width: 8, height: 8)
+            Text(viewModel.widgetSyncStatusText)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(Color.white.opacity(0.08))
+        )
+    }
+
+    private var quickActionsRow: some View {
+        HStack(spacing: 10) {
+            quickActionButton(
+                title: "Refresh",
+                systemImage: "arrow.triangle.2.circlepath",
+                tint: .blue,
+                isDisabled: viewModel.isLoadingWeather
+            ) {
+                viewModel.forceRefresh()
+            }
+
+            quickActionButton(
+                title: "Add City",
+                systemImage: "plus",
+                tint: .indigo,
+                isDisabled: !viewModel.canAddCity
+            ) {
+                activeSheet = .addCity
+            }
+
+            quickActionButton(
+                title: "Now",
+                systemImage: "clock.arrow.circlepath",
+                tint: .teal
+            ) {
+                withAnimation(.spring(response: 0.3)) {
+                    viewModel.timeService.resetToCurrentTime()
+                }
+            }
+
+            if viewModel.authorizationStatus == .denied || viewModel.authorizationStatus == .restricted {
+                quickActionButton(
+                    title: "Settings",
+                    systemImage: "gearshape.fill",
+                    tint: .orange
+                ) {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+            }
+        }
+        .homeWalkthroughTarget(.quickActions)
+    }
+
+    private func quickActionButton(
+        title: String,
+        systemImage: String,
+        tint: Color,
+        isDisabled: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: systemImage)
+                Text(title)
+            }
+            .font(.caption.weight(.semibold))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(tint)
+        .disabled(isDisabled)
+    }
+
+    private func freshnessColor(_ freshness: CityWeatherFreshness) -> Color {
+        switch freshness {
+        case .fresh:
+            return .green
+        case .loading:
+            return .cyan
+        case .stale:
+            return .orange
+        case .unavailable:
+            return .gray
+        }
+    }
+
     // MARK: - City Cards Section
 
     private var cityCardsSection: some View {
         VStack(spacing: 0) {
             if viewModel.cities.isEmpty {
-                // Empty state - waiting for location
-                emptyLocationState
+                EmptyView()
             } else {
                 // City card list
                 CityCardListView(
                     cities: $viewModel.cities,
                     timeService: viewModel.timeService,
+                    hidesPrimaryCity: true,
                     onDeleteCity: { city in
                         viewModel.removeCity(city)
                     },
@@ -145,11 +363,16 @@ struct ContentView: View {
                         viewModel.moveCities(from: source, to: destination)
                     },
                     onAddCity: {
-                        showingCitySearch = true
+                        activeSheet = .addCity
+                    },
+                    freshnessForCity: { city in
+                        viewModel.freshness(for: city)
                     }
                 )
             }
         }
+        .id(HomeWalkthroughTarget.myCities)
+        .homeWalkthroughTarget(.myCities)
     }
 
     private var emptyLocationState: some View {
@@ -172,6 +395,17 @@ struct ContentView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+
+                Button {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Label("Open Settings", systemImage: "gearshape.fill")
+                        .font(.subheadline.weight(.medium))
+                }
+                .buttonStyle(.bordered)
+                .tint(.orange)
             } else {
                 // Loading location
                 ProgressView()
@@ -183,7 +417,7 @@ struct ContentView: View {
 
             // Manual city search option
             Button {
-                showingCitySearch = true
+                activeSheet = .addCity
             } label: {
                 Label("Add city manually", systemImage: "magnifyingglass")
                     .font(.subheadline.weight(.medium))
@@ -221,54 +455,136 @@ struct ContentView: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
-    // MARK: - Action Buttons
+    // MARK: - Tools Section
 
-    private var actionButtons: some View {
-        HStack(spacing: 12) {
-            // Refresh all button
+    private var toolsSection: some View {
+        VStack(spacing: 14) {
             Button {
-                viewModel.forceRefresh()
-            } label: {
-                Label("Refresh", systemImage: "arrow.triangle.2.circlepath")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.blue)
-            .disabled(viewModel.isLoadingWeather)
-
-            // Settings button (if location denied)
-            if viewModel.authorizationStatus == .denied || viewModel.authorizationStatus == .restricted {
-                Button {
-                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(url)
-                    }
-                } label: {
-                    Image(systemName: "gear")
-                        .font(.title3)
-                        .padding(12)
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    areToolsExpanded.toggle()
                 }
-                .buttonStyle(.bordered)
-                .tint(.orange)
-                .accessibilityLabel("Open Settings")
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "slider.horizontal.3")
+                        .foregroundStyle(.cyan)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Tools")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text("World Time + Temperature Converter")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Text(TimeZoneService.formatMinutes12Hour(viewModel.timeService.selectedMinutes))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    Image(systemName: areToolsExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
             }
+            .buttonStyle(.plain)
+
+            if areToolsExpanded {
+                VStack(spacing: 16) {
+                    TimeZoneSliderView(
+                        timeService: viewModel.timeService,
+                        referenceCity: viewModel.primaryCity
+                    )
+                    ConversionSliderView(fahrenheit: $viewModel.manualFahrenheit)
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .id(HomeWalkthroughTarget.tools)
+        .homeWalkthroughTarget(.tools)
+    }
+
+    private var walkthroughSteps: [HomeWalkthroughStep] {
+        [
+            HomeWalkthroughStep(
+                target: .todaySnapshot,
+                title: NSLocalizedString("This is your instant weather snapshot", comment: "Walkthrough step title for today snapshot"),
+                message: NSLocalizedString("You get temperature, city time, and widget sync confidence in a single glance.", comment: "Walkthrough step message for today snapshot"),
+                accent: .cyan,
+                actionTitle: nil
+            ),
+            HomeWalkthroughStep(
+                target: .quickActions,
+                title: NSLocalizedString("Use quick actions for momentum", comment: "Walkthrough step title for quick actions"),
+                message: NSLocalizedString("Refresh now, add cities fast, or jump back to the current time with one tap.", comment: "Walkthrough step message for quick actions"),
+                accent: .blue,
+                actionTitle: nil
+            ),
+            HomeWalkthroughStep(
+                target: .myCities,
+                title: NSLocalizedString("Manage your city stack here", comment: "Walkthrough step title for my cities"),
+                message: viewModel.cities.isEmpty
+                    ? NSLocalizedString("This section fills after you add cities. Keep at least two for better world-time planning.", comment: "Walkthrough message when no extra cities")
+                    : NSLocalizedString("Reorder and monitor city freshness so you always know which data is current.", comment: "Walkthrough message for managing cities"),
+                accent: .indigo,
+                actionTitle: nil
+            ),
+            HomeWalkthroughStep(
+                target: .tools,
+                title: NSLocalizedString("Open tools only when you need them", comment: "Walkthrough step title for tools"),
+                message: NSLocalizedString("The tools panel keeps planning utilities close without crowding your weather overview.", comment: "Walkthrough step message for tools"),
+                accent: .teal,
+                actionTitle: areToolsExpanded ? nil : NSLocalizedString("Open Tools Panel", comment: "Walkthrough button title to expand tools panel")
+            )
+        ]
+    }
+
+    private var currentWalkthroughTarget: HomeWalkthroughTarget? {
+        guard showingWalkthrough, !walkthroughSteps.isEmpty else { return nil }
+        let index = min(max(walkthroughStepIndex, 0), walkthroughSteps.count - 1)
+        return walkthroughSteps[index].target
+    }
+
+    private func scrollWalkthroughTarget(using proxy: ScrollViewProxy, animated: Bool = true) {
+        guard let target = currentWalkthroughTarget else { return }
+
+        let scrollTarget: HomeWalkthroughTarget = (target == .quickActions) ? .todaySnapshot : target
+        let anchor: UnitPoint = (target == .tools) ? .center : .top
+
+        let action = {
+            proxy.scrollTo(scrollTarget, anchor: anchor)
+        }
+
+        if animated {
+            withAnimation(.easeInOut(duration: 0.35)) {
+                action()
+            }
+        } else {
+            action()
         }
     }
 
-    // MARK: - Last Update
+    private func startWalkthrough() {
+        activeSheet = nil
+        showingOnboardingIntro = false
+        walkthroughStepIndex = 0
+        showingWalkthrough = true
+    }
 
-    private var lastUpdateSection: some View {
-        Group {
-            if let lastUpdate = viewModel.lastUpdateTime {
-                HStack(spacing: 4) {
-                    Image(systemName: "clock")
-                        .font(.caption2)
-                    Text("Updated:")
-                    Text(lastUpdate, style: .relative)
-                }
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+    private func handleWalkthroughAction(_ step: HomeWalkthroughStep) {
+        switch step.target {
+        case .tools:
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                areToolsExpanded = true
             }
+        case .todaySnapshot, .quickActions, .myCities:
+            break
         }
     }
 
@@ -292,7 +608,7 @@ struct ContentView: View {
 
                         Button {
                             // Quick path to inspect timeline/logs when debugging widget refresh.
-                            showingLogViewer = true
+                            activeSheet = .logs
                         } label: {
                             Label("View logs", systemImage: "doc.text.magnifyingglass")
                                 .font(.footnote.weight(.medium))

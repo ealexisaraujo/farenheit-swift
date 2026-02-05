@@ -3,10 +3,11 @@
 This script automates the full localization onboarding flow for a new language:
 
 1. Add language to Xcode project regions (`knownRegions` in `project.pbxproj`)
-2. Add localized location permission prompts (`<lang>.lproj/InfoPlist.strings`)
-3. Generate source inventory artifact (candidate strings)
-4. Generate translations with OpenAI and apply them to app/widget `Localizable.xcstrings`
-5. Validate with guardrails and optional `xcodebuild` test runs
+2. Sync `CFBundleLocalizations` in app + extension `Info.plist`
+3. Add localized location permission prompts (`<lang>.lproj/InfoPlist.strings`)
+4. Generate source inventory artifact (candidate strings)
+5. Generate translations with OpenAI and apply them to app/widget `Localizable.xcstrings`
+6. Validate with guardrails and optional `xcodebuild` test runs
 
 ## Prerequisites
 
@@ -38,6 +39,8 @@ This writes:
 
 And updates:
 - `Alexis Farenheit.xcodeproj/project.pbxproj` (adds language to `knownRegions`)
+- `Alexis-Farenheit-Info.plist` (`CFBundleLocalizations`)
+- `AlexisExtensionFarenheit/Info.plist` (`CFBundleLocalizations`)
 - `Alexis Farenheit/Localizable.xcstrings`
 - `AlexisExtensionFarenheit/Localizable.xcstrings`
 - `Alexis Farenheit/pt-BR.lproj/InfoPlist.strings`

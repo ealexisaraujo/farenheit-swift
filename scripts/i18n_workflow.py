@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import plistlib
 import re
 import subprocess
 import sys
@@ -582,6 +583,66 @@ def ensure_known_region(project_root: Path, language: str) -> bool:
     return changed
 
 
+def get_known_regions(project_root: Path) -> List[str]:
+    pbx = project_root / "Alexis Farenheit.xcodeproj" / "project.pbxproj"
+    lines = pbx.read_text(encoding="utf-8").splitlines()
+
+    start_idx = None
+    end_idx = None
+    for idx, line in enumerate(lines):
+        if "knownRegions = (" in line:
+            start_idx = idx
+            break
+    if start_idx is None:
+        raise RuntimeError("Could not locate knownRegions block in project.pbxproj")
+
+    for idx in range(start_idx + 1, len(lines)):
+        if lines[idx].strip() == ");":
+            end_idx = idx
+            break
+    if end_idx is None:
+        raise RuntimeError("Malformed knownRegions block in project.pbxproj")
+
+    def normalize_region(token: str) -> str:
+        return token.strip().strip(",").strip('"').strip()
+
+    raw_tokens = [lines[idx].strip().strip(",") for idx in range(start_idx + 1, end_idx)]
+    normalized = [normalize_region(token) for token in raw_tokens if normalize_region(token)]
+
+    unique_regions: List[str] = []
+    seen = set()
+    for region in normalized:
+        if region in seen:
+            continue
+        seen.add(region)
+        unique_regions.append(region)
+    return unique_regions
+
+
+def sync_info_plist_localizations(project_root: Path, regions: Sequence[str]) -> int:
+    localizations = [region for region in regions if region != "Base"]
+    plist_paths = [
+        project_root / "Alexis-Farenheit-Info.plist",
+        project_root / "AlexisExtensionFarenheit" / "Info.plist",
+    ]
+
+    changed = 0
+    for plist_path in plist_paths:
+        with plist_path.open("rb") as fp:
+            payload = plistlib.load(fp)
+
+        current = payload.get("CFBundleLocalizations")
+        if current == localizations:
+            continue
+
+        payload["CFBundleLocalizations"] = list(localizations)
+        with plist_path.open("wb") as fp:
+            plistlib.dump(payload, fp, sort_keys=False)
+        changed += 1
+
+    return changed
+
+
 def update_catalog(catalog_path: Path, language: str, translations: Dict[str, str]) -> int:
     if catalog_path.exists():
         catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
@@ -779,12 +840,15 @@ def main() -> int:
     print(f"Wrote results artifact: {results_path}")
 
     region_added = ensure_known_region(project_root, language)
+    known_regions = get_known_regions(project_root)
+    plist_localizations_synced = sync_info_plist_localizations(project_root, known_regions)
     counters = apply_translations(project_root, language, rows, plist_by_key)
 
     translated = sum(1 for row in rows if row.status == "translated")
     fallback = len(rows) - translated
 
     print(f"Added language to knownRegions: {'yes' if region_added else 'already present'}")
+    print(f"Info.plist localization list synced: {'yes' if plist_localizations_synced else 'already up to date'}")
     print(f"App catalog entries updated: {counters['appCatalogEntriesUpdated']}")
     print(f"Widget catalog entries updated: {counters['widgetCatalogEntriesUpdated']}")
     print(f"App catalog sanitized keys: {counters['appSanitizedKeys']}")

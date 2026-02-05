@@ -5,6 +5,24 @@ import MapKit
 import SwiftUI
 import os.log
 
+actor WeatherRefreshCoordinator {
+    typealias TemperatureLoader = @Sendable (_ latitude: Double, _ longitude: Double) async -> Double?
+    private var inFlight: [UUID: Task<Double?, Never>] = [:]
+
+    func temperature(for city: CityModel, loader: @escaping TemperatureLoader) async -> Double? {
+        if let existingTask = inFlight[city.id] {
+            return await existingTask.value
+        }
+
+        let task = Task { await loader(city.latitude, city.longitude) }
+        inFlight[city.id] = task
+
+        let result = await task.value
+        inFlight[city.id] = nil
+        return result
+    }
+}
+
 /// Main ViewModel for the home screen - manages temperature, location, and multi-city state.
 /// Follows MVVM pattern with Combine bindings.
 /// Auto-refreshes weather on foreground and tracks last update time.
@@ -51,11 +69,13 @@ final class HomeViewModel: ObservableObject {
 
     /// The city storage service
     private let cityStorage = CityStorageService.shared
+    private let widgetRepository = WidgetRepository.shared
 
     // MARK: - Services
 
     private let locationService = LocationService()
     private let weatherService = WeatherService()
+    private let refreshCoordinator = WeatherRefreshCoordinator()
     private var cancellables = Set<AnyCancellable>()
 
     /// Minimum interval between automatic refreshes (5 minutes)
@@ -69,6 +89,7 @@ final class HomeViewModel: ObservableObject {
 
     /// Minimum interval between fetches for the same city (30 seconds)
     private let minimumFetchInterval: TimeInterval = 30
+    private let staleDataThreshold: TimeInterval = 15 * 60
 
     // MARK: - Computed Properties
 
@@ -108,6 +129,38 @@ final class HomeViewModel: ObservableObject {
         max(0, CityModel.maxCities - cities.count)
     }
 
+    /// Freshness for current location card in "Today Snapshot"
+    var primaryCityFreshness: CityWeatherFreshness {
+        guard let primaryCity else { return .unavailable }
+        return freshness(for: primaryCity)
+    }
+
+    /// Widget confidence status shown in the home snapshot.
+    var widgetSyncStatusText: String {
+        guard let primaryCity else {
+            return "Widget waiting for first city"
+        }
+
+        if loadingCityIds.contains(primaryCity.id) {
+            return "Widget syncing"
+        }
+
+        if widgetRepository.getLocation() == nil {
+            return "Widget location pending"
+        }
+
+        switch freshness(for: primaryCity) {
+        case .fresh:
+            return "Widget synced"
+        case .stale:
+            return "Widget may be stale"
+        case .loading:
+            return "Widget syncing"
+        case .unavailable:
+            return "Widget waiting for data"
+        }
+    }
+
     // MARK: - Init
 
     init() {
@@ -137,15 +190,13 @@ final class HomeViewModel: ObservableObject {
     private func lazyLoadInitialWeather() {
         // Cities already have cached temperatures from storage
         // Only refresh if data is stale (>15 min) or missing
-        let staleThreshold: TimeInterval = 15 * 60
-
         // Primary city (current location) is handled by location service binding
         // For other cities, check if they need refresh
         let citiesToRefresh = cities.dropFirst().filter { city in
             guard let lastUpdated = city.lastUpdated else {
                 return city.fahrenheit == nil
             }
-            return Date().timeIntervalSince(lastUpdated) > staleThreshold
+            return Date().timeIntervalSince(lastUpdated) > staleDataThreshold
         }
 
         // Stagger the refresh to avoid blocking UI
@@ -233,6 +284,20 @@ final class HomeViewModel: ObservableObject {
         Task {
             await weatherService.fetchWeather(for: location)
         }
+    }
+
+    /// Freshness helper used by city cards and Today Snapshot.
+    func freshness(for city: CityModel) -> CityWeatherFreshness {
+        if loadingCityIds.contains(city.id) {
+            return .loading
+        }
+
+        guard let lastUpdated = city.lastUpdated else {
+            return .unavailable
+        }
+
+        let age = Date().timeIntervalSince(lastUpdated)
+        return age <= staleDataThreshold ? .fresh : .stale
     }
 
     // MARK: - Multi-City Methods
@@ -420,8 +485,14 @@ final class HomeViewModel: ObservableObject {
                 return
             }
 
-            let tempService = WeatherService()
-            await tempService.fetchWeather(for: city.location)
+            let temp = await refreshCoordinator.temperature(for: city) { latitude, longitude in
+                let location = CLLocation(latitude: latitude, longitude: longitude)
+                do {
+                    return try await WeatherService.fetchCurrentTemperatureF(for: location)
+                } catch {
+                    return nil
+                }
+            }
 
             // Check again if task was cancelled after fetch
             guard !Task.isCancelled else {
@@ -429,7 +500,7 @@ final class HomeViewModel: ObservableObject {
                 return
             }
 
-            if let temp = tempService.currentTemperatureF {
+            if let temp {
                 // Update city with new temperature
                 if let index = cities.firstIndex(where: { $0.id == city.id }) {
                     cities[index] = cities[index].withWeather(fahrenheit: temp)
@@ -440,6 +511,9 @@ final class HomeViewModel: ObservableObject {
                     // REPOSITORY PATTERN: Save coordinates via WidgetRepository
                     if cities[index].isCurrentLocation {
                         let updatedCity = cities[index]
+                        currentFahrenheit = temp
+                        lastUpdateTime = Date()
+
                         let sharedLocation = SharedLocation(
                             latitude: updatedCity.latitude,
                             longitude: updatedCity.longitude
@@ -463,34 +537,33 @@ final class HomeViewModel: ObservableObject {
     /// Refresh weather for all cities with lazy/staggered loading
     /// Primary city loads first, then others load with delay to avoid blocking UI
     func refreshAllCities() {
-        // Load primary city first (immediate)
-        if let primary = cities.first {
-            fetchWeather(for: primary)
-        }
-
-        // Load remaining cities with staggered delay (lazy loading)
-        let remainingCities = Array(cities.dropFirst())
-        for (index, city) in remainingCities.enumerated() {
-            // Stagger requests by 300ms each to avoid overwhelming the API and UI
-            let delay = Double(index + 1) * 0.3
-            Task {
-                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-                await MainActor.run {
-                    fetchWeather(for: city)
+        let citiesToRefresh = cities
+        Task {
+            await withTaskGroup(of: Void.self) { group in
+                for (index, city) in citiesToRefresh.enumerated() {
+                    group.addTask { [weak self] in
+                        let delay = Double(index) * 0.3
+                        if delay > 0 {
+                            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                        }
+                        await self?.refreshFromWave(city)
+                    }
                 }
             }
         }
     }
 
+    private func refreshFromWave(_ city: CityModel) {
+        fetchWeather(for: city)
+    }
+
     /// Lazy load cities that don't have recent weather data
     /// Only fetches weather for cities that are stale (>15 min old) or have no data
     func lazyRefreshStaleCity() {
-        let staleThreshold: TimeInterval = 15 * 60 // 15 minutes
-
         for city in cities {
             let isStale: Bool
             if let lastUpdated = city.lastUpdated {
-                isStale = Date().timeIntervalSince(lastUpdated) > staleThreshold
+                isStale = Date().timeIntervalSince(lastUpdated) > staleDataThreshold
             } else {
                 isStale = city.fahrenheit == nil
             }

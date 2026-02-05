@@ -8,6 +8,7 @@ struct CityCardView: View {
 
     /// Whether this is the current/primary city (cannot be deleted)
     var isPrimary: Bool = false
+    var freshness: CityWeatherFreshness = .unavailable
 
     /// Callback when delete is requested
     var onDelete: (() -> Void)?
@@ -61,6 +62,11 @@ struct CityCardView: View {
         .shadow(color: shadowColor, radius: isPressed ? 4 : 8, y: isPressed ? 2 : 4)
         .scaleEffect(isPressed ? 0.98 : 1)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
+        .overlay(alignment: .topTrailing) {
+            freshnessBadge
+                .padding(.top, 10)
+                .padding(.trailing, 12)
+        }
         .contentShape(RoundedRectangle(cornerRadius: 20))
         .onLongPressGesture(minimumDuration: 0.1, pressing: { pressing in
             isPressed = pressing
@@ -155,6 +161,33 @@ struct CityCardView: View {
 
     // MARK: - Background
 
+    private var freshnessBadge: some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(freshnessColor)
+                .frame(width: 6, height: 6)
+            Text(freshness.label)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.9))
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(.black.opacity(0.25)))
+    }
+
+    private var freshnessColor: Color {
+        switch freshness {
+        case .fresh:
+            return .green
+        case .loading:
+            return .cyan
+        case .stale:
+            return .orange
+        case .unavailable:
+            return .gray
+        }
+    }
+
     private var cardBackground: some View {
         ZStack {
             // Base gradient based on temperature
@@ -193,7 +226,7 @@ struct CityCardView: View {
         let tempLabel = city.fahrenheit != nil
             ? "\(Int(city.fahrenheit!)) degrees Fahrenheit"
             : "Temperature unavailable"
-        return "\(city.name), \(city.countryCode). \(tempLabel). Local time: \(localTime)"
+        return "\(city.name), \(city.countryCode). \(tempLabel). Local time: \(localTime). Status: \(freshness.label)"
     }
 }
 
