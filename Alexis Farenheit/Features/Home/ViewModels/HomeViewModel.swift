@@ -73,7 +73,8 @@ final class HomeViewModel: ObservableObject {
 
     // MARK: - Services
 
-    private let locationService = LocationService()
+    /// Location service for GPS and geocoding - exposed for onboarding permission flow
+    let locationService = LocationService()
     private let weatherService = WeatherService()
     private let refreshCoordinator = WeatherRefreshCoordinator()
     private var cancellables = Set<AnyCancellable>()
@@ -180,8 +181,8 @@ final class HomeViewModel: ObservableObject {
             return
         }
 
-        logger.debug("🏠 View appeared - requesting permission")
-        locationService.requestPermission()
+        logger.debug("🏠 View appeared - refreshing location only if already authorized")
+        locationService.requestLocationIfAuthorized()
         hasCompletedInitialLoad = true
     }
 
@@ -217,10 +218,9 @@ final class HomeViewModel: ObservableObject {
     func onBecameActive() {
         logger.debug("🏠 App became active")
 
-        // ALWAYS request fresh location when app becomes active
-        // This ensures we detect if user moved to a different city
-        logger.debug("🏠 Requesting fresh location...")
-        locationService.requestLocation()
+        // Refresh location only when authorized so app open does not trigger permission prompts.
+        logger.debug("🏠 Requesting fresh location (if authorized)...")
+        locationService.requestLocationIfAuthorized()
 
         // Only auto-refresh weather if enough time has passed
         guard canAutoRefresh else {
@@ -244,6 +244,11 @@ final class HomeViewModel: ObservableObject {
     /// Manually request location update
     func requestLocation() {
         locationService.requestLocation()
+    }
+
+    /// Manually request location permission (optionally requesting Always in step 2).
+    func requestLocationPermission(preferAlways: Bool = false) {
+        locationService.requestPermission(preferAlways: preferAlways)
     }
 
     /// Refresh weather for current/last known location

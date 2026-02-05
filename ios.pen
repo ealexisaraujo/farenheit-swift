@@ -1,15 +1,15 @@
 {
-  "version": "2.6",
+  "version": "2.7",
   "children": [
     {
       "type": "frame",
       "id": "rGeZX",
       "x": -35,
-      "y": 0,
+      "y": -2,
       "name": "Home Screen - Actual",
       "clip": true,
-      "width": 390,
-      "height": 844,
+      "width": 425,
+      "height": 922,
       "fill": {
         "type": "gradient",
         "gradientType": "linear",
@@ -2084,8 +2084,8 @@
     {
       "type": "frame",
       "id": "2NPyW",
-      "x": -18,
-      "y": 942,
+      "x": -807,
+      "y": 1440,
       "name": "Premium Features - Concept",
       "clip": true,
       "width": 390,

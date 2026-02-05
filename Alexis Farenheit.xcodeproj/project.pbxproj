@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BC22A8652F351238000C39C9 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = BC22A8642F351238000C39C9 /* Lottie */; };
 		BC54E2F52EE35246004F6AAE /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC54E2F42EE35246004F6AAE /* WidgetKit.framework */; };
 		BC54E2F72EE35246004F6AAE /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC54E2F62EE35246004F6AAE /* SwiftUI.framework */; };
 		BC54E3082EE35248004F6AAE /* AlexisExtensionFarenheitExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BC54E2F22EE35246004F6AAE /* AlexisExtensionFarenheitExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -90,6 +91,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BC22A8652F351238000C39C9 /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -167,6 +169,7 @@
 			);
 			name = "Alexis Farenheit";
 			packageProductDependencies = (
+				BC22A8642F351238000C39C9 /* Lottie */,
 			);
 			productName = "Alexis Farenheit";
 			productReference = BC54E26B2EE346A5004F6AAE /* Alexis Farenheit.app */;
@@ -250,6 +253,9 @@
 			);
 			mainGroup = BC54E2622EE346A5004F6AAE;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BC22A8632F351238000C39C9 /* XCRemoteSwiftPackageReference "lottie-ios" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BC54E26C2EE346A5004F6AAE /* Products */;
 			projectDirPath = "";
@@ -665,6 +671,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BC22A8632F351238000C39C9 /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BC22A8642F351238000C39C9 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BC22A8632F351238000C39C9 /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BC54E2632EE346A5004F6AAE /* Project object */;
 }

@@ -24,13 +24,12 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var activeSheet: ActiveSheet?
     @State private var areToolsExpanded = false
-    @State private var showingOnboardingIntro = false
-    @State private var showingWalkthrough = false
-    @State private var walkthroughStepIndex = 0
+    @State private var showingOnboarding = false
     @State private var walkthroughFrames: [HomeWalkthroughTarget: CGRect] = [:]
     @State private var hasCheckedOnboarding = false
+    @State private var walkthroughCoordinator = WalkthroughCoordinator()
     @AppStorage("hasDismissedForceQuitWidgetHint") private var hasDismissedForceQuitWidgetHint = false
-    @AppStorage("homeOnboardingCompletedV1") private var homeOnboardingCompletedV1 = false
+    @AppStorage("homeOnboardingCompletedV2") private var homeOnboardingCompleted = false
 
     var body: some View {
         ZStack {
@@ -62,7 +61,7 @@ struct ContentView: View {
                         forceQuitWidgetHint
 
                         // Extra tail space lets walkthrough step 4 (tools) scroll to a stable position.
-                        if showingWalkthrough, currentWalkthroughTarget == .tools {
+                        if walkthroughCoordinator.isActive, walkthroughCoordinator.currentTarget == .tools {
                             Color.clear
                                 .frame(height: 320)
                                 .allowsHitTesting(false)
@@ -72,18 +71,18 @@ struct ContentView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 24)
                 }
-                .onChange(of: showingWalkthrough) { _, isShowing in
-                    guard isShowing else { return }
-                    logWalkthrough("presented step=\(walkthroughStepIndex) target=\(targetName(currentWalkthroughTarget))")
+                .onChange(of: walkthroughCoordinator.isActive) { _, isActive in
+                    guard isActive else { return }
+                    logWalkthrough("presented step=\(walkthroughCoordinator.currentStepIndex) target=\(targetName(walkthroughCoordinator.currentTarget))")
                     scheduleWalkthroughScroll(using: proxy, reason: "presented")
                 }
-                .onChange(of: walkthroughStepIndex) { _, _ in
-                    guard showingWalkthrough else { return }
+                .onChange(of: walkthroughCoordinator.currentStep) { _, newStep in
+                    guard walkthroughCoordinator.isActive else { return }
                     logWalkthrough(
-                        "stepChanged step=\(walkthroughStepIndex) target=\(targetName(currentWalkthroughTarget)) " +
-                        "frame=\(frameSummary(for: currentWalkthroughTarget)) toolsExpanded=\(areToolsExpanded)"
+                        "stepChanged step=\(walkthroughCoordinator.currentStepIndex) target=\(targetName(walkthroughCoordinator.currentTarget)) " +
+                        "frame=\(frameSummary(for: walkthroughCoordinator.currentTarget)) toolsExpanded=\(areToolsExpanded)"
                     )
-                    if currentWalkthroughTarget == .tools && !areToolsExpanded {
+                    if walkthroughCoordinator.currentTarget == .tools && !areToolsExpanded {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                             areToolsExpanded = true
                         }
@@ -91,22 +90,20 @@ struct ContentView: View {
                     scheduleWalkthroughScroll(using: proxy, reason: "stepChanged")
                 }
                 .onChange(of: areToolsExpanded) { _, isExpanded in
-                    guard showingWalkthrough, currentWalkthroughTarget == .tools else { return }
+                    guard walkthroughCoordinator.isActive, walkthroughCoordinator.currentTarget == .tools else { return }
                     logWalkthrough("toolsExpandedChanged expanded=\(isExpanded)")
                     scheduleWalkthroughScroll(using: proxy, reason: "toolsExpandedChanged")
                 }
             }
         }
         .overlay {
-            if showingWalkthrough {
-                HomeWalkthroughOverlay(
-                    steps: walkthroughSteps,
-                    targetFrames: walkthroughFrames,
-                    currentStepIndex: $walkthroughStepIndex,
-                    isPresented: $showingWalkthrough,
-                    onStepAction: handleWalkthroughAction,
-                    onFinished: {
-                        homeOnboardingCompletedV1 = true
+            if walkthroughCoordinator.isActive {
+                WalkthroughTooltipView(
+                    coordinator: walkthroughCoordinator,
+                    onExpandTools: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                            areToolsExpanded = true
+                        }
                     }
                 )
             }
@@ -118,9 +115,14 @@ struct ContentView: View {
             guard !hasCheckedOnboarding else { return }
             hasCheckedOnboarding = true
 
-            if !homeOnboardingCompletedV1 {
+            // Setup walkthrough coordinator callbacks
+            walkthroughCoordinator.onFinished = {
+                homeOnboardingCompleted = true
+            }
+
+            if !homeOnboardingCompleted {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    showingOnboardingIntro = true
+                    showingOnboarding = true
                 }
             }
         }
@@ -132,10 +134,11 @@ struct ContentView: View {
         }
         .onPreferenceChange(HomeWalkthroughFramePreferenceKey.self) { frames in
             walkthroughFrames = frames
-            guard showingWalkthrough else { return }
+            walkthroughCoordinator.updateFrames(frames)
+            guard walkthroughCoordinator.isActive else { return }
             logWalkthrough(
-                "framesUpdated currentTarget=\(targetName(currentWalkthroughTarget)) " +
-                "frame=\(frameSummary(for: currentWalkthroughTarget)) all=\(allFrameSummary(frames))"
+                "framesUpdated currentTarget=\(targetName(walkthroughCoordinator.currentTarget)) " +
+                "frame=\(frameSummary(for: walkthroughCoordinator.currentTarget)) all=\(allFrameSummary(frames))"
             )
         }
         .sheet(item: $activeSheet) { sheet in
@@ -154,15 +157,15 @@ struct ContentView: View {
                 .presentationDragIndicator(.visible)
             }
         }
-        .fullScreenCover(isPresented: $showingOnboardingIntro) {
-            HomeOnboardingIntroView(
-                onSkip: {
-                    homeOnboardingCompletedV1 = true
-                    showingOnboardingIntro = false
+        .fullScreenCover(isPresented: $showingOnboarding) {
+            OnboardingView(
+                locationService: viewModel.locationService,
+                onComplete: {
+                    homeOnboardingCompleted = true
+                    showingOnboarding = false
                 },
                 onStartWalkthrough: {
-                    homeOnboardingCompletedV1 = true
-                    showingOnboardingIntro = false
+                    showingOnboarding = false
                     startWalkthrough()
                 }
             )
@@ -406,12 +409,25 @@ struct ContentView: View {
     private var emptyLocationState: some View {
         VStack(spacing: 16) {
             if viewModel.authorizationStatus == .notDetermined {
-                // Waiting for permission
-                ProgressView()
-                    .scaleEffect(1.2)
-                Text("Requesting location permission...")
-                    .font(.subheadline)
+                // Request permission from an explicit user action.
+                Image(systemName: "location.circle.fill")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.cyan)
+                Text("Location access needed")
+                    .font(.headline)
+                Text("Enable location to get weather for your current city and background updates.")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Button {
+                    viewModel.requestLocationPermission(preferAlways: true)
+                } label: {
+                    Label("Enable Location", systemImage: "location.fill")
+                        .font(.subheadline.weight(.medium))
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.cyan)
             } else if viewModel.authorizationStatus == .denied || viewModel.authorizationStatus == .restricted {
                 // Permission denied
                 Image(systemName: "location.slash.fill")
@@ -538,65 +554,11 @@ struct ContentView: View {
         .homeWalkthroughTarget(.tools)
     }
 
-    private var walkthroughSteps: [HomeWalkthroughStep] {
-        [
-            HomeWalkthroughStep(
-                target: .todaySnapshot,
-                title: NSLocalizedString("This is your instant weather snapshot", comment: "Walkthrough step title for today snapshot"),
-                message: NSLocalizedString("You get temperature, city time, and widget sync confidence in a single glance.", comment: "Walkthrough step message for today snapshot"),
-                accent: .cyan,
-                actionTitle: nil
-            ),
-            HomeWalkthroughStep(
-                target: .quickActions,
-                title: NSLocalizedString("Use quick actions for momentum", comment: "Walkthrough step title for quick actions"),
-                message: NSLocalizedString("Refresh now, add cities fast, or jump back to the current time with one tap.", comment: "Walkthrough step message for quick actions"),
-                accent: .blue,
-                actionTitle: nil
-            ),
-            HomeWalkthroughStep(
-                target: .myCities,
-                title: NSLocalizedString("Manage your city stack here", comment: "Walkthrough step title for my cities"),
-                message: viewModel.cities.isEmpty
-                    ? NSLocalizedString("This section fills after you add cities. Keep at least two for better world-time planning.", comment: "Walkthrough message when no extra cities")
-                    : NSLocalizedString("Reorder and monitor city freshness so you always know which data is current.", comment: "Walkthrough message for managing cities"),
-                accent: .indigo,
-                actionTitle: nil
-            ),
-            HomeWalkthroughStep(
-                target: .tools,
-                title: NSLocalizedString("Open tools only when you need them", comment: "Walkthrough step title for tools"),
-                message: NSLocalizedString("The tools panel keeps planning utilities close without crowding your weather overview.", comment: "Walkthrough step message for tools"),
-                accent: .teal,
-                actionTitle: areToolsExpanded ? nil : NSLocalizedString("Open Tools Panel", comment: "Walkthrough button title to expand tools panel")
-            )
-        ]
-    }
-
-    private var currentWalkthroughTarget: HomeWalkthroughTarget? {
-        guard showingWalkthrough, !walkthroughSteps.isEmpty else { return nil }
-        let index = min(max(walkthroughStepIndex, 0), walkthroughSteps.count - 1)
-        return walkthroughSteps[index].target
-    }
-
     private func scrollWalkthroughTarget(using proxy: ScrollViewProxy, animated: Bool = true) {
-        guard let target = currentWalkthroughTarget else { return }
+        guard walkthroughCoordinator.isActive else { return }
 
-        // Use different anchors depending on the target to ensure good visibility
-        let anchor: UnitPoint
-        switch target {
-        case .todaySnapshot:
-            anchor = .top
-        case .quickActions:
-            // quickActions is inside todaySnapshot, scroll to show it centered
-            anchor = UnitPoint(x: 0.5, y: 0.35)
-        case .myCities:
-            // myCities is in the middle of the screen, center it
-            anchor = .center
-        case .tools:
-            // tools needs to be visible at the bottom
-            anchor = UnitPoint(x: 0.5, y: 0.3)
-        }
+        let target = walkthroughCoordinator.currentTarget
+        let anchor = walkthroughCoordinator.currentScrollAnchor
 
         let action = {
             proxy.scrollTo(target, anchor: anchor)
@@ -625,29 +587,16 @@ struct ContentView: View {
 
     private func startWalkthrough() {
         activeSheet = nil
-        showingOnboardingIntro = false
-        walkthroughStepIndex = 0
+        showingOnboarding = false
         logWalkthrough("startWalkthrough cities=\(viewModel.cities.count) toolsExpanded=\(areToolsExpanded)")
-        showingWalkthrough = true
-    }
-
-    private func handleWalkthroughAction(_ step: HomeWalkthroughStep) {
-        logWalkthrough("stepAction target=\(targetName(step.target)) title=\(step.title)")
-        switch step.target {
-        case .tools:
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                areToolsExpanded = true
-            }
-        case .todaySnapshot, .quickActions, .myCities:
-            break
-        }
+        walkthroughCoordinator.start()
     }
 
     private func scheduleWalkthroughScroll(using proxy: ScrollViewProxy, reason: String) {
         let delays: [Double] = [0.0, 0.12, 0.26, 0.48]
         for (attempt, delay) in delays.enumerated() {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                guard showingWalkthrough else { return }
+                guard walkthroughCoordinator.isActive else { return }
                 logWalkthrough("scrollAttempt reason=\(reason) attempt=\(attempt)")
                 scrollWalkthroughTarget(using: proxy, animated: attempt == 0)
             }
@@ -660,8 +609,7 @@ struct ContentView: View {
 #endif
     }
 
-    private func targetName(_ target: HomeWalkthroughTarget?) -> String {
-        guard let target else { return "none" }
+    private func targetName(_ target: HomeWalkthroughTarget) -> String {
         switch target {
         case .todaySnapshot:
             return "todaySnapshot"
@@ -674,8 +622,7 @@ struct ContentView: View {
         }
     }
 
-    private func frameSummary(for target: HomeWalkthroughTarget?) -> String {
-        guard let target else { return "none" }
+    private func frameSummary(for target: HomeWalkthroughTarget) -> String {
         return rectSummary(walkthroughFrames[target])
     }
 
