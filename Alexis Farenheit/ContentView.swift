@@ -2,11 +2,17 @@ import SwiftUI
 import MapKit
 import UIKit
 import Foundation
+import os
 
 /// Main content view for the Temperature Converter app.
 /// Features multi-city support with time zone slider and premium card design.
 /// Automatically refreshes weather when app returns to foreground.
 struct ContentView: View {
+    private static let walkthroughLogger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "AlexisFarenheit",
+        category: "Walkthrough"
+    )
+
     private enum ActiveSheet: String, Identifiable {
         case logs
         case addCity
@@ -55,23 +61,39 @@ struct ContentView: View {
                         // Force-quitting the app disables background execution, so Significant Location Changes / BGTasks won't run.
                         forceQuitWidgetHint
 
+                        // Extra tail space lets walkthrough step 4 (tools) scroll to a stable position.
+                        if showingWalkthrough, currentWalkthroughTarget == .tools {
+                            Color.clear
+                                .frame(height: 320)
+                                .allowsHitTesting(false)
+                        }
+
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 24)
                 }
                 .onChange(of: showingWalkthrough) { _, isShowing in
                     guard isShowing else { return }
-                    scrollWalkthroughTarget(using: proxy, animated: false)
+                    logWalkthrough("presented step=\(walkthroughStepIndex) target=\(targetName(currentWalkthroughTarget))")
+                    scheduleWalkthroughScroll(using: proxy, reason: "presented")
                 }
                 .onChange(of: walkthroughStepIndex) { _, _ in
                     guard showingWalkthrough else { return }
-                    DispatchQueue.main.async {
-                        scrollWalkthroughTarget(using: proxy)
+                    logWalkthrough(
+                        "stepChanged step=\(walkthroughStepIndex) target=\(targetName(currentWalkthroughTarget)) " +
+                        "frame=\(frameSummary(for: currentWalkthroughTarget)) toolsExpanded=\(areToolsExpanded)"
+                    )
+                    if currentWalkthroughTarget == .tools && !areToolsExpanded {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                            areToolsExpanded = true
+                        }
                     }
+                    scheduleWalkthroughScroll(using: proxy, reason: "stepChanged")
                 }
-                .onChange(of: areToolsExpanded) { _, _ in
+                .onChange(of: areToolsExpanded) { _, isExpanded in
                     guard showingWalkthrough, currentWalkthroughTarget == .tools else { return }
-                    scrollWalkthroughTarget(using: proxy)
+                    logWalkthrough("toolsExpandedChanged expanded=\(isExpanded)")
+                    scheduleWalkthroughScroll(using: proxy, reason: "toolsExpandedChanged")
                 }
             }
         }
@@ -110,6 +132,11 @@ struct ContentView: View {
         }
         .onPreferenceChange(HomeWalkthroughFramePreferenceKey.self) { frames in
             walkthroughFrames = frames
+            guard showingWalkthrough else { return }
+            logWalkthrough(
+                "framesUpdated currentTarget=\(targetName(currentWalkthroughTarget)) " +
+                "frame=\(frameSummary(for: currentWalkthroughTarget)) all=\(allFrameSummary(frames))"
+            )
         }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
@@ -307,6 +334,7 @@ struct ContentView: View {
                 }
             }
         }
+        .id(HomeWalkthroughTarget.quickActions)
         .homeWalkthroughTarget(.quickActions)
     }
 
@@ -554,12 +582,30 @@ struct ContentView: View {
     private func scrollWalkthroughTarget(using proxy: ScrollViewProxy, animated: Bool = true) {
         guard let target = currentWalkthroughTarget else { return }
 
-        let scrollTarget: HomeWalkthroughTarget = (target == .quickActions) ? .todaySnapshot : target
-        let anchor: UnitPoint = (target == .tools) ? .center : .top
+        // Use different anchors depending on the target to ensure good visibility
+        let anchor: UnitPoint
+        switch target {
+        case .todaySnapshot:
+            anchor = .top
+        case .quickActions:
+            // quickActions is inside todaySnapshot, scroll to show it centered
+            anchor = UnitPoint(x: 0.5, y: 0.35)
+        case .myCities:
+            // myCities is in the middle of the screen, center it
+            anchor = .center
+        case .tools:
+            // tools needs to be visible at the bottom
+            anchor = UnitPoint(x: 0.5, y: 0.3)
+        }
 
         let action = {
-            proxy.scrollTo(scrollTarget, anchor: anchor)
+            proxy.scrollTo(target, anchor: anchor)
         }
+
+        logWalkthrough(
+            "scroll target=\(targetName(target)) " +
+            "anchor=\(anchorName(anchor)) frame=\(frameSummary(for: target)) animated=\(animated)"
+        )
 
         if animated {
             withAnimation(.easeInOut(duration: 0.35)) {
@@ -570,14 +616,23 @@ struct ContentView: View {
         }
     }
 
+    private func anchorName(_ anchor: UnitPoint) -> String {
+        if anchor == .top { return "top" }
+        if anchor == .center { return "center" }
+        if anchor == .bottom { return "bottom" }
+        return "(\(String(format: "%.2f", anchor.x)),\(String(format: "%.2f", anchor.y)))"
+    }
+
     private func startWalkthrough() {
         activeSheet = nil
         showingOnboardingIntro = false
         walkthroughStepIndex = 0
+        logWalkthrough("startWalkthrough cities=\(viewModel.cities.count) toolsExpanded=\(areToolsExpanded)")
         showingWalkthrough = true
     }
 
     private func handleWalkthroughAction(_ step: HomeWalkthroughStep) {
+        logWalkthrough("stepAction target=\(targetName(step.target)) title=\(step.title)")
         switch step.target {
         case .tools:
             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
@@ -586,6 +641,58 @@ struct ContentView: View {
         case .todaySnapshot, .quickActions, .myCities:
             break
         }
+    }
+
+    private func scheduleWalkthroughScroll(using proxy: ScrollViewProxy, reason: String) {
+        let delays: [Double] = [0.0, 0.12, 0.26, 0.48]
+        for (attempt, delay) in delays.enumerated() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                guard showingWalkthrough else { return }
+                logWalkthrough("scrollAttempt reason=\(reason) attempt=\(attempt)")
+                scrollWalkthroughTarget(using: proxy, animated: attempt == 0)
+            }
+        }
+    }
+
+    private func logWalkthrough(_ message: String) {
+#if DEBUG
+        Self.walkthroughLogger.debug("\(message, privacy: .public)")
+#endif
+    }
+
+    private func targetName(_ target: HomeWalkthroughTarget?) -> String {
+        guard let target else { return "none" }
+        switch target {
+        case .todaySnapshot:
+            return "todaySnapshot"
+        case .quickActions:
+            return "quickActions"
+        case .myCities:
+            return "myCities"
+        case .tools:
+            return "tools"
+        }
+    }
+
+    private func frameSummary(for target: HomeWalkthroughTarget?) -> String {
+        guard let target else { return "none" }
+        return rectSummary(walkthroughFrames[target])
+    }
+
+    private func allFrameSummary(_ frames: [HomeWalkthroughTarget: CGRect]) -> String {
+        let ordered: [HomeWalkthroughTarget] = [.todaySnapshot, .quickActions, .myCities, .tools]
+        return ordered
+            .map { "\(targetName($0))=\(rectSummary(frames[$0]))" }
+            .joined(separator: " | ")
+    }
+
+    private func rectSummary(_ rect: CGRect?) -> String {
+        guard let rect else { return "nil" }
+        let x = Int(rect.minX.rounded())
+        let y = Int(rect.minY.rounded())
+        let width = Int(rect.width.rounded())
+        let height = Int(rect.height.rounded())
+        return "x:\(x),y:\(y),w:\(width),h:\(height)"
     }
 
     // MARK: - iOS Force-Quit Hint (Widget Background Updates)

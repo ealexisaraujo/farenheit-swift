@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-02-05T03:32:27.004718+00:00",
+  "generatedAt": "2026-02-05T03:30:46.421166+00:00",
   "sourceLanguage": "en",
-  "targetLanguage": "fr",
-  "model": "gpt-4.1",
-  "totalResults": 111,
-  "results": [
+  "targetLanguage": "es",
+  "includeTargets": [
+    "app",
+    "widget"
+  ],
+  "totalCandidates": 111,
+  "candidates": [
     {
       "source": "-40°F",
-      "target": "-40°F",
-      "status": "fallback",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -27,9 +27,6 @@
     },
     {
       "source": "12 AM",
-      "target": "00 h",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -53,9 +50,6 @@
     },
     {
       "source": "12 PM",
-      "target": "12 h",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -73,9 +67,6 @@
     },
     {
       "source": "140°F",
-      "target": "140°F",
-      "status": "fallback",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -93,9 +84,6 @@
     },
     {
       "source": "6 AM",
-      "target": "6 h",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -113,9 +101,6 @@
     },
     {
       "source": "6 PM",
-      "target": "18 h",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -133,9 +118,6 @@
     },
     {
       "source": "Add a city",
-      "target": "Ajouter une ville",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -159,9 +141,6 @@
     },
     {
       "source": "Add cities to see time and temperature around the world",
-      "target": "Ajoutez des villes pour voir l'heure et la température dans le monde entier",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -179,9 +158,6 @@
     },
     {
       "source": "Add cities to see time and temperature in different places",
-      "target": "Ajoutez des villes pour voir l'heure et la température à différents endroits",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -199,9 +175,6 @@
     },
     {
       "source": "Add City",
-      "target": "Ajouter une ville",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -219,9 +192,6 @@
     },
     {
       "source": "Add city manually",
-      "target": "Ajouter une ville manuellement",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -239,9 +209,6 @@
     },
     {
       "source": "All",
-      "target": "Tout",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -265,9 +232,6 @@
     },
     {
       "source": "Back",
-      "target": "Retour",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -285,9 +249,6 @@
     },
     {
       "source": "C",
-      "target": "C",
-      "status": "fallback",
-      "validation": "ok",
       "contexts": [
         {
           "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
@@ -305,9 +266,6 @@
     },
     {
       "source": "Cancel",
-      "target": "Annuler",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -337,9 +295,6 @@
     },
     {
       "source": "Celsius",
-      "target": "Celsius",
-      "status": "fallback",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -357,9 +312,6 @@
     },
     {
       "source": "Cities",
-      "target": "Villes",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -371,9 +323,6 @@
     },
     {
       "source": "City search",
-      "target": "Recherche de ville",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -391,9 +340,6 @@
     },
     {
       "source": "City, state, or country",
-      "target": "Ville, état ou pays",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -417,9 +363,6 @@
     },
     {
       "source": "Clear",
-      "target": "Effacer",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -437,9 +380,6 @@
     },
     {
       "source": "Clear all logs?",
-      "target": "Effacer tous les journaux ?",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -457,9 +397,6 @@
     },
     {
       "source": "Clear Logs",
-      "target": "Effacer les journaux",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -477,9 +414,6 @@
     },
     {
       "source": "Close",
-      "target": "Fermer",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -497,9 +431,6 @@
     },
     {
       "source": "Continue",
-      "target": "Continuer",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -517,9 +448,6 @@
     },
     {
       "source": "Converter",
-      "target": "Convertisseur",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -537,9 +465,6 @@
     },
     {
       "source": "Could not add city",
-      "target": "Impossible d'ajouter la ville",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
@@ -557,9 +482,6 @@
     },
     {
       "source": "Could not find location",
-      "target": "Impossible de trouver l'emplacement",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
@@ -577,9 +499,6 @@
     },
     {
       "source": "Current temperature card",
-      "target": "Carte de la température actuelle",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -597,9 +516,6 @@
     },
     {
       "source": "Current time",
-      "target": "Heure actuelle",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -617,9 +533,6 @@
     },
     {
       "source": "Dismiss notice",
-      "target": "Ignorer la notification",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -637,9 +550,6 @@
     },
     {
       "source": "Done",
-      "target": "Terminé",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -657,9 +567,6 @@
     },
     {
       "source": "Edit",
-      "target": "Modifier",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -671,9 +578,6 @@
     },
     {
       "source": "Enable location access in Settings to see weather for your current location",
-      "target": "Activez l’accès à la localisation dans les Réglages pour voir la météo de votre position actuelle",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -691,9 +595,6 @@
     },
     {
       "source": "Export JSON",
-      "target": "Exporter en JSON",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -711,9 +612,6 @@
     },
     {
       "source": "Export TXT",
-      "target": "Exporter en TXT",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -731,9 +629,6 @@
     },
     {
       "source": "Fahrenheit",
-      "target": "Fahrenheit",
-      "status": "fallback",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -751,9 +646,6 @@
     },
     {
       "source": "Find a city",
-      "target": "Rechercher une ville",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -771,9 +663,6 @@
     },
     {
       "source": "F° → C°",
-      "target": "F° → C°",
-      "status": "fallback",
-      "validation": "ok",
       "contexts": [
         {
           "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
@@ -791,9 +680,6 @@
     },
     {
       "source": "Get current weather, world time, and quick city control in one place.",
-      "target": "Obtenez la météo actuelle, l’heure mondiale et un accès rapide à vos villes au même endroit.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -811,9 +697,6 @@
     },
     {
       "source": "Getting location...",
-      "target": "Obtention de la localisation...",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -831,9 +714,6 @@
     },
     {
       "source": "Interactive Walkthrough",
-      "target": "Guide interactif",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -851,9 +731,6 @@
     },
     {
       "source": "Level",
-      "target": "Niveau",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -865,9 +742,6 @@
     },
     {
       "source": "Location permission denied. Enable it in Settings.",
-      "target": "Autorisation de localisation refusée. Activez-la dans les Réglages.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Core/Services/LocationService.swift",
@@ -897,9 +771,6 @@
     },
     {
       "source": "Location unavailable",
-      "target": "Localisation indisponible",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -917,9 +788,6 @@
     },
     {
       "source": "Location: %@",
-      "target": "Localisation : %@ ",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
@@ -937,9 +805,6 @@
     },
     {
       "source": "Logs",
-      "target": "Journaux",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -957,9 +822,6 @@
     },
     {
       "source": "Logs will appear here when the app or widget generates events.",
-      "target": "Les journaux apparaîtront ici lorsque l’application ou le widget générera des événements.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -977,9 +839,6 @@
     },
     {
       "source": "Manage your city stack here",
-      "target": "Gérez votre liste de villes ici",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -997,9 +856,6 @@
     },
     {
       "source": "Maximum of %d cities reached",
-      "target": "Nombre maximum de %d villes atteint",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
@@ -1017,9 +873,6 @@
     },
     {
       "source": "My Cities",
-      "target": "Mes villes",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1037,9 +890,6 @@
     },
     {
       "source": "Next",
-      "target": "Suivant",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1051,9 +901,6 @@
     },
     {
       "source": "Next walkthrough step",
-      "target": "Étape suivante du guide",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1071,9 +918,6 @@
     },
     {
       "source": "No logs",
-      "target": "Aucun journal",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1091,9 +935,6 @@
     },
     {
       "source": "No results",
-      "target": "Aucun résultat",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1117,9 +958,6 @@
     },
     {
       "source": "No saved cities",
-      "target": "Aucune ville enregistrée",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1137,9 +975,6 @@
     },
     {
       "source": "Now",
-      "target": "Maintenant",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Core/Services/TimeZoneService.swift",
@@ -1163,9 +998,6 @@
     },
     {
       "source": "Open Settings",
-      "target": "Ouvrir les Réglages",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1183,9 +1015,6 @@
     },
     {
       "source": "Open tools only when you need them",
-      "target": "Ouvrez les outils uniquement lorsque vous en avez besoin",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1203,9 +1032,6 @@
     },
     {
       "source": "Open Tools Panel",
-      "target": "Ouvrir le panneau d’outils",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1223,9 +1049,6 @@
     },
     {
       "source": "Quick, optional, and focused on what you need now",
-      "target": "Rapide, optionnel et centré sur ce dont vous avez besoin maintenant",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1243,9 +1066,6 @@
     },
     {
       "source": "Refresh",
-      "target": "Rafraîchir",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1257,9 +1077,6 @@
     },
     {
       "source": "Refresh now, add cities fast, or jump back to the current time with one tap.",
-      "target": "Rafraîchissez maintenant, ajoutez des villes rapidement ou revenez à l'heure actuelle en un seul geste.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1277,9 +1094,6 @@
     },
     {
       "source": "Reorder and monitor city freshness so you always know which data is current.",
-      "target": "Réorganisez et surveillez la fraîcheur des villes pour toujours savoir quelles données sont à jour.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1297,9 +1111,6 @@
     },
     {
       "source": "Replay walkthrough",
-      "target": "Revoir le tutoriel",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1317,9 +1128,6 @@
     },
     {
       "source": "Requesting location permission...",
-      "target": "Demande d'autorisation de localisation...",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1337,9 +1145,6 @@
     },
     {
       "source": "Search another city...",
-      "target": "Rechercher une autre ville...",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1357,9 +1162,6 @@
     },
     {
       "source": "Search by city, state, or country name",
-      "target": "Recherchez par nom de ville, d'État ou de pays",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1377,9 +1179,6 @@
     },
     {
       "source": "Search City",
-      "target": "Rechercher une ville",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1397,9 +1196,6 @@
     },
     {
       "source": "Search for a city...",
-      "target": "Rechercher une ville...",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1417,9 +1213,6 @@
     },
     {
       "source": "Searching...",
-      "target": "Recherche en cours...",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1449,9 +1242,6 @@
     },
     {
       "source": "Shows temperature and quick conversion.",
-      "target": "Affiche la température et une conversion rapide.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1469,9 +1259,6 @@
     },
     {
       "source": "Shows temperature in °F and °C. Large widget shows 3 cities.",
-      "target": "Affiche la température en °F et °C. Le grand widget affiche 3 villes.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
@@ -1489,9 +1276,6 @@
     },
     {
       "source": "Skip",
-      "target": "Ignorer",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1515,9 +1299,6 @@
     },
     {
       "source": "Source",
-      "target": "Source",
-      "status": "fallback",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1529,9 +1310,6 @@
     },
     {
       "source": "Start Walkthrough",
-      "target": "Commencer le tutoriel",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1549,9 +1327,6 @@
     },
     {
       "source": "Swipe in the app to change time",
-      "target": "Faites glisser dans l'application pour changer l'heure",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",
@@ -1569,9 +1344,6 @@
     },
     {
       "source": "Temp Converter",
-      "target": "Convertisseur de température",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1601,9 +1373,6 @@
     },
     {
       "source": "Temperature converter",
-      "target": "Convertisseur de température",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1621,9 +1390,6 @@
     },
     {
       "source": "Temperature: %d degrees Fahrenheit, %d degrees Celsius in %@",
-      "target": "Température : %d degrés Fahrenheit, %d degrés Celsius à %@",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1635,9 +1401,6 @@
     },
     {
       "source": "The tools panel keeps planning utilities close without crowding your weather overview.",
-      "target": "Le panneau d'outils garde les utilitaires de planification à portée de main sans encombrer votre aperçu météo.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1655,9 +1418,6 @@
     },
     {
       "source": "This action cannot be undone.",
-      "target": "Cette action est irréversible.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1675,9 +1435,6 @@
     },
     {
       "source": "This city is already in your list",
-      "target": "Cette ville est déjà dans votre liste",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
@@ -1701,9 +1458,6 @@
     },
     {
       "source": "This is your instant weather snapshot",
-      "target": "Voici votre aperçu météo instantané",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1721,9 +1475,6 @@
     },
     {
       "source": "This section fills after you add cities. Keep at least two for better world-time planning.",
-      "target": "Cette section se remplit après avoir ajouté des villes. Gardez-en au moins deux pour une meilleure planification des horaires mondiaux.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1741,9 +1492,6 @@
     },
     {
       "source": "Time Zone",
-      "target": "Fuseau horaire",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1761,9 +1509,6 @@
     },
     {
       "source": "To keep the widget updated when you switch cities, do not force close the app (swipe up). iOS disables background updates when you force quit.",
-      "target": "Pour garder le widget à jour lors du changement de ville, ne forcez pas la fermeture de l'application (ne balayez pas vers le haut). iOS désactive les mises à jour en arrière-plan si vous forcez la fermeture.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1781,9 +1526,6 @@
     },
     {
       "source": "Today Snapshot",
-      "target": "Aperçu du jour",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1801,9 +1543,6 @@
     },
     {
       "source": "Tools",
-      "target": "Outils",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1821,9 +1560,6 @@
     },
     {
       "source": "Track multiple cities, compare local times, and keep your widget synced.",
-      "target": "Suivez plusieurs villes, comparez les heures locales et gardez votre widget synchronisé.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1841,9 +1577,6 @@
     },
     {
       "source": "Try another name",
-      "target": "Essayez un autre nom",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1867,9 +1600,6 @@
     },
     {
       "source": "Type to search",
-      "target": "Tapez pour rechercher",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1887,9 +1617,6 @@
     },
     {
       "source": "Updated",
-      "target": "Mis à jour",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1907,9 +1634,6 @@
     },
     {
       "source": "Updated:",
-      "target": "Mis à jour :",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -1921,9 +1645,6 @@
     },
     {
       "source": "Use quick actions for momentum",
-      "target": "Utilisez les actions rapides pour garder l'élan",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1941,9 +1662,6 @@
     },
     {
       "source": "View logs",
-      "target": "Voir les journaux",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1961,9 +1679,6 @@
     },
     {
       "source": "Waiting for first weather update",
-      "target": "En attente de la première mise à jour météo",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -1981,9 +1696,6 @@
     },
     {
       "source": "Walkthrough",
-      "target": "Présentation",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -2001,9 +1713,6 @@
     },
     {
       "source": "We need your location to show local weather, including during background updates.",
-      "target": "Nous avons besoin de votre position pour afficher la météo locale, y compris lors des mises à jour en arrière-plan.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit.xcodeproj/project.pbxproj",
@@ -2027,9 +1736,6 @@
     },
     {
       "source": "We need your location to show local weather.",
-      "target": "Nous avons besoin de votre position pour afficher la météo locale.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit.xcodeproj/project.pbxproj",
@@ -2053,9 +1759,6 @@
     },
     {
       "source": "We will show every key area of the home screen in under one minute.",
-      "target": "Nous allons vous présenter chaque zone clé de l'écran d'accueil en moins d'une minute.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -2073,9 +1776,6 @@
     },
     {
       "source": "Weather",
-      "target": "Météo",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -2093,9 +1793,6 @@
     },
     {
       "source": "Weather: %@",
-      "target": "Météo : %@",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
@@ -2113,9 +1810,6 @@
     },
     {
       "source": "WeatherKit auth error. Verifica Developer Portal.",
-      "target": "Erreur d'authentification WeatherKit. Vérifiez le portail développeur.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Core/Services/WeatherService.swift",
@@ -2133,9 +1827,6 @@
     },
     {
       "source": "Welcome to Alexis Farenheit",
-      "target": "Bienvenue sur Alexis Farenheit",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -2153,9 +1844,6 @@
     },
     {
       "source": "Widgets While Traveling",
-      "target": "Widgets en voyage",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -2173,9 +1861,6 @@
     },
     {
       "source": "World Time",
-      "target": "Heure mondiale",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -2205,9 +1890,6 @@
     },
     {
       "source": "World Time + Temperature Converter",
-      "target": "Heure mondiale + Convertisseur de température",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -2225,9 +1907,6 @@
     },
     {
       "source": "You get temperature, city time, and widget sync confidence in a single glance.",
-      "target": "Vous obtenez la température, l'heure de la ville et la fiabilité de synchronisation du widget en un coup d'œil.",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
@@ -2245,9 +1924,6 @@
     },
     {
       "source": "You have reached the limit of %d cities",
-      "target": "Vous avez atteint la limite de %d villes",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -2259,9 +1935,6 @@
     },
     {
       "source": "Your Cities, Your Rhythm",
-      "target": "Vos villes, votre rythme",
-      "status": "translated",
-      "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/Localizable.xcstrings",
@@ -2279,9 +1952,6 @@
     },
     {
       "source": "°F",
-      "target": "°F",
-      "status": "fallback",
-      "validation": "ok",
       "contexts": [
         {
           "file": "AlexisExtensionFarenheit/AlexisExtensionFarenheit.swift",

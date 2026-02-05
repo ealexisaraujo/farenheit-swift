@@ -59,6 +59,9 @@ struct HomeWalkthroughOverlay: View {
 
     @State private var pulse = false
 
+    private let focusPadding: CGFloat = 4
+    private let tapPadding: CGFloat = 12
+
     var body: some View {
         if steps.isEmpty {
             Color.clear
@@ -68,19 +71,43 @@ struct HomeWalkthroughOverlay: View {
                 }
         } else {
             GeometryReader { proxy in
-                let canvas = proxy.frame(in: .named(HomeWalkthroughCoordinateSpace.name))
+                let safeAreaTop = proxy.safeAreaInsets.top
                 let size = proxy.size
                 let step = steps[clampedIndex(in: steps)]
-                let focusRect = localFocusRect(for: step.target, canvas: canvas, size: size)
+                // Use global coordinate space to get absolute screen position
+                let overlayFrameInGlobal = proxy.frame(in: .global)
+                let focusRect = globalFocusRect(
+                    for: step.target,
+                    overlayGlobalOrigin: overlayFrameInGlobal.origin,
+                    safeAreaTop: safeAreaTop,
+                    size: size
+                )
 
                 ZStack {
-                    SpotlightCutoutShape(cutout: focusRect.insetBy(dx: -4, dy: -4))
-                        .fill(Color.black.opacity(0.78), style: FillStyle(eoFill: true))
-                        .ignoresSafeArea()
+                    // Dark overlay with cutout using compositingGroup + destinationOut
+                    // This avoids coordinate system issues from ignoresSafeArea on the shape
+                    ZStack {
+                        Rectangle()
+                            .fill(Color.black.opacity(0.78))
+
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .frame(
+                                width: focusRect.width + (focusPadding * 2),
+                                height: focusRect.height + (focusPadding * 2)
+                            )
+                            // Offset by safeAreaTop to compensate for .ignoresSafeArea() shifting coordinate origin
+                            .position(x: focusRect.midX, y: focusRect.midY + safeAreaTop)
+                            .blendMode(.destinationOut)
+                    }
+                    .compositingGroup()
+                    .ignoresSafeArea()
 
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(step.accent.opacity(0.95), lineWidth: 2.5)
-                        .frame(width: focusRect.width + 16, height: focusRect.height + 16)
+                        .frame(
+                            width: focusRect.width + (focusPadding * 2),
+                            height: focusRect.height + (focusPadding * 2)
+                        )
                         .position(x: focusRect.midX, y: focusRect.midY)
                         .shadow(color: step.accent.opacity(0.45), radius: pulse ? 20 : 10)
                         .scaleEffect(pulse ? 1.015 : 0.99)
@@ -94,7 +121,10 @@ struct HomeWalkthroughOverlay: View {
                     } label: {
                         RoundedRectangle(cornerRadius: 24, style: .continuous)
                             .fill(Color.clear)
-                            .frame(width: focusRect.width + 28, height: focusRect.height + 28)
+                            .frame(
+                                width: focusRect.width + (tapPadding * 2),
+                                height: focusRect.height + (tapPadding * 2)
+                            )
                     }
                     .position(x: focusRect.midX, y: focusRect.midY)
                     .accessibilityLabel(NSLocalizedString("Next walkthrough step", comment: "Accessibility label for walkthrough spotlight tap target"))
@@ -103,6 +133,45 @@ struct HomeWalkthroughOverlay: View {
                 }
                 .onAppear {
                     pulse = true
+                    logOverlay(
+                        step: step,
+                        focusRect: focusRect,
+                        source: "appear",
+                        overlayGlobalOrigin: overlayFrameInGlobal.origin,
+                        safeAreaTop: safeAreaTop
+                    )
+                }
+                .onChange(of: currentStepIndex) { _, _ in
+                    let nextStep = steps[clampedIndex(in: steps)]
+                    let nextRect = globalFocusRect(
+                        for: nextStep.target,
+                        overlayGlobalOrigin: overlayFrameInGlobal.origin,
+                        safeAreaTop: safeAreaTop,
+                        size: size
+                    )
+                    logOverlay(
+                        step: nextStep,
+                        focusRect: nextRect,
+                        source: "stepChanged",
+                        overlayGlobalOrigin: overlayFrameInGlobal.origin,
+                        safeAreaTop: safeAreaTop
+                    )
+                }
+                .onChange(of: targetFrames) { _, _ in
+                    let currentStep = steps[clampedIndex(in: steps)]
+                    let currentRect = globalFocusRect(
+                        for: currentStep.target,
+                        overlayGlobalOrigin: overlayFrameInGlobal.origin,
+                        safeAreaTop: safeAreaTop,
+                        size: size
+                    )
+                    logOverlay(
+                        step: currentStep,
+                        focusRect: currentRect,
+                        source: "framesChanged",
+                        overlayGlobalOrigin: overlayFrameInGlobal.origin,
+                        safeAreaTop: safeAreaTop
+                    )
                 }
             }
             .transition(.opacity)
@@ -213,15 +282,34 @@ struct HomeWalkthroughOverlay: View {
         return min(max(currentStepIndex, 0), steps.count - 1)
     }
 
-    private func localFocusRect(for target: HomeWalkthroughTarget, canvas: CGRect, size: CGSize) -> CGRect {
-        if let globalRect = targetFrames[target] {
+    /// Calculate the focus rectangle in overlay-local coordinates.
+    /// The targetFrames are in the named coordinate space (ScrollView content).
+    /// We need to convert them to the overlay's local coordinate space.
+    private func globalFocusRect(
+        for target: HomeWalkthroughTarget,
+        overlayGlobalOrigin: CGPoint,
+        safeAreaTop: CGFloat,
+        size: CGSize
+    ) -> CGRect {
+        if let targetRect = targetFrames[target] {
+            // targetRect is in the named coordinate space (relative to the ZStack with coordinateSpace modifier)
+            // The overlay's GeometryReader origin is also relative to that same ZStack
+            // Since the named coordinate space is on the ZStack, and the overlay fills the ZStack,
+            // the target frames are already in the correct coordinate space.
+            // However, we need to account for any safe area offset between the overlay and the content.
+
+            // The targetRect.minY is relative to the coordinateSpace origin (top of ZStack content area)
+            // The overlay's local coordinate system has (0,0) at its top-left corner
+            // These should match since both are children of the same ZStack
             let localRect = CGRect(
-                x: globalRect.minX - canvas.minX,
-                y: globalRect.minY - canvas.minY,
-                width: globalRect.width,
-                height: globalRect.height
+                x: targetRect.minX,
+                y: targetRect.minY,
+                width: targetRect.width,
+                height: targetRect.height
             )
-            if localRect.width > 0, localRect.height > 0 {
+            if localRect.width > 0, localRect.height > 0,
+               localRect.minY >= -50, // Allow some negative (scrolled above)
+               localRect.maxY <= size.height + 50 { // Allow some overflow (scrolled below)
                 return localRect
             }
         }
@@ -234,18 +322,47 @@ struct HomeWalkthroughOverlay: View {
             height: 108
         )
     }
-}
 
-private struct SpotlightCutoutShape: Shape {
-    let cutout: CGRect
+    private func logOverlay(
+        step: HomeWalkthroughStep,
+        focusRect: CGRect,
+        source: String,
+        overlayGlobalOrigin: CGPoint,
+        safeAreaTop: CGFloat
+    ) {
+#if DEBUG
+        let targetRect = targetFrames[step.target]
+        let line =
+            "[WalkthroughOverlay] source=\(source) step=\(clampedIndex(in: steps)) " +
+            "target=\(targetName(step.target)) " +
+            "focus=\(rectSummary(focusRect)) " +
+            "targetFrame=\(rectSummary(targetRect)) " +
+            "overlayOrigin=(\(Int(overlayGlobalOrigin.x)),\(Int(overlayGlobalOrigin.y))) " +
+            "safeTop=\(Int(safeAreaTop))"
+        print(line)
+#endif
+    }
 
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.addRect(rect)
-        path.addRoundedRect(
-            in: cutout,
-            cornerSize: CGSize(width: 24, height: 24)
-        )
-        return path
+    private func targetName(_ target: HomeWalkthroughTarget) -> String {
+        switch target {
+        case .todaySnapshot:
+            return "todaySnapshot"
+        case .quickActions:
+            return "quickActions"
+        case .myCities:
+            return "myCities"
+        case .tools:
+            return "tools"
+        }
+    }
+
+    private func rectSummary(_ rect: CGRect?) -> String {
+        guard let rect else { return "nil" }
+        let x = Int(rect.minX.rounded())
+        let y = Int(rect.minY.rounded())
+        let width = Int(rect.width.rounded())
+        let height = Int(rect.height.rounded())
+        return "x:\(x),y:\(y),w:\(width),h:\(height)"
     }
 }
+

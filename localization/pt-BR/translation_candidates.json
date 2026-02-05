@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-05T01:52:17.920202+00:00",
+  "generatedAt": "2026-02-05T03:31:29.445862+00:00",
   "sourceLanguage": "en",
   "targetLanguage": "pt-BR",
   "includeTargets": [
@@ -161,7 +161,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 731,
+          "line": 841,
           "kind": "Text",
           "target": "app"
         },
@@ -178,7 +178,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 669,
+          "line": 779,
           "kind": "navigationTitle",
           "target": "app"
         },
@@ -195,7 +195,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 419,
+          "line": 450,
           "kind": "Label",
           "target": "app"
         },
@@ -241,7 +241,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeWalkthroughOverlay.swift",
-          "line": 164,
+          "line": 237,
           "kind": "NSLocalizedString",
           "target": "app"
         }
@@ -269,7 +269,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 673,
+          "line": 783,
           "kind": "Button",
           "target": "app"
         },
@@ -343,7 +343,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 681,
+          "line": 791,
           "kind": "searchPrompt",
           "target": "app"
         },
@@ -440,7 +440,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
-          "line": 151,
+          "line": 166,
           "kind": "NSLocalizedString",
           "target": "app"
         }
@@ -536,7 +536,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 630,
+          "line": 740,
           "kind": "accessibilityLabel",
           "target": "app"
         },
@@ -559,7 +559,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeWalkthroughOverlay.swift",
-          "line": 170,
+          "line": 243,
           "kind": "NSLocalizedString",
           "target": "app"
         }
@@ -581,7 +581,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 391,
+          "line": 422,
           "kind": "Text",
           "target": "app"
         },
@@ -649,7 +649,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 728,
+          "line": 838,
           "kind": "Text",
           "target": "app"
         },
@@ -689,7 +689,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
-          "line": 21,
+          "line": 28,
           "kind": "NSLocalizedString",
           "target": "app"
         }
@@ -700,7 +700,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 410,
+          "line": 441,
           "kind": "Text",
           "target": "app"
         },
@@ -723,7 +723,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
-          "line": 32,
+          "line": 41,
           "kind": "NSLocalizedString",
           "target": "app"
         }
@@ -774,7 +774,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 389,
+          "line": 420,
           "kind": "Text",
           "target": "app"
         },
@@ -842,7 +842,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 528,
+          "line": 559,
           "kind": "NSLocalizedString",
           "target": "app"
         },
@@ -910,7 +910,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeWalkthroughOverlay.swift",
-          "line": 96,
+          "line": 130,
           "kind": "NSLocalizedString",
           "target": "app"
         }
@@ -938,7 +938,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 754,
+          "line": 864,
           "kind": "Text",
           "target": "app"
         },
@@ -1001,7 +1001,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 401,
+          "line": 432,
           "kind": "Label",
           "target": "app"
         },
@@ -1018,7 +1018,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 537,
+          "line": 568,
           "kind": "NSLocalizedString",
           "target": "app"
         },
@@ -1035,7 +1035,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 540,
+          "line": 571,
           "kind": "NSLocalizedString",
           "target": "app"
         },
@@ -1058,7 +1058,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
-          "line": 110,
+          "line": 124,
           "kind": "NSLocalizedString",
           "target": "app"
         }
@@ -1080,7 +1080,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 522,
+          "line": 553,
           "kind": "NSLocalizedString",
           "target": "app"
         },
@@ -1097,7 +1097,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 531,
+          "line": 562,
           "kind": "NSLocalizedString",
           "target": "app"
         },
@@ -1114,7 +1114,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 175,
+          "line": 205,
           "kind": "NSLocalizedString",
           "target": "app"
         },
@@ -1131,7 +1131,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 381,
+          "line": 412,
           "kind": "Text",
           "target": "app"
         },
@@ -1216,7 +1216,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 721,
+          "line": 831,
           "kind": "Text",
           "target": "app"
         },
@@ -1285,13 +1285,13 @@
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
-          "line": 71,
+          "line": 78,
           "kind": "NSLocalizedString",
           "target": "app"
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeWalkthroughOverlay.swift",
-          "line": 155,
+          "line": 228,
           "kind": "NSLocalizedString",
           "target": "app"
         }
@@ -1319,7 +1319,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
-          "line": 150,
+          "line": 165,
           "kind": "NSLocalizedString",
           "target": "app"
         }
@@ -1404,7 +1404,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 538,
+          "line": 569,
           "kind": "NSLocalizedString",
           "target": "app"
         },
@@ -1461,7 +1461,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 514,
+          "line": 545,
           "kind": "NSLocalizedString",
           "target": "app"
         },
@@ -1478,7 +1478,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 530,
+          "line": 561,
           "kind": "NSLocalizedString",
           "target": "app"
         },
@@ -1512,7 +1512,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 602,
+          "line": 712,
           "kind": "Text",
           "target": "app"
         },
@@ -1529,7 +1529,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 205,
+          "line": 235,
           "kind": "Text",
           "target": "app"
         },
@@ -1546,7 +1546,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 469,
+          "line": 500,
           "kind": "Text",
           "target": "app"
         },
@@ -1569,7 +1569,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
-          "line": 27,
+          "line": 35,
           "kind": "NSLocalizedString",
           "target": "app"
         }
@@ -1580,7 +1580,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 757,
+          "line": 867,
           "kind": "Text",
           "target": "app"
         },
@@ -1620,7 +1620,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 225,
+          "line": 255,
           "kind": "Text",
           "target": "app"
         },
@@ -1648,7 +1648,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 521,
+          "line": 552,
           "kind": "NSLocalizedString",
           "target": "app"
         },
@@ -1665,7 +1665,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 610,
+          "line": 720,
           "kind": "Label",
           "target": "app"
         },
@@ -1682,7 +1682,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 230,
+          "line": 260,
           "kind": "Text",
           "target": "app"
         },
@@ -1705,7 +1705,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeWalkthroughOverlay.swift",
-          "line": 126,
+          "line": 199,
           "kind": "NSLocalizedString",
           "target": "app"
         }
@@ -1768,7 +1768,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
-          "line": 33,
+          "line": 42,
           "kind": "NSLocalizedString",
           "target": "app"
         }
@@ -1779,7 +1779,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 158,
+          "line": 188,
           "kind": "Text",
           "target": "app"
         },
@@ -1836,7 +1836,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
-          "line": 20,
+          "line": 27,
           "kind": "NSLocalizedString",
           "target": "app"
         }
@@ -1847,7 +1847,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 599,
+          "line": 709,
           "kind": "Text",
           "target": "app"
         },
@@ -1864,7 +1864,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 160,
+          "line": 190,
           "kind": "Text",
           "target": "app"
         },
@@ -1893,7 +1893,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 472,
+          "line": 503,
           "kind": "Text",
           "target": "app"
         },
@@ -1910,7 +1910,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 515,
+          "line": 546,
           "kind": "NSLocalizedString",
           "target": "app"
         },
@@ -1944,7 +1944,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
-          "line": 26,
+          "line": 34,
           "kind": "NSLocalizedString",
           "target": "app"
         }

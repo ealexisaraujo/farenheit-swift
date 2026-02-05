@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-02-05T03:32:27.004718+00:00",
+  "generatedAt": "2026-02-05T03:31:15.376657+00:00",
   "sourceLanguage": "en",
-  "targetLanguage": "fr",
+  "targetLanguage": "es",
   "model": "gpt-4.1",
   "totalResults": 111,
   "results": [
@@ -27,7 +27,7 @@
     },
     {
       "source": "12 AM",
-      "target": "00 h",
+      "target": "12 a. m.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -53,7 +53,7 @@
     },
     {
       "source": "12 PM",
-      "target": "12 h",
+      "target": "12 p. m.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -93,7 +93,7 @@
     },
     {
       "source": "6 AM",
-      "target": "6 h",
+      "target": "6 a. m.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -113,7 +113,7 @@
     },
     {
       "source": "6 PM",
-      "target": "18 h",
+      "target": "6 p. m.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -133,7 +133,7 @@
     },
     {
       "source": "Add a city",
-      "target": "Ajouter une ville",
+      "target": "Agregar una ciudad",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -159,7 +159,7 @@
     },
     {
       "source": "Add cities to see time and temperature around the world",
-      "target": "Ajoutez des villes pour voir l'heure et la température dans le monde entier",
+      "target": "Agrega ciudades para ver la hora y la temperatura en todo el mundo",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -179,7 +179,7 @@
     },
     {
       "source": "Add cities to see time and temperature in different places",
-      "target": "Ajoutez des villes pour voir l'heure et la température à différents endroits",
+      "target": "Agrega ciudades para ver la hora y la temperatura en diferentes lugares",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -199,7 +199,7 @@
     },
     {
       "source": "Add City",
-      "target": "Ajouter une ville",
+      "target": "Agregar ciudad",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -219,7 +219,7 @@
     },
     {
       "source": "Add city manually",
-      "target": "Ajouter une ville manuellement",
+      "target": "Agregar ciudad manualmente",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -239,7 +239,7 @@
     },
     {
       "source": "All",
-      "target": "Tout",
+      "target": "Todo",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -265,7 +265,7 @@
     },
     {
       "source": "Back",
-      "target": "Retour",
+      "target": "Atrás",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -305,7 +305,7 @@
     },
     {
       "source": "Cancel",
-      "target": "Annuler",
+      "target": "Cancelar",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -357,7 +357,7 @@
     },
     {
       "source": "Cities",
-      "target": "Villes",
+      "target": "Ciudades",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -371,7 +371,7 @@
     },
     {
       "source": "City search",
-      "target": "Recherche de ville",
+      "target": "Buscar ciudad",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -391,7 +391,7 @@
     },
     {
       "source": "City, state, or country",
-      "target": "Ville, état ou pays",
+      "target": "Ciudad, estado o país",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -417,7 +417,7 @@
     },
     {
       "source": "Clear",
-      "target": "Effacer",
+      "target": "Borrar",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -437,7 +437,7 @@
     },
     {
       "source": "Clear all logs?",
-      "target": "Effacer tous les journaux ?",
+      "target": "¿Borrar todos los registros?",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -457,7 +457,7 @@
     },
     {
       "source": "Clear Logs",
-      "target": "Effacer les journaux",
+      "target": "Borrar registros",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -477,7 +477,7 @@
     },
     {
       "source": "Close",
-      "target": "Fermer",
+      "target": "Cerrar",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -497,7 +497,7 @@
     },
     {
       "source": "Continue",
-      "target": "Continuer",
+      "target": "Continuar",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -517,7 +517,7 @@
     },
     {
       "source": "Converter",
-      "target": "Convertisseur",
+      "target": "Convertidor",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -537,7 +537,7 @@
     },
     {
       "source": "Could not add city",
-      "target": "Impossible d'ajouter la ville",
+      "target": "No se pudo agregar la ciudad",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -557,7 +557,7 @@
     },
     {
       "source": "Could not find location",
-      "target": "Impossible de trouver l'emplacement",
+      "target": "No se pudo encontrar la ubicación",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -577,7 +577,7 @@
     },
     {
       "source": "Current temperature card",
-      "target": "Carte de la température actuelle",
+      "target": "Tarjeta de temperatura actual",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -597,7 +597,7 @@
     },
     {
       "source": "Current time",
-      "target": "Heure actuelle",
+      "target": "Hora actual",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -617,7 +617,7 @@
     },
     {
       "source": "Dismiss notice",
-      "target": "Ignorer la notification",
+      "target": "Descartar aviso",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -637,7 +637,7 @@
     },
     {
       "source": "Done",
-      "target": "Terminé",
+      "target": "Listo",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -657,7 +657,7 @@
     },
     {
       "source": "Edit",
-      "target": "Modifier",
+      "target": "Editar",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -671,7 +671,7 @@
     },
     {
       "source": "Enable location access in Settings to see weather for your current location",
-      "target": "Activez l’accès à la localisation dans les Réglages pour voir la météo de votre position actuelle",
+      "target": "Activa el acceso a la ubicación en Configuración para ver el clima de tu ubicación actual",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -691,7 +691,7 @@
     },
     {
       "source": "Export JSON",
-      "target": "Exporter en JSON",
+      "target": "Exportar JSON",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -711,7 +711,7 @@
     },
     {
       "source": "Export TXT",
-      "target": "Exporter en TXT",
+      "target": "Exportar TXT",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -751,7 +751,7 @@
     },
     {
       "source": "Find a city",
-      "target": "Rechercher une ville",
+      "target": "Buscar una ciudad",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -791,7 +791,7 @@
     },
     {
       "source": "Get current weather, world time, and quick city control in one place.",
-      "target": "Obtenez la météo actuelle, l’heure mondiale et un accès rapide à vos villes au même endroit.",
+      "target": "Obtén el clima actual, la hora mundial y el control rápido de ciudades en un solo lugar.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -811,7 +811,7 @@
     },
     {
       "source": "Getting location...",
-      "target": "Obtention de la localisation...",
+      "target": "Obteniendo ubicación...",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -831,7 +831,7 @@
     },
     {
       "source": "Interactive Walkthrough",
-      "target": "Guide interactif",
+      "target": "Recorrido interactivo",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -851,7 +851,7 @@
     },
     {
       "source": "Level",
-      "target": "Niveau",
+      "target": "Nivel",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -865,7 +865,7 @@
     },
     {
       "source": "Location permission denied. Enable it in Settings.",
-      "target": "Autorisation de localisation refusée. Activez-la dans les Réglages.",
+      "target": "Permiso de ubicación denegado. Actívalo en Configuración.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -897,7 +897,7 @@
     },
     {
       "source": "Location unavailable",
-      "target": "Localisation indisponible",
+      "target": "Ubicación no disponible",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -917,7 +917,7 @@
     },
     {
       "source": "Location: %@",
-      "target": "Localisation : %@ ",
+      "target": "Ubicación: %@ ",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -937,7 +937,7 @@
     },
     {
       "source": "Logs",
-      "target": "Journaux",
+      "target": "Registros",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -957,7 +957,7 @@
     },
     {
       "source": "Logs will appear here when the app or widget generates events.",
-      "target": "Les journaux apparaîtront ici lorsque l’application ou le widget générera des événements.",
+      "target": "Los registros aparecerán aquí cuando la app o el widget generen eventos.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -977,7 +977,7 @@
     },
     {
       "source": "Manage your city stack here",
-      "target": "Gérez votre liste de villes ici",
+      "target": "Administra tu lista de ciudades aquí",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -997,7 +997,7 @@
     },
     {
       "source": "Maximum of %d cities reached",
-      "target": "Nombre maximum de %d villes atteint",
+      "target": "Se alcanzó el máximo de %d ciudades",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1017,7 +1017,7 @@
     },
     {
       "source": "My Cities",
-      "target": "Mes villes",
+      "target": "Mis ciudades",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1037,7 +1037,7 @@
     },
     {
       "source": "Next",
-      "target": "Suivant",
+      "target": "Siguiente",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1051,7 +1051,7 @@
     },
     {
       "source": "Next walkthrough step",
-      "target": "Étape suivante du guide",
+      "target": "Siguiente paso del recorrido",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1071,7 +1071,7 @@
     },
     {
       "source": "No logs",
-      "target": "Aucun journal",
+      "target": "Sin registros",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1091,7 +1091,7 @@
     },
     {
       "source": "No results",
-      "target": "Aucun résultat",
+      "target": "Sin resultados",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1117,7 +1117,7 @@
     },
     {
       "source": "No saved cities",
-      "target": "Aucune ville enregistrée",
+      "target": "No hay ciudades guardadas",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1137,7 +1137,7 @@
     },
     {
       "source": "Now",
-      "target": "Maintenant",
+      "target": "Ahora",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1163,7 +1163,7 @@
     },
     {
       "source": "Open Settings",
-      "target": "Ouvrir les Réglages",
+      "target": "Abrir Configuración",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1183,7 +1183,7 @@
     },
     {
       "source": "Open tools only when you need them",
-      "target": "Ouvrez les outils uniquement lorsque vous en avez besoin",
+      "target": "Abre las herramientas solo cuando las necesites",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1203,7 +1203,7 @@
     },
     {
       "source": "Open Tools Panel",
-      "target": "Ouvrir le panneau d’outils",
+      "target": "Abrir panel de herramientas",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1223,7 +1223,7 @@
     },
     {
       "source": "Quick, optional, and focused on what you need now",
-      "target": "Rapide, optionnel et centré sur ce dont vous avez besoin maintenant",
+      "target": "Rápido, opcional y enfocado en lo que necesitas ahora",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1243,7 +1243,7 @@
     },
     {
       "source": "Refresh",
-      "target": "Rafraîchir",
+      "target": "Actualizar",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1257,7 +1257,7 @@
     },
     {
       "source": "Refresh now, add cities fast, or jump back to the current time with one tap.",
-      "target": "Rafraîchissez maintenant, ajoutez des villes rapidement ou revenez à l'heure actuelle en un seul geste.",
+      "target": "Actualiza ahora, agrega ciudades rápidamente o vuelve a la hora actual con un solo toque.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1277,7 +1277,7 @@
     },
     {
       "source": "Reorder and monitor city freshness so you always know which data is current.",
-      "target": "Réorganisez et surveillez la fraîcheur des villes pour toujours savoir quelles données sont à jour.",
+      "target": "Reordena y monitorea la actualización de las ciudades para que siempre sepas qué datos están actualizados.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1297,7 +1297,7 @@
     },
     {
       "source": "Replay walkthrough",
-      "target": "Revoir le tutoriel",
+      "target": "Repetir recorrido",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1317,7 +1317,7 @@
     },
     {
       "source": "Requesting location permission...",
-      "target": "Demande d'autorisation de localisation...",
+      "target": "Solicitando permiso de ubicación...",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1337,7 +1337,7 @@
     },
     {
       "source": "Search another city...",
-      "target": "Rechercher une autre ville...",
+      "target": "Buscar otra ciudad...",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1357,7 +1357,7 @@
     },
     {
       "source": "Search by city, state, or country name",
-      "target": "Recherchez par nom de ville, d'État ou de pays",
+      "target": "Busca por nombre de ciudad, estado o país",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1377,7 +1377,7 @@
     },
     {
       "source": "Search City",
-      "target": "Rechercher une ville",
+      "target": "Buscar ciudad",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1397,7 +1397,7 @@
     },
     {
       "source": "Search for a city...",
-      "target": "Rechercher une ville...",
+      "target": "Buscar una ciudad...",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1417,7 +1417,7 @@
     },
     {
       "source": "Searching...",
-      "target": "Recherche en cours...",
+      "target": "Buscando...",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1449,7 +1449,7 @@
     },
     {
       "source": "Shows temperature and quick conversion.",
-      "target": "Affiche la température et une conversion rapide.",
+      "target": "Muestra la temperatura y conversión rápida.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1469,7 +1469,7 @@
     },
     {
       "source": "Shows temperature in °F and °C. Large widget shows 3 cities.",
-      "target": "Affiche la température en °F et °C. Le grand widget affiche 3 villes.",
+      "target": "Muestra la temperatura en °F y °C. El widget grande muestra 3 ciudades.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1489,7 +1489,7 @@
     },
     {
       "source": "Skip",
-      "target": "Ignorer",
+      "target": "Omitir",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1515,8 +1515,8 @@
     },
     {
       "source": "Source",
-      "target": "Source",
-      "status": "fallback",
+      "target": "Fuente",
+      "status": "translated",
       "validation": "ok",
       "contexts": [
         {
@@ -1529,7 +1529,7 @@
     },
     {
       "source": "Start Walkthrough",
-      "target": "Commencer le tutoriel",
+      "target": "Iniciar recorrido",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1549,7 +1549,7 @@
     },
     {
       "source": "Swipe in the app to change time",
-      "target": "Faites glisser dans l'application pour changer l'heure",
+      "target": "Desliza en la app para cambiar la hora",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1569,7 +1569,7 @@
     },
     {
       "source": "Temp Converter",
-      "target": "Convertisseur de température",
+      "target": "Convertidor de temperatura",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1601,7 +1601,7 @@
     },
     {
       "source": "Temperature converter",
-      "target": "Convertisseur de température",
+      "target": "Convertidor de temperatura",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1621,7 +1621,7 @@
     },
     {
       "source": "Temperature: %d degrees Fahrenheit, %d degrees Celsius in %@",
-      "target": "Température : %d degrés Fahrenheit, %d degrés Celsius à %@",
+      "target": "Temperatura: %d grados Fahrenheit, %d grados Celsius en %@",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1635,7 +1635,7 @@
     },
     {
       "source": "The tools panel keeps planning utilities close without crowding your weather overview.",
-      "target": "Le panneau d'outils garde les utilitaires de planification à portée de main sans encombrer votre aperçu météo.",
+      "target": "El panel de herramientas mantiene las utilidades de planificación cerca sin saturar tu vista del clima.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1655,7 +1655,7 @@
     },
     {
       "source": "This action cannot be undone.",
-      "target": "Cette action est irréversible.",
+      "target": "Esta acción no se puede deshacer.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1675,7 +1675,7 @@
     },
     {
       "source": "This city is already in your list",
-      "target": "Cette ville est déjà dans votre liste",
+      "target": "Esta ciudad ya está en tu lista",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1701,7 +1701,7 @@
     },
     {
       "source": "This is your instant weather snapshot",
-      "target": "Voici votre aperçu météo instantané",
+      "target": "Esta es tu instantánea meteorológica instantánea",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1721,7 +1721,7 @@
     },
     {
       "source": "This section fills after you add cities. Keep at least two for better world-time planning.",
-      "target": "Cette section se remplit après avoir ajouté des villes. Gardez-en au moins deux pour une meilleure planification des horaires mondiaux.",
+      "target": "Esta sección se llena después de agregar ciudades. Mantén al menos dos para una mejor planificación de horarios mundiales.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1741,7 +1741,7 @@
     },
     {
       "source": "Time Zone",
-      "target": "Fuseau horaire",
+      "target": "Zona horaria",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1761,7 +1761,7 @@
     },
     {
       "source": "To keep the widget updated when you switch cities, do not force close the app (swipe up). iOS disables background updates when you force quit.",
-      "target": "Pour garder le widget à jour lors du changement de ville, ne forcez pas la fermeture de l'application (ne balayez pas vers le haut). iOS désactive les mises à jour en arrière-plan si vous forcez la fermeture.",
+      "target": "Para mantener el widget actualizado al cambiar de ciudad, no cierres la app forzadamente (deslizando hacia arriba). iOS desactiva las actualizaciones en segundo plano si la cierras forzadamente.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1781,7 +1781,7 @@
     },
     {
       "source": "Today Snapshot",
-      "target": "Aperçu du jour",
+      "target": "Instantánea de hoy",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1801,7 +1801,7 @@
     },
     {
       "source": "Tools",
-      "target": "Outils",
+      "target": "Herramientas",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1821,7 +1821,7 @@
     },
     {
       "source": "Track multiple cities, compare local times, and keep your widget synced.",
-      "target": "Suivez plusieurs villes, comparez les heures locales et gardez votre widget synchronisé.",
+      "target": "Sigue varias ciudades, compara horarios locales y mantén tu widget sincronizado.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1841,7 +1841,7 @@
     },
     {
       "source": "Try another name",
-      "target": "Essayez un autre nom",
+      "target": "Prueba con otro nombre",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1867,7 +1867,7 @@
     },
     {
       "source": "Type to search",
-      "target": "Tapez pour rechercher",
+      "target": "Escribe para buscar",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1887,7 +1887,7 @@
     },
     {
       "source": "Updated",
-      "target": "Mis à jour",
+      "target": "Actualizado",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1907,7 +1907,7 @@
     },
     {
       "source": "Updated:",
-      "target": "Mis à jour :",
+      "target": "Actualizado:",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1921,7 +1921,7 @@
     },
     {
       "source": "Use quick actions for momentum",
-      "target": "Utilisez les actions rapides pour garder l'élan",
+      "target": "Usa acciones rápidas para mantener el ritmo",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1941,7 +1941,7 @@
     },
     {
       "source": "View logs",
-      "target": "Voir les journaux",
+      "target": "Ver registros",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1961,7 +1961,7 @@
     },
     {
       "source": "Waiting for first weather update",
-      "target": "En attente de la première mise à jour météo",
+      "target": "Esperando la primera actualización del clima",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1981,7 +1981,7 @@
     },
     {
       "source": "Walkthrough",
-      "target": "Présentation",
+      "target": "Guía",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -2001,7 +2001,7 @@
     },
     {
       "source": "We need your location to show local weather, including during background updates.",
-      "target": "Nous avons besoin de votre position pour afficher la météo locale, y compris lors des mises à jour en arrière-plan.",
+      "target": "Necesitamos tu ubicación para mostrar el clima local, incluso durante actualizaciones en segundo plano.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -2027,7 +2027,7 @@
     },
     {
       "source": "We need your location to show local weather.",
-      "target": "Nous avons besoin de votre position pour afficher la météo locale.",
+      "target": "Necesitamos tu ubicación para mostrar el clima local.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -2053,7 +2053,7 @@
     },
     {
       "source": "We will show every key area of the home screen in under one minute.",
-      "target": "Nous allons vous présenter chaque zone clé de l'écran d'accueil en moins d'une minute.",
+      "target": "Te mostraremos cada área clave de la pantalla principal en menos de un minuto.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -2073,7 +2073,7 @@
     },
     {
       "source": "Weather",
-      "target": "Météo",
+      "target": "Clima",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -2093,7 +2093,7 @@
     },
     {
       "source": "Weather: %@",
-      "target": "Météo : %@",
+      "target": "Clima: %@",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -2113,7 +2113,7 @@
     },
     {
       "source": "WeatherKit auth error. Verifica Developer Portal.",
-      "target": "Erreur d'authentification WeatherKit. Vérifiez le portail développeur.",
+      "target": "Error de autenticación de WeatherKit. Verifica el Developer Portal.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -2133,7 +2133,7 @@
     },
     {
       "source": "Welcome to Alexis Farenheit",
-      "target": "Bienvenue sur Alexis Farenheit",
+      "target": "Bienvenido a Alexis Farenheit",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -2153,7 +2153,7 @@
     },
     {
       "source": "Widgets While Traveling",
-      "target": "Widgets en voyage",
+      "target": "Widgets mientras viajas",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -2173,7 +2173,7 @@
     },
     {
       "source": "World Time",
-      "target": "Heure mondiale",
+      "target": "Hora mundial",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -2205,7 +2205,7 @@
     },
     {
       "source": "World Time + Temperature Converter",
-      "target": "Heure mondiale + Convertisseur de température",
+      "target": "Hora mundial + Convertidor de temperatura",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -2225,7 +2225,7 @@
     },
     {
       "source": "You get temperature, city time, and widget sync confidence in a single glance.",
-      "target": "Vous obtenez la température, l'heure de la ville et la fiabilité de synchronisation du widget en un coup d'œil.",
+      "target": "Obtienes temperatura, hora de la ciudad y confianza de sincronización del widget de un solo vistazo.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -2245,7 +2245,7 @@
     },
     {
       "source": "You have reached the limit of %d cities",
-      "target": "Vous avez atteint la limite de %d villes",
+      "target": "Has alcanzado el límite de %d ciudades",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -2259,7 +2259,7 @@
     },
     {
       "source": "Your Cities, Your Rhythm",
-      "target": "Vos villes, votre rythme",
+      "target": "Tus ciudades, tu ritmo",
       "status": "translated",
       "validation": "ok",
       "contexts": [

@@ -48,6 +48,12 @@
             "state": "translated",
             "value": "C"
           }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C"
+          }
         }
       }
     },
@@ -67,6 +73,12 @@
             "state": "translated",
             "value": "F° → C°"
           }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "F° → C°"
+          }
         }
       }
     },
@@ -76,7 +88,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Muestra temperatura en °F y °C. Widget grande muestra 3 ciudades."
+            "value": "Muestra la temperatura en °F y °C. El widget grande muestra 3 ciudades."
           }
         },
         "pt-BR": {
@@ -99,7 +111,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desliza en la app para cambiar hora"
+            "value": "Desliza en la app para cambiar la hora"
           }
         },
         "pt-BR": {
@@ -122,13 +134,13 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Conversor de Temperatura"
+            "value": "Convertidor de temperatura"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Conversor de Temperatura"
+            "value": "Conversor de temperatura"
           }
         },
         "fr": {
@@ -145,13 +157,13 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tiempo Mundial"
+            "value": "Hora mundial"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hora mundial"
+            "value": "Hora Mundial"
           }
         },
         "fr": {
@@ -174,6 +186,12 @@
           }
         },
         "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "°F"
+          }
+        },
+        "es": {
           "stringUnit": {
             "state": "translated",
             "value": "°F"

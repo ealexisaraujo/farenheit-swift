@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-02-04T02:17:29.056802+00:00",
+  "generatedAt": "2026-02-05T03:32:01.144792+00:00",
   "sourceLanguage": "en",
   "targetLanguage": "pt-BR",
   "model": "gpt-4.1",
-  "totalResults": 80,
+  "totalResults": 111,
   "results": [
     {
       "source": "-40°F",
@@ -145,13 +145,13 @@
         },
         {
           "file": "Alexis Farenheit/UI/Components/CityCardListView.swift",
-          "line": 232,
+          "line": 257,
           "kind": "Text",
           "target": "app"
         },
         {
           "file": "Alexis Farenheit/UI/Components/CityCardListView.swift",
-          "line": 367,
+          "line": 392,
           "kind": "Label",
           "target": "app"
         }
@@ -171,7 +171,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Components/CityCardListView.swift",
-          "line": 358,
+          "line": 383,
           "kind": "Text",
           "target": "app"
         }
@@ -185,7 +185,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 418,
+          "line": 841,
           "kind": "Text",
           "target": "app"
         },
@@ -199,13 +199,13 @@
     },
     {
       "source": "Add City",
-      "target": "Adicionar cidade",
+      "target": "Adicionar Cidade",
       "status": "translated",
       "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 356,
+          "line": 779,
           "kind": "navigationTitle",
           "target": "app"
         },
@@ -225,7 +225,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 188,
+          "line": 450,
           "kind": "Label",
           "target": "app"
         },
@@ -264,6 +264,26 @@
       ]
     },
     {
+      "source": "Back",
+      "target": "Voltar",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeWalkthroughOverlay.swift",
+          "line": 237,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        }
+      ]
+    },
+    {
       "source": "C",
       "target": "C",
       "status": "fallback",
@@ -291,7 +311,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 360,
+          "line": 783,
           "kind": "Button",
           "target": "app"
         },
@@ -346,18 +366,12 @@
           "line": 0,
           "kind": "xcstrings_key",
           "target": "app"
-        },
-        {
-          "file": "Alexis Farenheit/UI/Components/CityCardListView.swift",
-          "line": 44,
-          "kind": "Text",
-          "target": "app"
         }
       ]
     },
     {
       "source": "City search",
-      "target": "Busca de cidade",
+      "target": "Buscar cidade",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -383,7 +397,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 368,
+          "line": 791,
           "kind": "searchPrompt",
           "target": "app"
         },
@@ -482,6 +496,26 @@
       ]
     },
     {
+      "source": "Continue",
+      "target": "Continuar",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
+          "line": 166,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        }
+      ]
+    },
+    {
       "source": "Converter",
       "target": "Conversor",
       "status": "translated",
@@ -509,7 +543,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
-          "line": 322,
+          "line": 387,
           "kind": "errorMessageAssign",
           "target": "app"
         },
@@ -529,7 +563,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
-          "line": 728,
+          "line": 801,
           "kind": "errorMessageAssign",
           "target": "app"
         },
@@ -589,7 +623,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 317,
+          "line": 740,
           "kind": "accessibilityLabel",
           "target": "app"
         },
@@ -611,6 +645,12 @@
           "file": "Alexis Farenheit/Localizable.xcstrings",
           "line": 0,
           "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeWalkthroughOverlay.swift",
+          "line": 243,
+          "kind": "NSLocalizedString",
           "target": "app"
         }
       ]
@@ -637,7 +677,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 171,
+          "line": 422,
           "kind": "Text",
           "target": "app"
         },
@@ -717,7 +757,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 415,
+          "line": 838,
           "kind": "Text",
           "target": "app"
         },
@@ -750,6 +790,26 @@
       ]
     },
     {
+      "source": "Get current weather, world time, and quick city control in one place.",
+      "target": "Veja o clima atual, horário mundial e controle rápido das cidades em um só lugar.",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
+          "line": 28,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        }
+      ]
+    },
+    {
       "source": "Getting location...",
       "target": "Obtendo localização...",
       "status": "translated",
@@ -757,7 +817,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 179,
+          "line": 441,
           "kind": "Text",
           "target": "app"
         },
@@ -765,6 +825,26 @@
           "file": "Alexis Farenheit/Localizable.xcstrings",
           "line": 0,
           "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Interactive Walkthrough",
+      "target": "Tutorial Interativo",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
+          "line": 41,
+          "kind": "NSLocalizedString",
           "target": "app"
         }
       ]
@@ -823,7 +903,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 169,
+          "line": 420,
           "kind": "Text",
           "target": "app"
         },
@@ -843,7 +923,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
-          "line": 581,
+          "line": 654,
           "kind": "NSLocalizedString",
           "target": "app"
         },
@@ -896,14 +976,14 @@
       ]
     },
     {
-      "source": "Maximum of %d cities reached",
-      "target": "Máximo de %d cidades atingido",
+      "source": "Manage your city stack here",
+      "target": "Gerencie sua lista de cidades aqui",
       "status": "translated",
       "validation": "ok",
       "contexts": [
         {
-          "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
-          "line": 244,
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 559,
           "kind": "NSLocalizedString",
           "target": "app"
         },
@@ -911,6 +991,80 @@
           "file": "Alexis Farenheit/Localizable.xcstrings",
           "line": 0,
           "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Maximum of %d cities reached",
+      "target": "Máximo de %d cidades atingido",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
+          "line": 309,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "My Cities",
+      "target": "Minhas Cidades",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Components/CityCardListView.swift",
+          "line": 62,
+          "kind": "Text",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Next",
+      "target": "Próximo",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Next walkthrough step",
+      "target": "Próxima etapa do tutorial",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeWalkthroughOverlay.swift",
+          "line": 130,
+          "kind": "NSLocalizedString",
           "target": "app"
         }
       ]
@@ -943,7 +1097,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 441,
+          "line": 864,
           "kind": "Text",
           "target": "app"
         },
@@ -975,7 +1129,7 @@
         },
         {
           "file": "Alexis Farenheit/UI/Components/CityCardListView.swift",
-          "line": 354,
+          "line": 379,
           "kind": "Text",
           "target": "app"
         }
@@ -1015,8 +1169,8 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 253,
-          "kind": "accessibilityLabel",
+          "line": 432,
+          "kind": "Label",
           "target": "app"
         },
         {
@@ -1028,15 +1182,129 @@
       ]
     },
     {
+      "source": "Open tools only when you need them",
+      "target": "Abra as ferramentas apenas quando precisar",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 568,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Open Tools Panel",
+      "target": "Abrir Painel de Ferramentas",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 571,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Quick, optional, and focused on what you need now",
+      "target": "Rápido, opcional e focado no que você precisa agora",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
+          "line": 124,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        }
+      ]
+    },
+    {
       "source": "Refresh",
       "target": "Atualizar",
       "status": "translated",
       "validation": "ok",
       "contexts": [
         {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Refresh now, add cities fast, or jump back to the current time with one tap.",
+      "target": "Atualize agora, adicione cidades rapidamente ou volte para o horário atual com um toque.",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 232,
-          "kind": "Label",
+          "line": 553,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Reorder and monitor city freshness so you always know which data is current.",
+      "target": "Reordene e monitore a atualização das cidades para sempre saber quais dados estão atualizados.",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 562,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Replay walkthrough",
+      "target": "Repetir tutorial",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 205,
+          "kind": "NSLocalizedString",
           "target": "app"
         },
         {
@@ -1055,7 +1323,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 161,
+          "line": 412,
           "kind": "Text",
           "target": "app"
         },
@@ -1155,7 +1423,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 408,
+          "line": 831,
           "kind": "Text",
           "target": "app"
         },
@@ -1220,6 +1488,32 @@
       ]
     },
     {
+      "source": "Skip",
+      "target": "Pular",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
+          "line": 78,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeWalkthroughOverlay.swift",
+          "line": 228,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        }
+      ]
+    },
+    {
       "source": "Source",
       "target": "Fonte",
       "status": "translated",
@@ -1229,6 +1523,26 @@
           "file": "Alexis Farenheit/Localizable.xcstrings",
           "line": 0,
           "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Start Walkthrough",
+      "target": "Iniciar tutorial",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
+          "line": 165,
+          "kind": "NSLocalizedString",
           "target": "app"
         }
       ]
@@ -1255,7 +1569,7 @@
     },
     {
       "source": "Temp Converter",
-      "target": "Conversor de Temperatura",
+      "target": "Conversor de temperatura",
       "status": "translated",
       "validation": "ok",
       "contexts": [
@@ -1320,6 +1634,26 @@
       ]
     },
     {
+      "source": "The tools panel keeps planning utilities close without crowding your weather overview.",
+      "target": "O painel de ferramentas mantém utilitários de planejamento por perto sem sobrecarregar sua visão do clima.",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 569,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
       "source": "This action cannot be undone.",
       "target": "Esta ação não pode ser desfeita.",
       "status": "translated",
@@ -1347,14 +1681,54 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
-          "line": 301,
+          "line": 366,
           "kind": "errorMessageAssign",
           "target": "app"
         },
         {
           "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
-          "line": 332,
+          "line": 397,
           "kind": "errorMessageAssign",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "This is your instant weather snapshot",
+      "target": "Este é seu resumo instantâneo do clima",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 545,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "This section fills after you add cities. Keep at least two for better world-time planning.",
+      "target": "Esta seção será preenchida após adicionar cidades. Mantenha pelo menos duas para melhor planejamento de horários mundiais.",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 561,
+          "kind": "NSLocalizedString",
           "target": "app"
         },
         {
@@ -1387,13 +1761,13 @@
     },
     {
       "source": "To keep the widget updated when you switch cities, do not force close the app (swipe up). iOS disables background updates when you force quit.",
-      "target": "Para manter o widget atualizado ao trocar de cidade, não force o fechamento do app (deslize para cima). O iOS desativa as atualizações em segundo plano quando você força o encerramento.",
+      "target": "Para manter o widget atualizado ao trocar de cidade, não force o fechamento do app (deslize para cima). O iOS desativa atualizações em segundo plano quando você força o encerramento.",
       "status": "translated",
       "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 289,
+          "line": 712,
           "kind": "Text",
           "target": "app"
         },
@@ -1406,6 +1780,66 @@
       ]
     },
     {
+      "source": "Today Snapshot",
+      "target": "Resumo de hoje",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 235,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Tools",
+      "target": "Ferramentas",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 500,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Track multiple cities, compare local times, and keep your widget synced.",
+      "target": "Acompanhe várias cidades, compare horários locais e mantenha seu widget sincronizado.",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
+          "line": 35,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        }
+      ]
+    },
+    {
       "source": "Try another name",
       "target": "Tente outro nome",
       "status": "translated",
@@ -1413,7 +1847,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 444,
+          "line": 867,
           "kind": "Text",
           "target": "app"
         },
@@ -1452,15 +1886,49 @@
       ]
     },
     {
+      "source": "Updated",
+      "target": "Atualizado",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 255,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
       "source": "Updated:",
       "target": "Atualizado:",
       "status": "translated",
       "validation": "ok",
       "contexts": [
         {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Use quick actions for momentum",
+      "target": "Use ações rápidas para ganhar impulso",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 266,
-          "kind": "Text",
+          "line": 552,
+          "kind": "NSLocalizedString",
           "target": "app"
         },
         {
@@ -1479,7 +1947,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 297,
+          "line": 720,
           "kind": "Label",
           "target": "app"
         },
@@ -1487,6 +1955,46 @@
           "file": "Alexis Farenheit/Localizable.xcstrings",
           "line": 0,
           "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Waiting for first weather update",
+      "target": "Aguardando a primeira atualização do tempo",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 260,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Walkthrough",
+      "target": "Tutorial",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeWalkthroughOverlay.swift",
+          "line": 199,
+          "kind": "NSLocalizedString",
           "target": "app"
         }
       ]
@@ -1544,6 +2052,26 @@
       ]
     },
     {
+      "source": "We will show every key area of the home screen in under one minute.",
+      "target": "Mostraremos todas as áreas principais da tela inicial em menos de um minuto.",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
+          "line": 42,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        }
+      ]
+    },
+    {
       "source": "Weather",
       "target": "Clima",
       "status": "translated",
@@ -1551,7 +2079,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 97,
+          "line": 188,
           "kind": "Text",
           "target": "app"
         },
@@ -1571,7 +2099,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/Features/Home/ViewModels/HomeViewModel.swift",
-          "line": 709,
+          "line": 782,
           "kind": "NSLocalizedString",
           "target": "app"
         },
@@ -1591,7 +2119,7 @@
       "contexts": [
         {
           "file": "Alexis Farenheit/Core/Services/WeatherService.swift",
-          "line": 64,
+          "line": 66,
           "kind": "errorMessageAssign",
           "target": "app"
         },
@@ -1604,14 +2132,34 @@
       ]
     },
     {
+      "source": "Welcome to Alexis Farenheit",
+      "target": "Bem-vindo ao Alexis Farenheit",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
+          "line": 27,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        }
+      ]
+    },
+    {
       "source": "Widgets While Traveling",
-      "target": "Widgets durante viagens",
+      "target": "Widgets Durante Viagens",
       "status": "translated",
       "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 286,
+          "line": 709,
           "kind": "Text",
           "target": "app"
         },
@@ -1625,13 +2173,13 @@
     },
     {
       "source": "World Time",
-      "target": "Hora mundial",
+      "target": "Hora Mundial",
       "status": "translated",
       "validation": "ok",
       "contexts": [
         {
           "file": "Alexis Farenheit/ContentView.swift",
-          "line": 99,
+          "line": 190,
           "kind": "Text",
           "target": "app"
         },
@@ -1656,6 +2204,46 @@
       ]
     },
     {
+      "source": "World Time + Temperature Converter",
+      "target": "Hora Mundial + Conversor de Temperatura",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 503,
+          "kind": "Text",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "You get temperature, city time, and widget sync confidence in a single glance.",
+      "target": "Você vê a temperatura, o horário da cidade e a confiança da sincronização do widget de relance.",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/ContentView.swift",
+          "line": 546,
+          "kind": "NSLocalizedString",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
       "source": "You have reached the limit of %d cities",
       "target": "Você atingiu o limite de %d cidades",
       "status": "translated",
@@ -1665,6 +2253,26 @@
           "file": "Alexis Farenheit/Localizable.xcstrings",
           "line": 0,
           "kind": "xcstrings_key",
+          "target": "app"
+        }
+      ]
+    },
+    {
+      "source": "Your Cities, Your Rhythm",
+      "target": "Suas Cidades, Seu Ritmo",
+      "status": "translated",
+      "validation": "ok",
+      "contexts": [
+        {
+          "file": "Alexis Farenheit/Localizable.xcstrings",
+          "line": 0,
+          "kind": "xcstrings_key",
+          "target": "app"
+        },
+        {
+          "file": "Alexis Farenheit/UI/Onboarding/HomeOnboardingIntroView.swift",
+          "line": 34,
+          "kind": "NSLocalizedString",
           "target": "app"
         }
       ]
