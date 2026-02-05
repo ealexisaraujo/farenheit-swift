@@ -1,293 +1,412 @@
 import SwiftUI
 import CoreLocation
+import UIKit
 
-/// New onboarding flow with 4 Lottie-animated pages.
-/// Integrates location permission request on page 2.
+/// Cinematic onboarding flow with native SwiftUI paging and location permission integration.
 struct OnboardingView: View {
     let locationService: LocationService
     let onComplete: () -> Void
     let onStartWalkthrough: () -> Void
 
-    @State private var currentPage: OnboardingPage = .welcome
-    @State private var dragOffset: CGFloat = 0
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @State private var flowState = OnboardingFlowState()
     @State private var hasAppeared = false
-    @State private var locationPermissionGranted = false
+    @State private var animateBackground = false
 
     private let config = OnboardingConfiguration.shared
-    private let pages = OnboardingPage.allCases
+
+    private var theme: OnboardingVisualTheme {
+        OnboardingVisualTheme.forColorScheme(colorScheme)
+    }
+
+    private var slides: [OnboardingSlideSpec] {
+        config.slides
+    }
+
+    private var currentSlide: OnboardingSlideSpec {
+        config.slide(for: flowState.selectedPage)
+    }
+
+    private var locationStatus: CLAuthorizationStatus {
+        locationService.authorizationStatus
+    }
+
+    private var locationMessageKey: String {
+        OnboardingLocationStatusMessage.key(for: locationStatus)
+    }
+
+    private var canContinueFromLocation: Bool {
+        flowState.canContinueFromLocation(status: locationStatus)
+    }
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Background gradient
-                backgroundGradient
-
-                // Animated background elements
-                floatingOrbs(size: geometry.size)
+                backgroundLayer(size: geometry.size)
 
                 VStack(spacing: 0) {
-                    // Skip button
-                    skipButton
-                        .padding(.top, 16)
+                    topBar
+                        .padding(.horizontal, theme.horizontalPadding)
+                        .padding(.top, 12)
 
-                    // Page content with gesture
-                    pageContent(size: geometry.size)
+                    pager
+                        .padding(.top, 8)
 
-                    // Bottom section
-                    VStack(spacing: 20) {
-                        pageIndicators
-                        navigationButtons
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 40)
+                    bottomRail
+                        .padding(.horizontal, theme.horizontalPadding)
+                        .padding(.bottom, 24)
+                        .padding(.top, 8)
                 }
             }
         }
         .ignoresSafeArea()
-        .preferredColorScheme(.dark)
         .onAppear {
-            withAnimation(.easeOut(duration: 0.6).delay(0.2)) {
+            withAnimation(.easeOut(duration: 0.5).delay(0.12)) {
                 hasAppeared = true
             }
-            // Check current location permission status
-            locationPermissionGranted = locationService.authorizationStatus == .authorizedWhenInUse ||
-                                       locationService.authorizationStatus == .authorizedAlways
-        }
-        .onChange(of: locationService.authorizationStatus) { _, newStatus in
-            if newStatus == .authorizedWhenInUse || newStatus == .authorizedAlways {
-                locationPermissionGranted = true
-                // Auto-advance from location page when permission granted
-                if currentPage == .location {
-                    advanceToNextPage()
-                }
+            if !reduceMotion {
+                animateBackground = true
             }
         }
-        .onChange(of: currentPage) { _, _ in
+        .onChange(of: locationService.authorizationStatus) { _, newStatus in
+            let shouldAutoAdvance = flowState.shouldAutoAdvance(after: newStatus)
+            guard shouldAutoAdvance else { return }
+            withAnimation(.spring(response: theme.springResponse, dampingFraction: theme.springDamping)) {
+                advanceToNextPage()
+            }
+        }
+        .onChange(of: flowState.selectedPage) { _, _ in
             triggerHaptic()
         }
     }
 
     // MARK: - Background
 
-    private var backgroundGradient: some View {
-        LinearGradient(
-            colors: [
-                Color.black,
-                Color(hex: "0D0F1A"),
-                Color(hex: "151829")
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+    private func backgroundLayer(size: CGSize) -> some View {
+        ZStack {
+            ForEach(slides) { slide in
+                Image(slide.backgroundAssetName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: size.width, height: size.height)
+                    .clipped()
+                    .opacity(flowState.selectedPage == slide.page ? theme.imageOpacity : 0)
+                    .animation(.easeInOut(duration: theme.pageTransitionDuration), value: flowState.selectedPage)
+            }
+
+            Image("OnboardingBGOverlay")
+                .resizable()
+                .scaledToFill()
+                .frame(width: size.width, height: size.height)
+                .clipped()
+                .opacity(theme.overlayOpacity * 0.55)
+
+            LinearGradient(
+                colors: [
+                    theme.backgroundGradient.top,
+                    theme.backgroundGradient.middle,
+                    theme.backgroundGradient.bottom
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .opacity(theme.overlayOpacity)
+
+            floatingOrbs(size: size)
+        }
+        .ignoresSafeArea()
     }
 
     private func floatingOrbs(size: CGSize) -> some View {
         ZStack {
-            // Large orb top-left
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [currentPage.accentColor.opacity(0.3), .clear],
+                        colors: [currentSlide.accentColor.opacity(theme.backgroundOrbOpacity), .clear],
                         center: .center,
                         startRadius: 0,
-                        endRadius: 100
+                        endRadius: 132
                     )
                 )
-                .frame(width: 200, height: 200)
-                .offset(x: -size.width * 0.3, y: -size.height * 0.3)
-                .blur(radius: 40)
+                .frame(width: 280, height: 280)
+                .offset(
+                    x: animateBackground ? -(size.width * 0.26) : -(size.width * 0.18),
+                    y: animateBackground ? -(size.height * 0.34) : -(size.height * 0.28)
+                )
+                .blur(radius: theme.backgroundOrbBlur)
 
-            // Medium orb bottom-right
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [currentPage.accentColor.opacity(0.2), .clear],
+                        colors: [currentSlide.accentColor.opacity(theme.backgroundOrbOpacity * 0.8), .clear],
                         center: .center,
                         startRadius: 0,
-                        endRadius: 80
+                        endRadius: 104
                     )
                 )
-                .frame(width: 160, height: 160)
-                .offset(x: size.width * 0.25, y: size.height * 0.35)
-                .blur(radius: 30)
+                .frame(width: 220, height: 220)
+                .offset(
+                    x: animateBackground ? (size.width * 0.24) : (size.width * 0.18),
+                    y: animateBackground ? (size.height * 0.31) : (size.height * 0.24)
+                )
+                .blur(radius: theme.backgroundOrbBlur * 0.88)
         }
-        .animation(.easeInOut(duration: 0.8), value: currentPage)
+        .animation(
+            reduceMotion ? nil : .easeInOut(duration: 6.8).repeatForever(autoreverses: true),
+            value: animateBackground
+        )
+        .animation(.easeInOut(duration: 0.65), value: flowState.selectedPage)
     }
 
-    // MARK: - Skip Button
+    // MARK: - Layout
 
-    private var skipButton: some View {
+    private var topBar: some View {
         HStack {
             Spacer()
+
             Button {
                 triggerHaptic(.light)
                 skipOnboarding()
             } label: {
                 Text("onboarding.skip")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .font(.subheadline.bold())
+                    .foregroundStyle(theme.buttonText.opacity(0.94))
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        Capsule()
-                            .fill(.ultraThinMaterial)
-                    )
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .onboardingGlass(interactive: true, cornerRadius: 16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(theme.glassStroke, lineWidth: 1)
+            )
+            .accessibilityLabel(Text("onboarding.skip"))
         }
-        .padding(.horizontal, 20)
         .opacity(hasAppeared ? 1 : 0)
-        .offset(y: hasAppeared ? 0 : -20)
+        .offset(y: hasAppeared ? 0 : -16)
+        .animation(.easeOut(duration: 0.45), value: hasAppeared)
     }
 
-    // MARK: - Page Content
-
-    private func pageContent(size: CGSize) -> some View {
-        ZStack {
-            ForEach(pages) { page in
+    private var pager: some View {
+        TabView(selection: $flowState.selectedPage) {
+            ForEach(slides) { slide in
                 OnboardingPageView(
-                    page: page,
-                    isVisible: page == currentPage,
-                    onAction: { handlePageAction(page) }
+                    slide: slide,
+                    theme: theme,
+                    isActive: flowState.selectedPage == slide.page,
+                    reduceMotion: reduceMotion
                 )
-                .offset(x: pageOffset(for: page, containerWidth: size.width))
-                .opacity(page == currentPage ? 1 : 0.3)
+                .tag(slide.page)
+                .padding(.bottom, 6)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .gesture(dragGesture)
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .animation(.easeInOut(duration: theme.pageTransitionDuration), value: flowState.selectedPage)
     }
 
-    private func pageOffset(for page: OnboardingPage, containerWidth: CGFloat) -> CGFloat {
-        let pageIndex = CGFloat(page.rawValue)
-        let currentIndex = CGFloat(currentPage.rawValue)
-        return (pageIndex - currentIndex) * containerWidth + dragOffset
-    }
+    private var bottomRail: some View {
+        VStack(spacing: 14) {
+            pageIndicators
+            actionSection
 
-    private var dragGesture: some Gesture {
-        DragGesture()
-            .onChanged { value in
-                dragOffset = value.translation.width
+            if flowState.selectedPage == .location {
+                locationStatusMessage
             }
-            .onEnded { value in
-                let threshold: CGFloat = 50
-                withAnimation(.spring(response: config.springResponse, dampingFraction: config.springDamping)) {
-                    if value.translation.width < -threshold {
-                        advanceToNextPage()
-                    } else if value.translation.width > threshold {
-                        goToPreviousPage()
-                    }
-                    dragOffset = 0
-                }
-            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
+        .onboardingGlass(interactive: false, cornerRadius: theme.railCornerRadius)
+        .overlay(
+            RoundedRectangle(cornerRadius: theme.railCornerRadius, style: .continuous)
+                .strokeBorder(theme.glassStroke, lineWidth: 1)
+        )
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(y: hasAppeared ? 0 : 18)
+        .animation(.easeOut(duration: 0.45), value: hasAppeared)
     }
-
-    // MARK: - Page Indicators
 
     private var pageIndicators: some View {
         HStack(spacing: 10) {
-            ForEach(pages) { page in
-                Capsule()
-                    .fill(page == currentPage ? Color.white : Color.white.opacity(0.3))
+            ForEach(slides) { slide in
+                Capsule(style: .continuous)
+                    .fill(slide.page == flowState.selectedPage ? theme.indicatorActive : theme.indicatorInactive)
                     .frame(
-                        width: page == currentPage ? config.indicatorActiveWidth : config.indicatorInactiveWidth,
-                        height: config.indicatorHeight
+                        width: slide.page == flowState.selectedPage ? theme.indicatorActiveWidth : theme.indicatorInactiveWidth,
+                        height: theme.indicatorHeight
                     )
                     .shadow(
-                        color: page == currentPage ? currentPage.accentColor.opacity(0.5) : .clear,
-                        radius: 4
+                        color: slide.page == flowState.selectedPage ? currentSlide.accentColor.opacity(0.45) : .clear,
+                        radius: 8
                     )
             }
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentPage)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: flowState.selectedPage)
     }
 
-    // MARK: - Navigation Buttons
-
-    private var navigationButtons: some View {
-        HStack(spacing: 16) {
-            // Back button (only show after first page)
-            if currentPage != .welcome {
-                Button {
-                    triggerHaptic(.light)
-                    goToPreviousPage()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.headline)
-                        .foregroundStyle(.white.opacity(0.7))
-                        .frame(width: 50, height: 50)
-                        .background(
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                        )
+    private var actionSection: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                if flowState.selectedPage != .welcome {
+                    backButton
                 }
+
+                primaryActionButton
             }
 
-            Spacer()
-
-            // Next/Continue button (unless page has its own action button)
-            if currentPage.buttonTitle == nil {
-                Button {
-                    triggerHaptic(.medium)
-                    advanceToNextPage()
-                } label: {
-                    HStack(spacing: 8) {
-                        Text(currentPage.isFinalPage ? "walkthrough.done" : "walkthrough.next")
-                            .fontWeight(.semibold)
-                        Image(systemName: "arrow.right")
-                    }
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 14)
-                    .background(
-                        Capsule()
-                            .fill(currentPage.accentColor)
-                    )
-                    .shadow(color: currentPage.accentColor.opacity(0.4), radius: 12, y: 4)
-                }
+            if flowState.selectedPage == .location {
+                continueWithoutLocationButton
             }
         }
-        .opacity(hasAppeared ? 1 : 0)
+    }
+
+    private var backButton: some View {
+        Button {
+            triggerHaptic(.light)
+            goToPreviousPage()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.headline)
+                .foregroundStyle(theme.buttonText.opacity(0.9))
+                .frame(width: 46, height: 46)
+        }
+        .buttonStyle(.plain)
+        .onboardingGlass(interactive: true, cornerRadius: 14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(theme.glassStroke, lineWidth: 1)
+        )
+        .accessibilityLabel(Text("walkthrough.back"))
+    }
+
+    private var primaryActionButton: some View {
+        Button {
+            handlePrimaryAction()
+        } label: {
+            HStack(spacing: 8) {
+                if flowState.selectedPage == .location {
+                    Image(systemName: locationStatus == .denied || locationStatus == .restricted ? "gearshape.fill" : "location.fill")
+                } else if flowState.selectedPage == .ready {
+                    Image(systemName: "sparkles")
+                } else {
+                    Image(systemName: "arrow.right")
+                }
+
+                Text(primaryActionTitle)
+                    .bold()
+            }
+            .font(.headline)
+            .foregroundStyle(theme.buttonText)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: theme.buttonCornerRadius, style: .continuous)
+                    .fill(currentSlide.accentColor.gradient)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: theme.buttonCornerRadius, style: .continuous)
+                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.3), lineWidth: 1)
+            )
+            .shadow(color: currentSlide.accentColor.opacity(0.36), radius: 16, y: 6)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var continueWithoutLocationButton: some View {
+        Button {
+            triggerHaptic(.soft)
+            advanceWithAnimation()
+        } label: {
+            Text("onboarding.location.continue")
+                .font(.subheadline.bold())
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .foregroundStyle(theme.buttonText.opacity(canContinueFromLocation ? 0.92 : 0.5))
+        }
+        .buttonStyle(.plain)
+        .onboardingGlass(interactive: canContinueFromLocation, cornerRadius: 14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(theme.glassStroke, lineWidth: 1)
+        )
+        .disabled(!canContinueFromLocation)
+    }
+
+    private var locationStatusMessage: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "info.circle.fill")
+                .foregroundStyle(currentSlide.accentColor)
+            Text(LocalizedStringKey(locationMessageKey))
+                .font(theme.statusFont)
+                .foregroundStyle(theme.tertiaryText)
+                .multilineTextAlignment(.leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
+        .animation(.easeOut(duration: 0.24), value: locationStatus)
+    }
+
+    private var primaryActionTitle: LocalizedStringKey {
+        switch flowState.selectedPage {
+        case .location:
+            if locationStatus == .denied || locationStatus == .restricted {
+                return "onboarding.location.openSettings"
+            }
+            return "onboarding.page2.button"
+        case .ready:
+            return "onboarding.page4.button"
+        case .welcome, .widget:
+            return "walkthrough.next"
+        }
     }
 
     // MARK: - Actions
 
-    private func handlePageAction(_ page: OnboardingPage) {
-        switch page {
+    private func handlePrimaryAction() {
+        switch flowState.selectedPage {
         case .location:
-            requestLocationPermission()
+            handleLocationAction()
         case .ready:
+            triggerHaptic(.medium)
             completeOnboarding()
-        default:
-            break
+        case .welcome, .widget:
+            triggerHaptic(.medium)
+            advanceWithAnimation()
         }
     }
 
-    private func requestLocationPermission() {
-        locationService.requestPermission(preferAlways: true)
-        // If already granted, advance immediately
-        if locationPermissionGranted {
+    private func handleLocationAction() {
+        triggerHaptic(.medium)
+        flowState.registerLocationInteraction()
+
+        switch locationStatus {
+        case .denied, .restricted:
+            openSystemSettings()
+        case .authorizedAlways, .authorizedWhenInUse, .notDetermined:
+            locationService.requestPermission(preferAlways: true)
+        @unknown default:
+            locationService.requestPermission(preferAlways: true)
+        }
+    }
+
+    private func advanceWithAnimation() {
+        withAnimation(.spring(response: theme.springResponse, dampingFraction: theme.springDamping)) {
             advanceToNextPage()
         }
-        // Otherwise, onChange will handle advancement when permission changes
     }
 
     private func advanceToNextPage() {
-        guard let nextIndex = pages.firstIndex(of: currentPage).map({ $0 + 1 }),
-              nextIndex < pages.count else {
+        let didFinish = flowState.advance()
+        if didFinish {
             completeOnboarding()
-            return
-        }
-        withAnimation(.spring(response: config.springResponse, dampingFraction: config.springDamping)) {
-            currentPage = pages[nextIndex]
         }
     }
 
     private func goToPreviousPage() {
-        guard let prevIndex = pages.firstIndex(of: currentPage).map({ $0 - 1 }),
-              prevIndex >= 0 else { return }
-        withAnimation(.spring(response: config.springResponse, dampingFraction: config.springDamping)) {
-            currentPage = pages[prevIndex]
+        withAnimation(.spring(response: theme.springResponse, dampingFraction: theme.springDamping)) {
+            flowState.goBack()
         }
     }
 
@@ -299,17 +418,52 @@ struct OnboardingView: View {
         onStartWalkthrough()
     }
 
+    private func openSystemSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else {
+            return
+        }
+        UIApplication.shared.open(url)
+    }
+
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .soft) {
         UIImpactFeedbackGenerator(style: style).impactOccurred()
     }
 }
 
+private extension View {
+    @ViewBuilder
+    func onboardingGlass(interactive: Bool, cornerRadius: CGFloat) -> some View {
+        if #available(iOS 26.0, *) {
+            if interactive {
+                self.glassEffect(.regular.interactive(), in: .rect(cornerRadius: cornerRadius, style: .continuous))
+            } else {
+                self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius, style: .continuous))
+            }
+        } else {
+            self.background(
+                .ultraThinMaterial,
+                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            )
+        }
+    }
+}
+
 // MARK: - Preview
 
-#Preview {
+#Preview("Dark") {
     OnboardingView(
         locationService: LocationService(),
-        onComplete: { print("Complete") },
-        onStartWalkthrough: { print("Start walkthrough") }
+        onComplete: { print("complete") },
+        onStartWalkthrough: { print("walkthrough") }
     )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Light") {
+    OnboardingView(
+        locationService: LocationService(),
+        onComplete: { print("complete") },
+        onStartWalkthrough: { print("walkthrough") }
+    )
+    .preferredColorScheme(.light)
 }

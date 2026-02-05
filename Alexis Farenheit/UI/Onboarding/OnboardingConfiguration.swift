@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 // MARK: - Onboarding Page Definition
 
@@ -9,65 +10,201 @@ enum OnboardingPage: Int, CaseIterable, Identifiable {
     case ready = 3
 
     var id: Int { rawValue }
+}
 
-    var animationName: String {
-        switch self {
-        case .welcome: return "onboarding-thermometer"
-        case .location: return "onboarding-location"
-        case .widget: return "onboarding-widget"
-        case .ready: return "onboarding-success"
-        }
-    }
+struct OnboardingSlideSpec: Identifiable {
+    let page: OnboardingPage
+    let titleKey: String
+    let subtitleKey: String
+    let animationName: String
+    let backgroundAssetName: String
+    let accentColor: Color
+    let shouldLoopAnimation: Bool
+    let primaryButtonKey: String?
 
-    var title: LocalizedStringKey {
-        switch self {
-        case .welcome: return "onboarding.page1.title"
-        case .location: return "onboarding.page2.title"
-        case .widget: return "onboarding.page3.title"
-        case .ready: return "onboarding.page4.title"
-        }
-    }
-
-    var subtitle: LocalizedStringKey {
-        switch self {
-        case .welcome: return "onboarding.page1.subtitle"
-        case .location: return "onboarding.page2.subtitle"
-        case .widget: return "onboarding.page3.subtitle"
-        case .ready: return "onboarding.page4.subtitle"
-        }
-    }
-
-    var buttonTitle: LocalizedStringKey? {
-        switch self {
-        case .welcome: return nil
-        case .location: return "onboarding.page2.button"
-        case .widget: return nil
-        case .ready: return "onboarding.page4.button"
-        }
-    }
-
-    var accentColor: Color {
-        switch self {
-        case .welcome: return Color(hex: "FF6B6B") // Warm coral for thermometer
-        case .location: return Color(hex: "4CC9F0") // Sky blue for location
-        case .widget: return Color(hex: "7B61FF") // Purple for widget
-        case .ready: return Color(hex: "33C759") // Green for success
-        }
-    }
-
-    var shouldLoopAnimation: Bool {
-        switch self {
-        case .welcome, .location, .widget: return true
-        case .ready: return false // One-shot celebration
-        }
-    }
+    var id: OnboardingPage { page }
 
     var hasPermissionAction: Bool {
-        self == .location
+        page == .location
     }
 
     var isFinalPage: Bool {
-        self == .ready
+        page == .ready
+    }
+}
+
+struct OnboardingVisualTheme {
+    struct GradientPalette {
+        let top: Color
+        let middle: Color
+        let bottom: Color
+    }
+
+    let backgroundGradient: GradientPalette
+    let primaryText: Color
+    let secondaryText: Color
+    let tertiaryText: Color
+    let indicatorActive: Color
+    let indicatorInactive: Color
+    let buttonText: Color
+    let glassStroke: Color
+    let imageOpacity: Double
+    let overlayOpacity: Double
+    let titleFont: Font
+    let subtitleFont: Font
+    let statusFont: Font
+    let animationSize: CGFloat
+    let horizontalPadding: CGFloat
+    let railCornerRadius: CGFloat
+    let buttonCornerRadius: CGFloat
+    let indicatorActiveWidth: CGFloat
+    let indicatorInactiveWidth: CGFloat
+    let indicatorHeight: CGFloat
+    let pageTransitionDuration: Double
+    let springResponse: Double
+    let springDamping: Double
+    let backgroundOrbBlur: CGFloat
+    let backgroundOrbOpacity: Double
+
+    static func forColorScheme(_ scheme: ColorScheme) -> Self {
+        switch scheme {
+        case .dark:
+            return OnboardingVisualTheme(
+                backgroundGradient: .init(
+                    top: Color(hex: "04070D"),
+                    middle: Color(hex: "111C33"),
+                    bottom: Color(hex: "090C14")
+                ),
+                primaryText: .white,
+                secondaryText: Color.white.opacity(0.82),
+                tertiaryText: Color.white.opacity(0.62),
+                indicatorActive: .white,
+                indicatorInactive: Color.white.opacity(0.28),
+                buttonText: .white,
+                glassStroke: Color.white.opacity(0.16),
+                imageOpacity: 0.42,
+                overlayOpacity: 0.72,
+                titleFont: .system(size: 36, weight: .bold, design: .rounded),
+                subtitleFont: .system(size: 17, weight: .medium, design: .rounded),
+                statusFont: .footnote.weight(.medium),
+                animationSize: 250,
+                horizontalPadding: 22,
+                railCornerRadius: 26,
+                buttonCornerRadius: 18,
+                indicatorActiveWidth: 30,
+                indicatorInactiveWidth: 10,
+                indicatorHeight: 6,
+                pageTransitionDuration: 0.45,
+                springResponse: 0.48,
+                springDamping: 0.84,
+                backgroundOrbBlur: 36,
+                backgroundOrbOpacity: 0.35
+            )
+        case .light:
+            return OnboardingVisualTheme(
+                backgroundGradient: .init(
+                    top: Color(hex: "EAF2FF"),
+                    middle: Color(hex: "DCE9FF"),
+                    bottom: Color(hex: "F8FBFF")
+                ),
+                primaryText: Color(hex: "101A2B"),
+                secondaryText: Color(hex: "2A3F5C").opacity(0.86),
+                tertiaryText: Color(hex: "395170").opacity(0.74),
+                indicatorActive: Color(hex: "163C78"),
+                indicatorInactive: Color(hex: "163C78").opacity(0.22),
+                buttonText: Color(hex: "0F1C2F"),
+                glassStroke: Color.white.opacity(0.42),
+                imageOpacity: 0.24,
+                overlayOpacity: 0.36,
+                titleFont: .system(size: 34, weight: .bold, design: .rounded),
+                subtitleFont: .system(size: 17, weight: .medium, design: .rounded),
+                statusFont: .footnote.weight(.medium),
+                animationSize: 236,
+                horizontalPadding: 22,
+                railCornerRadius: 26,
+                buttonCornerRadius: 18,
+                indicatorActiveWidth: 30,
+                indicatorInactiveWidth: 10,
+                indicatorHeight: 6,
+                pageTransitionDuration: 0.45,
+                springResponse: 0.48,
+                springDamping: 0.86,
+                backgroundOrbBlur: 34,
+                backgroundOrbOpacity: 0.24
+            )
+        @unknown default:
+            return Self.forColorScheme(.dark)
+        }
+    }
+}
+
+struct OnboardingFlowState: Equatable {
+    var selectedPage: OnboardingPage = .welcome
+    var hasInteractedWithLocationPrompt = false
+    private(set) var hasAutoAdvancedFromLocation = false
+
+    mutating func advance() -> Bool {
+        let pages = OnboardingPage.allCases
+        guard let currentIndex = pages.firstIndex(of: selectedPage) else {
+            return false
+        }
+
+        let nextIndex = currentIndex + 1
+        guard nextIndex < pages.count else {
+            return true
+        }
+
+        selectedPage = pages[nextIndex]
+        return false
+    }
+
+    mutating func goBack() {
+        let pages = OnboardingPage.allCases
+        guard let currentIndex = pages.firstIndex(of: selectedPage), currentIndex > 0 else {
+            return
+        }
+
+        selectedPage = pages[currentIndex - 1]
+    }
+
+    mutating func registerLocationInteraction() {
+        hasInteractedWithLocationPrompt = true
+    }
+
+    func canContinueFromLocation(status: CLAuthorizationStatus) -> Bool {
+        hasInteractedWithLocationPrompt || status != .notDetermined
+    }
+
+    mutating func shouldAutoAdvance(after status: CLAuthorizationStatus) -> Bool {
+        guard selectedPage == .location else { return false }
+        guard !hasAutoAdvancedFromLocation else { return false }
+
+        switch status {
+        case .authorizedWhenInUse, .authorizedAlways:
+            hasAutoAdvancedFromLocation = true
+            return true
+        case .denied, .restricted, .notDetermined:
+            return false
+        @unknown default:
+            return false
+        }
+    }
+}
+
+enum OnboardingLocationStatusMessage {
+    static func key(for status: CLAuthorizationStatus) -> String {
+        switch status {
+        case .authorizedAlways:
+            return "onboarding.location.status.always"
+        case .authorizedWhenInUse:
+            return "onboarding.location.status.whenInUse"
+        case .denied, .restricted:
+            return "onboarding.location.status.denied"
+        case .notDetermined:
+            return "onboarding.location.status.notDetermined"
+        @unknown default:
+            return "onboarding.location.status.notDetermined"
+        }
     }
 }
 
@@ -132,77 +269,52 @@ enum WalkthroughStep: Int, CaseIterable, Identifiable {
 struct OnboardingConfiguration {
     static let shared = OnboardingConfiguration()
 
-    /// Animation duration for page transitions
-    let pageTransitionDuration: Double = 0.4
-
-    /// Spring animation settings
-    let springResponse: Double = 0.5
-    let springDamping: Double = 0.8
-
-    /// Animation view size
-    let animationSize: CGFloat = 200
-
-    /// Card padding
-    let cardPadding: CGFloat = 24
-
-    /// Page indicator size
-    let indicatorActiveWidth: CGFloat = 28
-    let indicatorInactiveWidth: CGFloat = 8
-    let indicatorHeight: CGFloat = 8
+    let slides: [OnboardingSlideSpec] = [
+        OnboardingSlideSpec(
+            page: .welcome,
+            titleKey: "onboarding.page1.title",
+            subtitleKey: "onboarding.page1.subtitle",
+            animationName: "onboarding-thermometer",
+            backgroundAssetName: "OnboardingBGWelcome",
+            accentColor: Color(hex: "FF6B6B"),
+            shouldLoopAnimation: true,
+            primaryButtonKey: nil
+        ),
+        OnboardingSlideSpec(
+            page: .location,
+            titleKey: "onboarding.page2.title",
+            subtitleKey: "onboarding.page2.subtitle",
+            animationName: "onboarding-location",
+            backgroundAssetName: "OnboardingBGCities",
+            accentColor: Color(hex: "4CC9F0"),
+            shouldLoopAnimation: true,
+            primaryButtonKey: "onboarding.page2.button"
+        ),
+        OnboardingSlideSpec(
+            page: .widget,
+            titleKey: "onboarding.page3.title",
+            subtitleKey: "onboarding.page3.subtitle",
+            animationName: "onboarding-widget",
+            backgroundAssetName: "OnboardingBGWalkthrough",
+            accentColor: Color(hex: "7B61FF"),
+            shouldLoopAnimation: true,
+            primaryButtonKey: nil
+        ),
+        OnboardingSlideSpec(
+            page: .ready,
+            titleKey: "onboarding.page4.title",
+            subtitleKey: "onboarding.page4.subtitle",
+            animationName: "onboarding-success",
+            backgroundAssetName: "OnboardingBGWalkthrough",
+            accentColor: Color(hex: "33C759"),
+            shouldLoopAnimation: false,
+            primaryButtonKey: "onboarding.page4.button"
+        )
+    ]
 
     private init() {}
+
+    func slide(for page: OnboardingPage) -> OnboardingSlideSpec {
+        slides.first(where: { $0.page == page }) ?? slides[0]
+    }
 }
-
-// MARK: - Localization Keys (for reference)
-
-/*
- English (en):
- - onboarding.page1.title = "Feel Every Degree"
- - onboarding.page1.subtitle = "Your weather, beautifully converted"
- - onboarding.page2.title = "Weather Follows You"
- - onboarding.page2.subtitle = "Automatic updates wherever you are"
- - onboarding.page2.button = "Enable Location"
- - onboarding.page3.title = "Glanceable from Home Screen"
- - onboarding.page3.subtitle = "Add our widget for instant weather"
- - onboarding.page4.title = "You're All Set!"
- - onboarding.page4.subtitle = "Enjoy temperature clarity"
- - onboarding.page4.button = "Start Using Alexis"
- - onboarding.skip = "Skip"
-
- - walkthrough.step1.title = "Today Snapshot"
- - walkthrough.step1.message = "Your instant weather at a glance"
- - walkthrough.step2.title = "Quick Actions"
- - walkthrough.step2.message = "Refresh, add cities, check time"
- - walkthrough.step3.title = "My Cities"
- - walkthrough.step3.message = "Swipe to manage your locations"
- - walkthrough.step4.title = "Tools Panel"
- - walkthrough.step4.message = "World time & converter live here"
- - walkthrough.next = "Next"
- - walkthrough.done = "Done"
- - walkthrough.skip = "Skip"
-
- Portuguese (pt-BR):
- - onboarding.page1.title = "Sinta Cada Grau"
- - onboarding.page1.subtitle = "Seu clima, convertido com beleza"
- - onboarding.page2.title = "O Clima Te Segue"
- - onboarding.page2.subtitle = "Atualizações automáticas onde você estiver"
- - onboarding.page2.button = "Ativar Localização"
- - onboarding.page3.title = "Visível na Tela Inicial"
- - onboarding.page3.subtitle = "Adicione nosso widget para clima instantâneo"
- - onboarding.page4.title = "Tudo Pronto!"
- - onboarding.page4.subtitle = "Aproveite a clareza da temperatura"
- - onboarding.page4.button = "Começar a Usar Alexis"
- - onboarding.skip = "Pular"
-
- - walkthrough.step1.title = "Snapshot de Hoje"
- - walkthrough.step1.message = "Seu clima instantâneo em um olhar"
- - walkthrough.step2.title = "Ações Rápidas"
- - walkthrough.step2.message = "Atualizar, adicionar cidades, ver hora"
- - walkthrough.step3.title = "Minhas Cidades"
- - walkthrough.step3.message = "Deslize para gerenciar seus locais"
- - walkthrough.step4.title = "Painel de Ferramentas"
- - walkthrough.step4.message = "Hora mundial e conversor ficam aqui"
- - walkthrough.next = "Próximo"
- - walkthrough.done = "Concluído"
- - walkthrough.skip = "Pular"
- */

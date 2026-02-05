@@ -1,163 +1,145 @@
 import SwiftUI
 import Lottie
 
-/// A single page in the onboarding flow with Lottie animation, title, subtitle, and optional action button.
+/// A cinematic onboarding page that focuses on the animated hero and narrative copy.
 struct OnboardingPageView: View {
-    let page: OnboardingPage
-    let isVisible: Bool
-    var onAction: (() -> Void)?
+    let slide: OnboardingSlideSpec
+    let theme: OnboardingVisualTheme
+    let isActive: Bool
+    let reduceMotion: Bool
 
     @State private var hasAnimatedIn = false
-
-    private let config = OnboardingConfiguration.shared
+    @State private var playbackTrigger = 0
 
     var body: some View {
-        VStack(spacing: 32) {
-            Spacer()
+        VStack(spacing: 28) {
+            Spacer(minLength: 8)
 
-            // Lottie Animation
-            animationSection
-                .frame(width: config.animationSize, height: config.animationSize)
-                .opacity(hasAnimatedIn ? 1 : 0)
-                .scaleEffect(hasAnimatedIn ? 1 : 0.8)
+            heroSection
 
-            // Text Content
-            VStack(spacing: 16) {
-                Text(page.title)
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .opacity(hasAnimatedIn ? 1 : 0)
-                    .offset(y: hasAnimatedIn ? 0 : 20)
+            textSection
 
-                Text(page.subtitle)
-                    .font(.title3)
-                    .foregroundStyle(.white.opacity(0.8))
-                    .multilineTextAlignment(.center)
-                    .opacity(hasAnimatedIn ? 1 : 0)
-                    .offset(y: hasAnimatedIn ? 0 : 15)
-            }
-            .padding(.horizontal, config.cardPadding)
-
-            // Action Button (for location permission and final page)
-            if let buttonTitle = page.buttonTitle {
-                actionButton(title: buttonTitle)
-                    .opacity(hasAnimatedIn ? 1 : 0)
-                    .offset(y: hasAnimatedIn ? 0 : 20)
-            }
-
-            Spacer()
-            Spacer()
+            Spacer(minLength: 24)
         }
-        .onChange(of: isVisible) { _, visible in
+        .padding(.horizontal, theme.horizontalPadding)
+        .onAppear {
+            guard isActive else { return }
+            playbackTrigger += 1
+            animateIn()
+        }
+        .onChange(of: isActive) { _, visible in
             if visible {
+                playbackTrigger += 1
                 animateIn()
             } else {
                 hasAnimatedIn = false
             }
         }
-        .onAppear {
-            if isVisible {
-                animateIn()
-            }
-        }
     }
 
-    // MARK: - Animation Section
+    // MARK: - Hero
 
-    @ViewBuilder
-    private var animationSection: some View {
+    private var heroSection: some View {
         ZStack {
-            // Glow effect behind animation
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [page.accentColor.opacity(0.3), .clear],
+                        colors: [slide.accentColor.opacity(0.42), .clear],
                         center: .center,
-                        startRadius: 40,
-                        endRadius: 120
+                        startRadius: 10,
+                        endRadius: theme.animationSize * 0.65
                     )
                 )
-                .frame(width: config.animationSize + 40, height: config.animationSize + 40)
-                .blur(radius: 20)
+                .frame(width: theme.animationSize * 1.15, height: theme.animationSize * 1.15)
+                .blur(radius: 24)
+                .scaleEffect(reduceMotion ? 1.0 : (hasAnimatedIn ? 1.02 : 0.96))
 
-            // Lottie Animation
-            if page.shouldLoopAnimation {
-                LottieView.looping(page.animationName)
-                    .frame(width: config.animationSize, height: config.animationSize)
-            } else {
-                LottieView.oneShot(page.animationName)
-                    .frame(width: config.animationSize, height: config.animationSize)
-            }
+            Circle()
+                .stroke(slide.accentColor.opacity(0.26), lineWidth: 1.2)
+                .frame(width: theme.animationSize * 1.03, height: theme.animationSize * 1.03)
+                .blur(radius: 1.4)
+                .opacity(hasAnimatedIn ? 1 : 0)
+
+            LottieView(
+                animationName: slide.animationName,
+                loopMode: slide.shouldLoopAnimation ? .loop : .playOnce,
+                animationSpeed: slide.shouldLoopAnimation ? 1.0 : 0.92,
+                playbackTrigger: playbackTrigger
+            )
+            .frame(width: theme.animationSize, height: theme.animationSize)
+            .shadow(color: slide.accentColor.opacity(0.38), radius: 24, y: 8)
         }
+        .frame(maxWidth: .infinity)
+        .opacity(hasAnimatedIn ? 1 : 0)
+        .offset(y: hasAnimatedIn ? 0 : 24)
+        .scaleEffect(hasAnimatedIn ? 1 : 0.92)
+        .animation(.easeOut(duration: 0.45), value: hasAnimatedIn)
     }
 
-    // MARK: - Action Button
+    // MARK: - Copy
 
-    private func actionButton(title: LocalizedStringKey) -> some View {
-        Button {
-            triggerHaptic(.medium)
-            onAction?()
-        } label: {
-            HStack(spacing: 8) {
-                if page.hasPermissionAction {
-                    Image(systemName: "location.fill")
-                }
-                Text(title)
-                    .fontWeight(.semibold)
-                if page.isFinalPage {
-                    Image(systemName: "arrow.right")
-                }
-            }
-            .font(.headline)
-            .foregroundStyle(.white)
-            .frame(maxWidth: 280)
-            .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(page.accentColor)
-            )
-            .shadow(color: page.accentColor.opacity(0.4), radius: 12, y: 4)
+    private var textSection: some View {
+        VStack(spacing: 12) {
+            Text(LocalizedStringKey(slide.titleKey))
+                .font(theme.titleFont)
+                .foregroundStyle(theme.primaryText)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(LocalizedStringKey(slide.subtitleKey))
+                .font(theme.subtitleFont)
+                .foregroundStyle(theme.secondaryText)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .opacity(hasAnimatedIn ? 1 : 0)
+        .offset(y: hasAnimatedIn ? 0 : 20)
+        .animation(.easeOut(duration: 0.42).delay(0.04), value: hasAnimatedIn)
     }
 
     // MARK: - Animation
 
     private func animateIn() {
-        withAnimation(.spring(response: config.springResponse, dampingFraction: config.springDamping).delay(0.1)) {
+        guard !reduceMotion else {
+            hasAnimatedIn = true
+            return
+        }
+
+        withAnimation(.spring(response: theme.springResponse, dampingFraction: theme.springDamping).delay(0.08)) {
             hasAnimatedIn = true
         }
-    }
-
-    private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        UIImpactFeedbackGenerator(style: style).impactOccurred()
     }
 }
 
 // MARK: - Preview
 
-#Preview("Welcome Page") {
+#Preview("Welcome") {
+    let slide = OnboardingConfiguration.shared.slide(for: .welcome)
+    let theme = OnboardingVisualTheme.forColorScheme(.dark)
     ZStack {
         Color.black.ignoresSafeArea()
-        OnboardingPageView(page: .welcome, isVisible: true)
+        OnboardingPageView(
+            slide: slide,
+            theme: theme,
+            isActive: true,
+            reduceMotion: false
+        )
     }
 }
 
-#Preview("Location Page") {
+#Preview("Location - Light") {
+    let slide = OnboardingConfiguration.shared.slide(for: .location)
+    let theme = OnboardingVisualTheme.forColorScheme(.light)
     ZStack {
-        Color.black.ignoresSafeArea()
-        OnboardingPageView(page: .location, isVisible: true) {
-            print("Request location permission")
-        }
-    }
-}
-
-#Preview("Ready Page") {
-    ZStack {
-        Color.black.ignoresSafeArea()
-        OnboardingPageView(page: .ready, isVisible: true) {
-            print("Start using app")
-        }
+        Color.white.ignoresSafeArea()
+        OnboardingPageView(
+            slide: slide,
+            theme: theme,
+            isActive: true,
+            reduceMotion: false
+        )
     }
 }

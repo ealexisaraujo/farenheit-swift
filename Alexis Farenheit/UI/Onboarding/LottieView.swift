@@ -8,6 +8,7 @@ struct LottieView: UIViewRepresentable {
     let loopMode: LottieLoopMode
     let animationSpeed: CGFloat
     let contentMode: UIView.ContentMode
+    let playbackTrigger: Int
 
     /// Called when animation completes (only for non-looping animations)
     var onComplete: (() -> Void)?
@@ -17,12 +18,14 @@ struct LottieView: UIViewRepresentable {
         loopMode: LottieLoopMode = .loop,
         animationSpeed: CGFloat = 1.0,
         contentMode: UIView.ContentMode = .scaleAspectFit,
+        playbackTrigger: Int = 0,
         onComplete: (() -> Void)? = nil
     ) {
         self.animationName = animationName
         self.loopMode = loopMode
         self.animationSpeed = animationSpeed
         self.contentMode = contentMode
+        self.playbackTrigger = playbackTrigger
         self.onComplete = onComplete
     }
 
@@ -39,6 +42,9 @@ struct LottieView: UIViewRepresentable {
 
         // Track current animation name
         context.coordinator.currentAnimationName = animationName
+        context.coordinator.currentPlaybackTrigger = playbackTrigger
+        context.coordinator.currentLoopMode = loopMode
+        context.coordinator.currentAnimationSpeed = animationSpeed
 
         // Allow SwiftUI to size the view
         animationView.setContentHuggingPriority(.defaultLow, for: .horizontal)
@@ -56,18 +62,36 @@ struct LottieView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: LottieAnimationView, context: Context) {
-        // Update animation if name changed
-        if context.coordinator.currentAnimationName != animationName {
+        let animationNameChanged = context.coordinator.currentAnimationName != animationName
+        let playbackChanged = context.coordinator.currentPlaybackTrigger != playbackTrigger
+        let loopModeChanged = context.coordinator.currentLoopMode != loopMode
+        let speedChanged = context.coordinator.currentAnimationSpeed != animationSpeed
+
+        if animationNameChanged {
             context.coordinator.currentAnimationName = animationName
             uiView.animation = LottieAnimation.named(animationName)
+        }
+
+        if animationNameChanged || playbackChanged || loopModeChanged || speedChanged {
+            context.coordinator.currentPlaybackTrigger = playbackTrigger
+            context.coordinator.currentLoopMode = loopMode
+            context.coordinator.currentAnimationSpeed = animationSpeed
             uiView.loopMode = loopMode
             uiView.animationSpeed = animationSpeed
-            uiView.play()
+            uiView.currentProgress = 0
+            uiView.play { completed in
+                if completed {
+                    onComplete?()
+                }
+            }
         }
     }
 
     class Coordinator {
         var currentAnimationName: String = ""
+        var currentPlaybackTrigger: Int = 0
+        var currentLoopMode: LottieLoopMode = .loop
+        var currentAnimationSpeed: CGFloat = 1.0
     }
 }
 
