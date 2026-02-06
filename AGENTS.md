@@ -22,8 +22,14 @@ Generated artifacts:
 Manual QA checklist:
 - `localization/QA_CHECKLIST.md`
 
+Localization QA (xcodebuild):
+- `xcodebuild test -project 'Alexis Farenheit.xcodeproj' -scheme 'Alexis Farenheit' -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2'`
+- `xcodebuild test -project 'Alexis Farenheit.xcodeproj' -scheme 'Alexis Farenheit' -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' -testLanguage es -testRegion ES`
+
 ## New Language Automation
 - One-command language onboarding:
   - `python3 scripts/i18n_workflow.py --language pt-BR`
+- Dry-run (inventory only, no file mutation):
+  - `python3 scripts/i18n_workflow.py --language pt-BR --dry-run`
 - Documentation:
   - `localization/I18N_WORKFLOW_SCRIPT.md`
