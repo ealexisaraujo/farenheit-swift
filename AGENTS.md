@@ -33,3 +33,9 @@ Localization QA (xcodebuild):
   - `python3 scripts/i18n_workflow.py --language pt-BR --dry-run`
 - Documentation:
   - `localization/I18N_WORKFLOW_SCRIPT.md`
+
+## Debugging (Xcode)
+- Simulate Background Fetch: `Xcode → Debug → Simulate Background Fetch`
+- Clean build: `Cmd + Shift + K`
+- Verify App Group availability:
+  - `print(WidgetDataService.shared.isAppGroupAvailable())`
